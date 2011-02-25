@@ -1,5 +1,5 @@
 ; project: github/gw666/infwb
-					; file: sedna.clj
+; file: sedna.clj
 ; last changed: 2/19/11
 
 ; HISTORY:
@@ -9,12 +9,25 @@
 
 (ns infwb.sedna
   (:gen-class)
-  (:require [clojure.string :as str])
-  (:import (javax.xml.xquery XQConnection XQDataSource
+;  (:require [clojure.string :as str])
+  (:import (javax.xml.xquery   XQConnection XQDataSource
 			     XQResultSequence)
-	   (net.cfoster.sedna.xqj SednaXQDataSource)
-	   (java.util Properties)))
+	   (net.cfoster.sedna.xqj   SednaXQDataSource)
+	   (java.util   Properties)))
 
+;(declare *db*)
+
+(defn db-startup
+  "does all database setup for current session of work"
+  []
+  ;WARNING - RE-EXECUTING THIS DELETES ICARD DATABASE
+  (def ^{:dynamic true} *db* [{} {}])
+  
+  (def ^{:dynamic true} *xqs* (SednaXQDataSource.)) ;naughty, but okay for debugging
+    (doto *xqs*
+      (.setProperty "serverName" "localhost")
+      (.setProperty "databaseName" "test")))
+  
 (defn get-result
   "gets the result of an XQuery"
   ([result-sequence]
@@ -25,14 +38,6 @@
        result-vector
        (recur result-sequence (conj result-vector (.getItemAsString result-sequence (Properties.)))))))
 
-(defn db-init
-  "does all database setup for current session of work"
-  []
-  (def xqs (SednaXQDataSource.)) ;naughty, but okay for debugging
-    (doto xqs
-      (.setProperty "serverName" "localhost")
-      (.setProperty "databaseName" "test")))
-  
   
 
 ;;insights taken from ~/tech/schemestuff/InfWb/main/sedna-utilities.ss
@@ -40,7 +45,9 @@
 (defn getdata [filter result]
   "Returns results of db query; filter selects records, result extracts
 data from selected records. Influenced by (db-init)."
-  (let [conn (.getConnection xqs "SYSTEM" "MANAGER")
+  (prn filter)
+  (prn result)
+  (let [conn (.getConnection *xqs* "SYSTEM" "MANAGER")
 	xqe (.createExpression conn)
 	xqueryString
 	(str
@@ -56,12 +63,31 @@ data from selected records. Influenced by (db-init)."
 (defn getquery
   "Returns full query that is executed by (getdata filter result)"
   [filter result]
-  (str
-   "declare default element namespace 'http://infoml.org/infomlFile';\n"
-   "for $card in collection('test')/infomlFile/"
-   filter "\n"
-   "return " result))
-  
+  (vector
+   "declare default element namespace 'http://infoml.org/infomlFile';"
+   (str "for $card in collection('test')/infomlFile/" filter)
+   (str "return " result)))
 
+(defn icard-get
+  "get icard data from appn database, return it as an icard record"
+  [cid]
+  (let [data-vec 
+	(getdata (str "infoml[@cardId = '" cid "']")
+		 "($card/data/title/string(), $card/data/content/string())")]
+    (infwb.core/icard. cid (get data-vec 0) (get data-vec 1))))
+
+(defn load-icard
+  "Stores the icard record in the in-memory database (0th map in *db*)"
+  [record]
+  (let [id (:id record)
+	icard-idx 0
+	id-exists? (get-in @*db* [icard-idx id])]
+    (if (id-exists?)
+      (swap! *db* assoc-in [icard-idx :id] record)
+      (swap! *db* update-in [icard-idx] assoc id record))))
+
+
+
+  
 
 
