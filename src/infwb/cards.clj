@@ -1,9 +1,13 @@
 ; project: github/gw666/infwb
-; file: cards.clj
+; file: src/infwb/cards.clj
 
 ; HISTORY:
 
-#_(defprotocol ICARDLIKE
+(ns infwb.cards
+  (:gen-class))
+
+
+  #_(defprotocol ICARDLIKE
   (ttext [this] "string; title text for infocard pointed to by id")
   (btext [this] "string; body text for infocard pointed to by id")
   )
@@ -13,7 +17,14 @@
 		  btxt]  ;string; body text
   )
 
+(defn new-icard [id ttxt btxt]
+  (icard. id ttxt btxt))
+
 (defrecord slip [id      ;string; id of slip
 		 cid     ;string; card-id of infocard to be displayed
-		 cdobj]  ;Java object; Piccolo object that implements slip
+		 pobj]   ;Piccolo object that implements slip
   )
+
+(defn new-slip [id cid pobj]
+  (slip. id cid pobj))
+

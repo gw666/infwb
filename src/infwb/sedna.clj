@@ -1,5 +1,5 @@
 ; project: github/gw666/infwb
-; file: sedna.clj
+; file: src/infwb/sedna.clj
 ; last changed: 2/19/11
 
 ; HISTORY:
@@ -13,15 +13,15 @@
   (:import (javax.xml.xquery   XQConnection XQDataSource
 			     XQResultSequence)
 	   (net.cfoster.sedna.xqj   SednaXQDataSource)
-	   (java.util   Properties)))
-
-;(declare *db*)
+	   (java.util   Properties))
+  (:use (infwb cards)))
 
 (defn db-startup
-  "does all database setup for current session of work"
+  "does all database setup for current session of work; should be
+executed once; WARNING: deletes the database of icards and slips"
   []
   ;WARNING - RE-EXECUTING THIS DELETES ICARD DATABASE
-  (def ^{:dynamic true} *db* [{} {}])
+  (def ^{:dynamic true} *appdb* (atom [{} {}]))
   
   (def ^{:dynamic true} *xqs* (SednaXQDataSource.)) ;naughty, but okay for debugging
     (doto *xqs*
@@ -42,11 +42,11 @@
 
 ;;insights taken from ~/tech/schemestuff/InfWb/main/sedna-utilities.ss
 
-(defn getdata [filter result]
+(defn run-db-query [filter result]
   "Returns results of db query; filter selects records, result extracts
 data from selected records. Influenced by (db-init)."
-  (prn filter)
-  (prn result)
+;  (prn filter)
+;  (prn result)
   (let [conn (.getConnection *xqs* "SYSTEM" "MANAGER")
 	xqe (.createExpression conn)
 	xqueryString
@@ -60,34 +60,29 @@ data from selected records. Influenced by (db-init)."
     (.close conn)
     result))
 
-(defn getquery
-  "Returns full query that is executed by (getdata filter result)"
+(defn show-db-query
+  "Returns full query that is executed by (run-db-query filter result)"
   [filter result]
   (vector
    "declare default element namespace 'http://infoml.org/infomlFile';"
    (str "for $card in collection('test')/infomlFile/" filter)
    (str "return " result)))
 
-(defn icard-get
+(defn db->icard
   "get icard data from appn database, return it as an icard record"
   [cid]
   (let [data-vec 
-	(getdata (str "infoml[@cardId = '" cid "']")
+	(run-db-query (str "infoml[@cardId = '" cid "']")
 		 "($card/data/title/string(), $card/data/content/string())")]
-    (infwb.core/icard. cid (get data-vec 0) (get data-vec 1))))
+    (new-icard cid (get data-vec 0) (get data-vec 1))))
 
-(defn load-icard
-  "Stores the icard record in the in-memory database (0th map in *db*)"
+(defn icard->appdb
+  "Stores the icard record in the in-memory database (0th map in *appdb*)"
   [record]
   (let [id (:id record)
 	icard-idx 0
-	id-exists? (get-in @*db* [icard-idx id])]
-    (if (id-exists?)
-      (swap! *db* assoc-in [icard-idx :id] record)
-      (swap! *db* update-in [icard-idx] assoc id record))))
-
-
-
-  
-
+	id-exists?  (get-in @*appdb* [icard-idx id])]
+    (if id-exists?
+      (swap! *appdb* assoc-in [icard-idx id] record)
+      (swap! *appdb* update-in [icard-idx] assoc id record))))
 
