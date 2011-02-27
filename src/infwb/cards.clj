@@ -21,10 +21,11 @@
   (icard. id ttxt btxt))
 
 (defrecord slip [id      ;string; id of slip
-		 cid     ;string; card-id of infocard to be displayed
+		 iid     ;string; card-id of icard to be displayed
 		 pobj]   ;Piccolo object that implements slip
   )
 
-(defn new-slip [id cid pobj]
-  (slip. id cid pobj))
-
+(defn new-slip
+  ([id pobj] (let [iid (infwb.sedna/icard-data id :id)]
+	      (slip. id iid pobj)))
+  ([id]      (new-slip id nil)))

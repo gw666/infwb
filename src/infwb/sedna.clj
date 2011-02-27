@@ -70,11 +70,16 @@ data from selected records. Influenced by (db-init)."
 
 (defn db->icard
   "get icard data from appn database, return it as an icard record"
-  [cid]
+  [iid]
   (let [data-vec 
-	(run-db-query (str "infoml[@cardId = '" cid "']")
+	(run-db-query (str "infoml[@cardId = '" iid "']")
 		 "($card/data/title/string(), $card/data/content/string())")]
-    (new-icard cid (get data-vec 0) (get data-vec 1))))
+    (new-icard iid (get data-vec 0) (get data-vec 1))))
+
+(defn db->all-iids
+  "get a sequence of all icard IDs from appn database"
+  []
+  (run-db-query "infoml" "$card/@cardId/string()"))
 
 (defn icard->appdb
   "Stores the icard record in the in-memory database (0th map in *appdb*)"
@@ -86,3 +91,10 @@ data from selected records. Influenced by (db-init)."
       (swap! *appdb* assoc-in [icard-idx id] record)
       (swap! *appdb* update-in [icard-idx] assoc id record))))
 
+(defn icard-data
+  ""
+  [iid field-key]
+  (let [icard-idx 0  ;indexes to the icard map within *appdb*
+	;gets (as a map) the icard with key iid
+	icard-map (get-in *appdb* [icard-idx iid])]
+    (field-key icard-map)))
