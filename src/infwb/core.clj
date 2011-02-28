@@ -22,17 +22,15 @@
 ;   (java.util Properties)
    (javax.xml.xquery   XQConnection XQDataSource XQResultSequence)
    (net.cfoster.sedna.xqj   SednaXQDataSource))
-  (:use (infwb   sedna cards)
-      [clojure.repl :only (doc find-doc)])
+  (:use (infwb   sedna))
   )
-
-
-
 
 (defn -main[]
   (db-startup))
+		    
 
-(comment		      ;what's below is misc statements to test
+
+(comment		      ;What's below is misc statements to test
 
   (def foo (icard-get "gw667_79"))
   (load-icard foo)

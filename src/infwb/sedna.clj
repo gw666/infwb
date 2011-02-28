@@ -9,12 +9,11 @@
 
 (ns infwb.sedna
   (:gen-class)
-;  (:require [clojure.string :as str])
   (:import (javax.xml.xquery   XQConnection XQDataSource
-			     XQResultSequence)
+			       XQResultSequence)
 	   (net.cfoster.sedna.xqj   SednaXQDataSource)
 	   (java.util   Properties))
-  (:use (infwb cards)))
+  )
 
 (defn db-startup
   "does all database setup for current session of work; should be
@@ -44,7 +43,8 @@ executed once; WARNING: deletes the database of icards and slips"
 
 (defn run-db-query [filter result]
   "Returns results of db query; filter selects records, result extracts
-data from selected records. Influenced by (db-init)."
+data from selected records. Influenced by (db-init). Assumes *xqs* is
+a working XQDataSource."
 ;  (prn filter)
 ;  (prn result)
   (let [conn (.getConnection *xqs* "SYSTEM" "MANAGER")
@@ -67,6 +67,36 @@ data from selected records. Influenced by (db-init)."
    "declare default element namespace 'http://infoml.org/infomlFile';"
    (str "for $card in collection('test')/infomlFile/" filter)
    (str "return " result)))
+
+(defn rand-kayko
+  "creates a random key of 2*len characters"
+  [len]
+  (let [consons (repeatedly len #(rand-nth "bdfghjklmnpqrstvwxyz"))
+	vowels (repeatedly len #(rand-nth "aeiou"))
+	]
+    (apply str (doall (interleave consons vowels))))) ;doall removes laziness
+
+;; One important characteristic of the icard "section" of *appdb* (itself a
+;; map) is that the value of the id field of the icard is also the key
+;; of that map.
+(defrecord icard [id     ;string; icard-id of infocard
+		  ttxt   ;string; title text
+		  btxt]  ;string; body text
+  )
+
+(defrecord slip [id      ;string; id of slip
+		 iid     ;string; card-id of icard to be displayed
+		 pobj]   ;Piccolo object that implements slip
+  )
+
+(defn new-icard [id ttxt btxt]
+  (icard. id ttxt btxt))
+
+(defn new-slip
+  ([icard-id pobj]  (let [rand-key (rand-kayko 3)]
+		     (slip. rand-key icard-id pobj)))
+  ([icard-id]      (new-slip icard-id nil)))
+
 
 (defn db->icard
   "get icard data from appn database, return it as an icard record"
@@ -92,9 +122,11 @@ data from selected records. Influenced by (db-init)."
       (swap! *appdb* update-in [icard-idx] assoc id record))))
 
 (defn icard-data
-  ""
+  "for icard w/ key iid, get value of field named field-key (e.g.,:cid)"
   [iid field-key]
   (let [icard-idx 0  ;indexes to the icard map within *appdb*
 	;gets (as a map) the icard with key iid
-	icard-map (get-in *appdb* [icard-idx iid])]
+	icard-map (get-in @*appdb* [icard-idx iid])]
     (field-key icard-map)))
+
+
