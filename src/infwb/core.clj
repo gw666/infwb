@@ -22,11 +22,19 @@
 ;   (java.util Properties)
    (javax.xml.xquery   XQConnection XQDataSource XQResultSequence)
    (net.cfoster.sedna.xqj   SednaXQDataSource))
-  (:use (infwb   sedna))
   )
 
+;; =============== GLOBALS ===============
+
+(def *icard-idx*   0)  ;icard db is 0th element of @*appdb*
+(def *slip-idx*    1)  ;slip db is 1st element of @*appdb*
+
+(use 'infwb.sedna)
+
+
 (defn -main[]
-  (db-startup))
+  (db-startup)
+  (prn "InfWb app db has started up"))
 		    
 
 

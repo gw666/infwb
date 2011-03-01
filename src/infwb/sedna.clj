@@ -25,7 +25,7 @@ executed once; WARNING: deletes the database of icards and slips"
   (def ^{:dynamic true} *xqs* (SednaXQDataSource.)) ;naughty, but okay for debugging
     (doto *xqs*
       (.setProperty "serverName" "localhost")
-      (.setProperty "databaseName" "test")))
+      (.setProperty "databaseName" "brain")))
   
 (defn get-result
   "gets the result of an XQuery"
@@ -109,24 +109,44 @@ a working XQDataSource."
 (defn db->all-iids
   "get a sequence of all icard IDs from appn database"
   []
-  (run-db-query "infoml" "$card/@cardId/string()"))
+  (run-db-query "infoml[position() != 1]" "$card/@cardId/string()"))
 
+;; TODO: confirm correct behavior for replace vs. add
 (defn icard->appdb
   "Stores the icard record in the in-memory database (0th map in *appdb*)"
-  [record]
-  (let [id (:id record)
-	icard-idx 0
+  [icard]
+  (let [id (:id icard)
+	icard-idx   infwb.core/*icard-idx*
 	id-exists?  (get-in @*appdb* [icard-idx id])]
-    (if id-exists?
-      (swap! *appdb* assoc-in [icard-idx id] record)
-      (swap! *appdb* update-in [icard-idx] assoc id record))))
+    (if id-exists?  ;if true, replaces existing; false adds new icard
+      (swap! *appdb* assoc-in [icard-idx id] icard)
+      (swap! *appdb* update-in [icard-idx] assoc id icard))))
 
-(defn icard-data
+(defn db->appdb
+  "copy icard (if found) from (persistent) db to appdb"
+  [iid]
+  (let [icard (db->icard iid)
+	not-found? (and
+		    (nil? (:ttxt icard)) (nil? (:btxt icard)))]
+	(if not-found?
+	  (prn "ERROR: card with iid=" iid " not found")
+	  (icard->appdb icard) )))
+
+(defn icard-field
+  "for icard, get value of field named field-key (e.g.,:cid)"
+  [icard field-key]
+  (field-key icard))
+
+(defn appdb
   "for icard w/ key iid, get value of field named field-key (e.g.,:cid)"
-  [iid field-key]
-  (let [icard-idx 0  ;indexes to the icard map within *appdb*
-	;gets (as a map) the icard with key iid
-	icard-map (get-in @*appdb* [icard-idx iid])]
-    (field-key icard-map)))
+  [iid]
+  (let [icard-idx   infwb.core/*icard-idx*]  ;icard db is 0th element of @*appdb*
+    (get-in @*appdb* [icard-idx iid])))
+
+
+(defn icard-db-size
+  "number of icards in the application's internal icard db"
+  []
+  (count (keys (nth @*appdb* 0))))
 
 
