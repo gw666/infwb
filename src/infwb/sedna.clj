@@ -118,7 +118,8 @@ a working XQDataSource."
   (let [id (:id icard)
 	icard-idx   infwb.core/*icard-idx*
 	id-exists?  (get-in @*appdb* [icard-idx id])]
-    (if id-exists?  ;if true, replaces existing; false adds new icard
+;    (swank.core/break)
+    (if id-exists?   ;if true, replaces existing; false adds new icard
       (swap! *appdb* assoc-in [icard-idx id] icard)
       (swap! *appdb* update-in [icard-idx] assoc id icard))))
 
@@ -128,9 +129,10 @@ a working XQDataSource."
   (let [icard (db->icard iid)
 	not-found? (and
 		    (nil? (:ttxt icard)) (nil? (:btxt icard)))]
-	(if not-found?
-	  (prn "ERROR: card with iid=" iid " not found")
-	  (icard->appdb icard) )))
+;    (swank.core/break)
+    (if not-found?
+      (println "ERROR: card with iid =" iid "not found")
+      (icard->appdb icard) )))
 
 (defn icard-field
   "for icard, get value of field named field-key (e.g.,:cid)"
@@ -148,5 +150,4 @@ a working XQDataSource."
   "number of icards in the application's internal icard db"
   []
   (count (keys (nth @*appdb* 0))))
-
 

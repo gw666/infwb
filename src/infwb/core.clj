@@ -26,8 +26,8 @@
 
 ;; =============== GLOBALS ===============
 
-(def *icard-idx*   0)  ;icard db is 0th element of @*appdb*
-(def *slip-idx*    1)  ;slip db is 1st element of @*appdb*
+(def ^{:dynamic true} *icard-idx*   0)  ;icard db is 0th element of @*appdb*
+(def ^{:dynamic true} *slip-idx*    1)  ;slip db is 1st element of @*appdb*
 
 (use 'infwb.sedna)
 
