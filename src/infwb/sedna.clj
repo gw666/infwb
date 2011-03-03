@@ -75,7 +75,7 @@ a working XQDataSource."
   (let [consons (repeatedly len #(rand-nth "bdfghjklmnpqrstvwxyz"))
 	vowels (repeatedly len #(rand-nth "aeiou"))
 	]
-    (apply str (doall (interleave consons vowels))))) ;doall removes laziness
+    (apply str (interleave consons vowels))))
 
 ;; One important characteristic of the icard "section" of *appdb* (itself a
 ;; map) is that the value of the id field of the icard is also the key
@@ -138,7 +138,7 @@ a working XQDataSource."
 	(icard->appdb icard) ))))
 
 (defn icard-field
-  "for icard, get value of field named field-key (e.g.,:cid)"
+  "given icard, get value of field named field-key (e.g.,:cid)"
   [icard field-key]
   (field-key icard))
 
@@ -148,9 +148,20 @@ a working XQDataSource."
   (let [icard-idx   *icard-idx*]  ;icard db is 0th element of @*appdb*
     (get-in @*appdb* [icard-idx iid])))
 
-
 (defn icard-db-size
   "number of icards in the application's internal icard db"
   []
   (count (keys (nth @*appdb* 0))))
+
+(defn slip->icard
+  "given a slip id, return its icard from the appdb"
+  [slip]
+  ;;the :iid field of the slip contains the id of the corresp. icard
+  (appdb (:iid slip)))
+
+(defn slip-field
+  "given slip, get value of field named field-key (e.g.,:cid)"
+  [slip field-key]
+  (icard-field (slip->icard slip) field-key))
+
 
