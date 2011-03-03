@@ -12,20 +12,22 @@
   (:import (javax.xml.xquery   XQConnection XQDataSource
 			       XQResultSequence)
 	   (net.cfoster.sedna.xqj   SednaXQDataSource)
-	   (java.util   Properties))
-  )
+	   (java.util   Properties)))
+
 
 (defn db-startup
   "does all database setup for current session of work; should be
 executed once; WARNING: deletes the database of icards and slips"
   []
   ;WARNING - RE-EXECUTING THIS DELETES ICARD DATABASE
+  (def ^{:dynamic true} *icard-idx*   0) ;icard db is 0th element of @*appdb*
+  (def ^{:dynamic true} *slip-idx*    1) ;slip db is 1st element of @*appdb*
   (def ^{:dynamic true} *appdb* (atom [{} {}]))
   
-  (def ^{:dynamic true} *xqs* (SednaXQDataSource.)) ;naughty, but okay for debugging
-    (doto *xqs*
-      (.setProperty "serverName" "localhost")
-      (.setProperty "databaseName" "brain")))
+  (def ^{:dynamic true} *xqs* (SednaXQDataSource.)) ;naughty; OK for debugging
+  (doto *xqs*
+    (.setProperty "serverName" "localhost")
+    (.setProperty "databaseName" "brain")))
   
 (defn get-result
   "gets the result of an XQuery"
@@ -41,12 +43,11 @@ executed once; WARNING: deletes the database of icards and slips"
 
 ;;insights taken from ~/tech/schemestuff/InfWb/main/sedna-utilities.ss
 
-(defn run-db-query [filter result]
+(defn run-db-query
   "Returns results of db query; filter selects records, result extracts
 data from selected records. Influenced by (db-init). Assumes *xqs* is
 a working XQDataSource."
-;  (prn filter)
-;  (prn result)
+  [filter result]
   (let [conn (.getConnection *xqs* "SYSTEM" "MANAGER")
 	xqe (.createExpression conn)
 	xqueryString
@@ -93,7 +94,7 @@ a working XQDataSource."
   (icard. id ttxt btxt))
 
 (defn new-slip
-  ([icard-id pobj]  (let [rand-key (rand-kayko 3)]
+  ([icard-id pobj]  (let [rand-key (str "sl:" (rand-kayko 3))]
 		     (slip. rand-key icard-id pobj)))
   ([icard-id]      (new-slip icard-id nil)))
 
@@ -116,12 +117,13 @@ a working XQDataSource."
   "Stores the icard record in the in-memory database (0th map in *appdb*)"
   [icard]
   (let [id (:id icard)
-	icard-idx   infwb.core/*icard-idx*
+	icard-idx   *icard-idx*
 	id-exists?  (get-in @*appdb* [icard-idx id])]
 ;    (swank.core/break)
     (if id-exists?   ;if true, replaces existing; false adds new icard
       (swap! *appdb* assoc-in [icard-idx id] icard)
-      (swap! *appdb* update-in [icard-idx] assoc id icard))))
+      (swap! *appdb* update-in [icard-idx] assoc id icard)))
+  nil)
 
 (defn db->appdb
   "copy icard (if found) from (persistent) db to appdb"
@@ -129,10 +131,11 @@ a working XQDataSource."
   (let [icard (db->icard iid)
 	not-found? (and
 		    (nil? (:ttxt icard)) (nil? (:btxt icard)))]
-;    (swank.core/break)
     (if not-found?
       (println "ERROR: card with iid =" iid "not found")
-      (icard->appdb icard) )))
+      (do
+	(println "Storing" iid)
+	(icard->appdb icard) ))))
 
 (defn icard-field
   "for icard, get value of field named field-key (e.g.,:cid)"
@@ -142,7 +145,7 @@ a working XQDataSource."
 (defn appdb
   "for icard w/ key iid, get value of field named field-key (e.g.,:cid)"
   [iid]
-  (let [icard-idx   infwb.core/*icard-idx*]  ;icard db is 0th element of @*appdb*
+  (let [icard-idx   *icard-idx*]  ;icard db is 0th element of @*appdb*
     (get-in @*appdb* [icard-idx iid])))
 
 
