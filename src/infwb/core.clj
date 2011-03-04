@@ -24,7 +24,6 @@
   ;; (javax.xml.xquery   XQConnection XQDataSource XQResultSequence)
   ;; (net.cfoster.sedna.xqj   SednaXQDataSource)
    )
-  (:use [infwb.infocard])
   (:use [infwb.sedna])
   )
 
@@ -36,14 +35,6 @@
 ;;   (prn "InfWb app db has started up"))
 (declare title-text)
 (declare body-text)
-
-(defn slip-pobj
-  "given a slip & its position, return its Piccolo infocard"
-  [slip x y]
-  (let [ttxt (slip-field slip :ttxt)
-	btxt (slip-field slip :btxt)]
-    (swank.core/break)
-    (infocard x y ttxt btxt)))
 
 (defn testme [the-layer title-text body-text]
   (let [card (infocard 50 100 title-text body-text)

@@ -12,7 +12,8 @@
   (:import (javax.xml.xquery   XQConnection XQDataSource
 			       XQResultSequence)
 	   (net.cfoster.sedna.xqj   SednaXQDataSource)
-	   (java.util   Properties)))
+	   (java.util   Properties))
+    (:use [infwb.infocard]))
 
 
 (defn db-startup
@@ -34,7 +35,6 @@ executed once; WARNING: deletes the database of icards and slips"
   ([result-sequence]
      (get-result result-sequence (vector)))
   ([result-sequence result-vector]
-    ; (swank.core/break)
      (if (not  (.next result-sequence))
        result-vector
        (recur result-sequence (conj result-vector (.getItemAsString result-sequence (Properties.)))))))
@@ -69,14 +69,6 @@ a working XQDataSource."
    (str "for $card in collection('test')/infomlFile/" filter)
    (str "return " result)))
 
-(defn rand-kayko
-  "creates a random key of 2*len characters"
-  [len]
-  (let [consons (repeatedly len #(rand-nth "bdfghjklmnpqrstvwxyz"))
-	vowels (repeatedly len #(rand-nth "aeiou"))
-	]
-    (apply str (interleave consons vowels))))
-
 ;; One important characteristic of the icard "section" of *appdb* (itself a
 ;; map) is that the value of the id field of the icard is also the key
 ;; of that map.
@@ -85,18 +77,26 @@ a working XQDataSource."
 		  btxt]  ;string; body text
   )
 
+(defn new-icard [id ttxt btxt]
+  (icard. id ttxt btxt))
+
 (defrecord slip [id      ;string; id of slip
 		 iid     ;string; card-id of icard to be displayed
 		 pobj]   ;Piccolo object that implements slip
   )
 
-(defn new-icard [id ttxt btxt]
-  (icard. id ttxt btxt))
+(defn rand-kayko
+  "creates a random key of 2*len characters"
+  [len]
+  (let [consons (repeatedly len #(rand-nth "bdfghjklmnpqrstvwxyz"))
+	vowels (repeatedly len #(rand-nth "aeiou"))
+	]
+    (apply str (interleave consons vowels))))
 
-(defn new-slip
+(defn new-partial-slip
   ([icard-id pobj]  (let [rand-key (str "sl:" (rand-kayko 3))]
 		     (slip. rand-key icard-id pobj)))
-  ([icard-id]      (new-slip icard-id nil)))
+  ([icard-id]      (new-partial-slip icard-id nil)))
 
 
 (defn db->icard
@@ -114,12 +114,11 @@ a working XQDataSource."
 
 ;; TODO: confirm correct behavior for replace vs. add
 (defn icard->appdb
-  "Stores the icard record in the in-memory database (0th map in *appdb*)"
+  "Stores the icard record in the in-memory database"
   [icard]
   (let [id (:id icard)
 	icard-idx   *icard-idx*
 	id-exists?  (get-in @*appdb* [icard-idx id])]
-;    (swank.core/break)
     (if id-exists?   ;if true, replaces existing; false adds new icard
       (swap! *appdb* assoc-in [icard-idx id] icard)
       (swap! *appdb* update-in [icard-idx] assoc id icard)))
@@ -153,6 +152,17 @@ a working XQDataSource."
   []
   (count (keys (nth @*appdb* 0))))
 
+(defn slip->appdb
+  "Stores the slip record in the in-memory database"
+  [slip]
+  (let [id (:id slip)
+	slip-idx   *slip-idx*
+	id-exists?  (get-in @*appdb* [slip-idx id])]
+    (if id-exists?   ;if true, replaces existing; false adds new slip
+      (swap! *appdb* assoc-in [slip-idx id] slip)
+      (swap! *appdb* update-in [slip-idx] assoc id slip)))
+  nil)
+
 (defn slip->icard
   "given a slip id, return its icard from the appdb"
   [slip]
@@ -163,5 +173,16 @@ a working XQDataSource."
   "given slip, get value of field named field-key (e.g.,:cid)"
   [slip field-key]
   (icard-field (slip->icard slip) field-key))
+
+(defn slip-pobj
+  "given a slip & its position, return its Piccolo infocard"
+  [slip x y]
+  (let [ttxt (slip-field slip :ttxt)
+	btxt (slip-field slip :btxt)]
+    (swank.core/break)
+    (infocard x y ttxt btxt)))
+
+
+
 
 
