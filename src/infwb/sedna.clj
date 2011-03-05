@@ -94,9 +94,9 @@ a working XQDataSource."
     (apply str (interleave consons vowels))))
 
 (defn new-partial-slip
-  ([icard-id pobj]  (let [rand-key (str "sl:" (rand-kayko 3))]
-		     (slip. rand-key icard-id pobj)))
-  ([icard-id]      (new-partial-slip icard-id nil)))
+  [icard-id]  (let [rand-key   (str "sl:" (rand-kayko 3))
+			  empty-pobj   nil]
+		     (slip. rand-key icard-id empty-pobj)))
 
 
 (defn db->icard
@@ -141,7 +141,7 @@ a working XQDataSource."
   [icard field-key]
   (field-key icard))
 
-(defn appdb
+(defn appdb->icard
   "for icard w/ key iid, get value of field named field-key (e.g.,:cid)"
   [iid]
   (let [icard-idx   *icard-idx*]  ;icard db is 0th element of @*appdb*
@@ -179,9 +179,22 @@ a working XQDataSource."
   [slip x y]
   (let [ttxt (slip-field slip :ttxt)
 	btxt (slip-field slip :btxt)]
-    (swank.core/break)
+;    (swank.core/break)
     (infocard x y ttxt btxt)))
 
+;; SAT 3/5: check that both branches work!
+(defn slip+pobj->appdb
+  "Stores the slip record in the in-memory database"
+  [slip pobj]
+  (let [id (:id slip)
+	iid (:iid slip)
+	slip-idx   *slip-idx*
+	id-exists?  (get-in @*appdb* [slip-idx id])]
+    (if id-exists?   ;if true, replaces existing; false adds new slip
+      (swap! *appdb* assoc-in [slip-idx id :pobj] pobj)
+      (swap! *appdb* update-in [slip-idx id]
+	     assoc id (slip. id iid pobj)))
+  nil)
 
 
 

@@ -24,6 +24,7 @@
   ;; (javax.xml.xquery   XQConnection XQDataSource XQResultSequence)
   ;; (net.cfoster.sedna.xqj   SednaXQDataSource)
    )
+  (:use [infwb.infocard])
   (:use [infwb.sedna])
   )
 
