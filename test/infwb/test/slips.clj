@@ -1,3 +1,8 @@
+; project: github/gw666/infwb
+; file: /test/infwb/test/slips
+
+; HISTORY:
+
 (ns infwb.test.slips
   (:use [infwb.infocard] :reload)
   (:use [infwb.sedna] :reload)
@@ -9,81 +14,63 @@
 ;; "/Users/gw/Documents/99-IMPORTANT DOCUMENTS/permanent infocards, sch
 ;; ema v0.90/hofstadter, doidge.XML". The file's
 ;; lowest key is "gw667_090815161114586", and there should be 67 records.
-;; The function (db-startup) should be run before testing.
+;; NB: The function (db-startup) is run at the start of testing.
+;;
+;; Also, set needed top-level vars for Piccolo with the following:
+;;
+;;   (do
+;;     (def frame1 (PFrame.))
+;;     (def canvas1 (.getCanvas frame1))
+;;     (def layer1 (.getLayer canvas1))
+;;     (def dragger (PDragEventHandler.))    
+;;     (.setVisible frame1 true)
+;;     (.setMoveToFrontOnPress dragger true)
+;;     (.setPanEventHandler canvas1 nil)
+;;     )
 ;;
 ;; When things don't seem to be going right, follow the procedure in
 ;; 'GW notes on Clojure', topic 'PROPOSED PROCEDURE for using InfWb'
 
-(deftest test-read-icard-from-db []
-	 (println "1 test-read-icard-from-db")
-	 (is (and
-	      (not= nil (:ttxt (db->icard "gw667_090815161114586")))
-	      (= nil (:ttxt (db->icard "INVALID KEY"))) )))
-
-(deftest test-get-all-iids []
-	 (println "2 test-get-all-iids")
-	 (is (= 67 (count (db->all-iids)))) )
-
-(deftest test-write-1-icard []
-  (println "3 test-write-1-icard")
-  (let [icard1 (db->icard "gw667_090815161114586")
-	_ (icard->appdb icard1)]
-    (is (= "the ability to think"
-	    (:ttxt (appdb "gw667_090815161114586")) ))))
-
-(deftest test-db-to-appdb []
-	 (println "4 test-db-to-appdb")
-	 (db->appdb "gw667_090815162059614")
-	 (is (= "to label, categorize, and find precedents"
-		  (:ttxt (appdb "gw667_090815162059614")) )))
-
-(deftest test-get-all-icards []
-	 (println "5 test-get-all-icards")
-	 (is (= 67
-		(count (map db->icard (db->all-iids))) )))
-
-;; vers below doesn't seem to work--too much for Clojure or Java to handle?
-;;   Or maybe there is an issue of parallelism. Here's the err msg:
-;;
-;; 6 test-all-icards-to-appdb
-
-;; FAIL in (test-all-icards-to-appdb) (core.clj:46)
-;; expected: (= 67 (icard-db-size))
-;;   actual: (not (= 67 0)) 
-;; (deftest test-all-icards-to-appdb []
-;; 	 (println "6 test-all-icards-to-appdb")
-;; 	 (map db->appdb (db->all-iids))
-;; 	 (is (= 67 (icard-db-size))) )
-
-(deftest test-all-icards-to-appdb []
-	 (println "6 test-all-icards-to-appdb")
-	 (let [all-icards (db->all-iids)]
-	   (doseq [card all-icards]
-	     (db->appdb card)))
-	 (is (= 67 (icard-db-size))) )
-
-;; -----------------------------------------------------------------
-;; All tests below this line assume that all icards are now in appdb
-;; -----------------------------------------------------------------
-
+(defn test-slips-setup []
+  (println "1 test-slips-setup")
+  (db-startup)
+  (let [iid-seq ["gw667_090815161114586" "gw667_090815162059614"
+		 "gw667_090815163031398" "gw667_090815164115403"
+		 "gw667_090815164740709" "gw667_090815165446504"]
+	]
+    (doseq [card iid-seq]
+      (db->appdb card))
+    ))
+  
 (deftest test-write-1-slip []
-  (println "7 test-write-1-slip")
-  (let [test-iid   "gw667_090815161114586"
-	an-icard (db->icard test-iid)
-	a-slip (icard->new-slip an-icard)
-	_ (slip->appdb a-slip)  ;new slip added to appdb
-	slip-retrieved (lookup-slip a-slip)]
-    (is (= "gw667_090815161114586"
-	   (:iid slip-retrieved) ))))
+	 (println "2 test-write-1-slip")
+	 (let [test-iid   "gw667_090815161114586"
+	       an-icard (db->icard test-iid)
+	       a-slip (icard->new-slip an-icard)
+	       slip-id (slip-field a-slip :id)
+	       _ (slip->appdb a-slip)	;new slip added to appdb
+	       slip-retrieved (lookup-slip slip-id)]
+	   (and
+	    (is (= "gw667_090815161114586"
+		   (:iid slip-retrieved) ))
+	    (is (= 1 (count (appdb->all-sids)))) )
+	   ))
+
+(deftest test-create-pobj []
+	 (println "3 test-create-pobj")
+	 (let [slip-id (nth (appdb->all-sids) 0)
+	       x-position 100
+	       y-position 50
+	       pobj (slip-pobj (lookup-slip slip-id x-position y-position))]
+	   (and
+	    (is (= x-position (.getX pobj)))
+	    (is (= y-position (.getY pobj)))) ))
+
 
 (defn test-ns-hook []
-	 (test-read-icard-from-db)
-	 (test-get-all-iids)
-	 (test-write-1-icard)
-	 (test-db-to-appdb)
-	 (test-get-all-icards)
-	 (test-all-icards-to-appdb)
-	 (test-write-1-slip))
+  (test-slips-setup)
+  (test-write-1-slip)
+  (test-create-pobj))
 
 ;; WARN: next assumes that frame1, etc. setup at the def level
 

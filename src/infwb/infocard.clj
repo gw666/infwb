@@ -48,7 +48,7 @@
 	end-x (+ box-x *width*)
 	line (PPath/createLine box-x (+ box-y divider-height)
 			       end-x (+ box-y divider-height))
-	backgd-color (Color. 250 250 250)
+	backgd-color (Color. 245 245 245)
 	divider-color (Color. 255 100 100)]
     
     (.translate title (+ box-x indent-x) (+ box-y indent-y))
@@ -63,3 +63,6 @@
     (.addChild cbox body)
     (.setChildrenPickable cbox false)
     cbox))
+
+
+

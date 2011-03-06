@@ -80,7 +80,7 @@ a working XQDataSource."
 ;; One important characteristic of the icard "section" of *appdb* (itself a
 ;; map) is that the value of the id field of the icard is also the key
 ;; of that map.
-(defrecord icard [id     ;string; icard-id of infocard
+(defrecord icard [id     ;string; icard-id (iid) of infocard
 		  ttxt   ;string; title text
 		  btxt]  ;string; body text
   )
@@ -93,11 +93,18 @@ a working XQDataSource."
 		 pobj]   ;Piccolo object that implements slip
   )
 
+
 (defn new-partial-slip
   [icard-id]  (let [rand-key   (str "sl:" (rand-kayko 3))
-			  empty-pobj   nil]
-		     (slip. rand-key icard-id empty-pobj)))
+		    empty-pobj   nil]
+		(slip. rand-key icard-id empty-pobj)))
 
+(defn new-full-slip
+  ""
+  [slip pobj]
+  (let [id (:id slip)
+	iid (:iid slip)]
+    (slip. id iid pobj) ))
 
 (defn db->icard
   "get icard data from appn database, return it as an icard record"
@@ -147,11 +154,18 @@ a working XQDataSource."
   (let [icard-idx   *icard-idx*]
     (get-in @*appdb* [icard-idx id])))
 
+(defn appdb->all-iids
+  "return a seq of all the id values of the appdb icard database"
+  []
+  (let [icard-idx   *icard-idx*]
+    (keys (get-in @*appdb* [icard-idx]))))
+
 (defn icard-db-size
   "number of icards in the application's internal icard db"
   []
   (count (keys (nth @*appdb* 0))))
 
+;; TODO: unit tests for this fcn
 (defn slip->appdb
   "Stores the slip record in the in-memory database"
   [slip]
@@ -180,10 +194,20 @@ a working XQDataSource."
   ;;the :iid field of the slip contains the id of the corresp. icard
   (lookup-icard (:iid slip)))
 
+(defn appdb->all-sids
+  "return a seq of all the id values of the appdb icard database"
+  []
+  (let [slip-idx   *slip-idx*]
+    (keys (get-in @*appdb* [slip-idx]))))
+
 (defn slip-field
   "given slip, get value of field named field-key (e.g.,:cid)"
   [slip field-key]
-  (icard-field (slip->icard slip) field-key))
+  (cond (contains? #{:id :iid :pobj} field-key)   (field-key slip)
+	(contains? #{:id :ttxt :btxt} field-key)
+	(let [icard (lookup-icard (:iid slip))] ;executed if is icard field
+	  (icard-field icard field-key))
+	:else (println "ERROR:" field-key "not a valid field for slip" slip) ))
 
 (defn slip-pobj
   "given a slip & its position, return its Piccolo infocard"
@@ -192,21 +216,3 @@ a working XQDataSource."
 	btxt (slip-field slip :btxt)]
 ;    (swank.core/break)
     (infocard x y ttxt btxt)))
-
-;; SAT 3/5: check that both branches work!
-(defn slip+pobj->appdb
-  "Stores the slip record in the in-memory database"
-  [slip pobj]
-  (let [id (:id slip)
-	iid (:iid slip)
-	slip-idx   *slip-idx*
-	id-exists?  (get-in @*appdb* [slip-idx id])]
-    (if id-exists?   ;if true, replaces existing; false adds new slip
-      (swap! *appdb* assoc-in [slip-idx id :pobj] pobj)
-      (swap! *appdb* update-in [slip-idx id]
-	     assoc id (slip. id iid pobj)))
-  nil))
-
-
-
-

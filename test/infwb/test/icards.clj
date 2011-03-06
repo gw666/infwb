@@ -1,3 +1,8 @@
+; project: github/gw666/infwb
+; file: /test/infwb/test/icards
+
+; HISTORY:
+
 (ns infwb.test.icards
   (:use [infwb.infocard] :reload)
   (:use [infwb.sedna] :reload)
@@ -9,7 +14,7 @@
 ;; "/Users/gw/Documents/99-IMPORTANT DOCUMENTS/permanent infocards, sch
 ;; ema v0.90/hofstadter, doidge.XML". The file's
 ;; lowest key is "gw667_090815161114586", and there should be 67 records.
-;; The function (db-startup) should be run before testing.
+;; NB: The function (db-startup) is run at the start of testing.
 ;;
 ;; When things don't seem to be going right, follow the procedure in
 ;; 'GW notes on Clojure', topic 'PROPOSED PROCEDURE for using InfWb'
@@ -57,8 +62,8 @@
 
 (deftest test-all-icards-to-appdb []
 	 (println "6 test-all-icards-to-appdb")
-	 (let [all-icards (db->all-iids)]
-	   (doseq [card all-icards]
+	 (let [all-iids (db->all-iids)]
+	   (doseq [card all-iids]
 	     (db->appdb card)))
 	 (is (= 67 (icard-db-size))) )
 
