@@ -16,6 +16,14 @@
     (:use [infwb.infocard]))
 
 
+(defn rand-kayko
+  "creates a random key of 2*len characters"
+  [len]
+  (let [consons (repeatedly len #(rand-nth "bdfghjklmnpqrstvwxyz"))
+	vowels (repeatedly len #(rand-nth "aeiou"))
+	]
+    (apply str (interleave consons vowels))))
+
 (defn db-startup
   "does all database setup for current session of work; should be
 executed once; WARNING: deletes the database of icards and slips"
@@ -85,14 +93,6 @@ a working XQDataSource."
 		 pobj]   ;Piccolo object that implements slip
   )
 
-(defn rand-kayko
-  "creates a random key of 2*len characters"
-  [len]
-  (let [consons (repeatedly len #(rand-nth "bdfghjklmnpqrstvwxyz"))
-	vowels (repeatedly len #(rand-nth "aeiou"))
-	]
-    (apply str (interleave consons vowels))))
-
 (defn new-partial-slip
   [icard-id]  (let [rand-key   (str "sl:" (rand-kayko 3))
 			  empty-pobj   nil]
@@ -133,7 +133,7 @@ a working XQDataSource."
     (if not-found?
       (println "ERROR: card with iid =" iid "not found")
       (do
-	(println "Storing" iid)
+;	(println "Storing" iid)
 	(icard->appdb icard) ))))
 
 (defn icard-field
@@ -141,11 +141,11 @@ a working XQDataSource."
   [icard field-key]
   (field-key icard))
 
-(defn appdb->icard
-  "for icard w/ key iid, get value of field named field-key (e.g.,:cid)"
-  [iid]
-  (let [icard-idx   *icard-idx*]  ;icard db is 0th element of @*appdb*
-    (get-in @*appdb* [icard-idx iid])))
+(defn lookup-icard
+  "given its id, retrieve an icard from the appdb"
+  [id]
+  (let [icard-idx   *icard-idx*]
+    (get-in @*appdb* [icard-idx id])))
 
 (defn icard-db-size
   "number of icards in the application's internal icard db"
@@ -163,11 +163,22 @@ a working XQDataSource."
       (swap! *appdb* update-in [slip-idx] assoc id slip)))
   nil)
 
+(defn lookup-slip
+  "given its id, retrieve a slip from the appdb"
+  [id]
+  (let [slip-idx   *slip-idx*]
+    (get-in @*appdb* [slip-idx id])))
+
+(defn icard->new-slip
+  "given icard, create the corresponding partial slip"
+  [icard]
+  (new-partial-slip (:id icard)))
+
 (defn slip->icard
   "given a slip id, return its icard from the appdb"
   [slip]
   ;;the :iid field of the slip contains the id of the corresp. icard
-  (appdb (:iid slip)))
+  (lookup-icard (:iid slip)))
 
 (defn slip-field
   "given slip, get value of field named field-key (e.g.,:cid)"
@@ -194,7 +205,7 @@ a working XQDataSource."
       (swap! *appdb* assoc-in [slip-idx id :pobj] pobj)
       (swap! *appdb* update-in [slip-idx id]
 	     assoc id (slip. id iid pobj)))
-  nil)
+  nil))
 
 
 

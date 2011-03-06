@@ -33,7 +33,7 @@
 
 ;; (defn -main[]
 ;;   (db-startup)
-;;   (prn "InfWb app db has started up"))
+;;   (prn "InfWb app db has started up")
 (declare title-text)
 (declare body-text)
 
@@ -72,15 +72,17 @@
       (doseq [card all-icards]
 	(db->appdb card))))
 
-  (def frame1 (PFrame.))
-  (def canvas1 (.getCanvas frame1))
-  (def layer1 (.getLayer canvas1))
-  (def dragger (PDragEventHandler.))
-    
-  (.setVisible frame1 true)
-  (.setMoveToFrontOnPress dragger true)
+  (do
+    (def frame1 (PFrame.))
+    (def canvas1 (.getCanvas frame1))
+    (def layer1 (.getLayer canvas1))
+    (def dragger (PDragEventHandler.))    
+    (.setVisible frame1 true)
+    (.setMoveToFrontOnPress dragger true)
+    (.setPanEventHandler canvas1 nil)
+    )
 
-  (.setPanEventHandler canvas1 nil)
+  
   (def s (new-slip "gw667_090815161114586"))
   (slip-field s :ttxt)		       ;returns the icard's title text
 
