@@ -26,13 +26,16 @@
 ;;     (.setVisible frame1 true)
 ;;     (.setMoveToFrontOnPress dragger true)
 ;;     (.setPanEventHandler canvas1 nil)
+;;     (.addInputEventListener canvas1 dragger)
 ;;     )
+;;
+;; COMPILATION WILL FAIL if these variables aren't defined.
 ;;
 ;; When things don't seem to be going right, follow the procedure in
 ;; 'GW notes on Clojure', topic 'PROPOSED PROCEDURE for using InfWb'
 
 (defn test-slips-setup []
-  (println "1 test-slips-setup")
+  (println "doing setup")
   (db-startup)
   (let [iid-seq ["gw667_090815161114586" "gw667_090815162059614"
 		 "gw667_090815163031398" "gw667_090815164115403"
@@ -43,7 +46,7 @@
     ))
   
 (deftest test-write-1-slip []
-	 (println "2 test-write-1-slip")
+	 (println "1 test-write-1-slip")
 	 (let [test-iid   "gw667_090815161114586"
 	       an-icard (db->icard test-iid)
 	       a-slip (icard->new-slip an-icard)
@@ -57,22 +60,61 @@
 	   ))
 
 (deftest test-create-pobj []
-	 (println "3 test-create-pobj")
+	 (println "2 test-create-pobj")
 	 (let [slip-id (nth (appdb->all-sids) 0)
 	       x-position 100
 	       y-position 50
-	       pobj (slip-pobj (lookup-slip slip-id x-position y-position))]
-	   (and
-	    (is (= x-position (.getX pobj)))
-	    (is (= y-position (.getY pobj)))) ))
+	       pobj (slip-pobj (lookup-slip slip-id) x-position y-position)]
+	    (is (= (round-to-int x-position) (round-to-int (.getX pobj)))
+	    (is (= (round-to-int y-position) (round-to-int (.getY pobj)))
+	    ))))
+
+(deftest test-add-pobj-to-appdb []
+	 (println "3 test-add-pobj-to-appdb")
+	 (let [slip-id (nth (appdb->all-sids) 0)
+	       partial-slip (lookup-slip slip-id)
+	       x-position 100
+	       y-position 50
+	       pobj (slip-pobj (lookup-slip slip-id) x-position y-position)
+	       full-slip   (new-full-slip partial-slip pobj)]
+	   (slip->appdb full-slip)
+	   (is (= pobj (:pobj (lookup-slip slip-id)))) ))
+
+(deftest test-display-1-slip []
+	 (println "4 test-display-1-slip")
+	 (let [slip-id (nth (appdb->all-sids) 0)
+	       slip (lookup-slip slip-id)
+	       card (:pobj slip)]
+	   (.addChild layer1 card)
+	   (println "test-display-1-slip passes if card is visible in window")
+	   (is true)))
+
+(deftest test-display-all-slips []
+	 (println "5 test-display-all-slips")
+  (let [iid-seq ["gw667_090815161114586" "gw667_090815162059614"
+		 "gw667_090815163031398" "gw667_090815164115403"
+		 "gw667_090815164740709" "gw667_090815165446504"]
+	]
+    (doseq [iid iid-seq]
+      (let [icard (lookup-icard iid)
+	    slip (icard->new-slip icard)
+	    _   (slip->appdb slip)
+	    pobj (slip-pobj slip (rand-int 300) (rand-int 200))
+	    full-slip   (new-full-slip slip pobj)
+	    _   (slip->appdb full-slip)
+	       card (:pobj full-slip)]
+	   (.addChild layer1 card)
+	   ))
+    (println "test-display-all-slips passes if cards are visible in window")
+    (is true)))
+	 
 
 
 (defn test-ns-hook []
   (test-slips-setup)
   (test-write-1-slip)
-  (test-create-pobj))
-
-;; WARN: next assumes that frame1, etc. setup at the def level
-
-
+  (test-create-pobj)
+  (test-add-pobj-to-appdb)
+;  (test-display-1-slip)
+  (test-display-all-slips))
 

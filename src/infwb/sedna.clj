@@ -24,6 +24,14 @@
 	]
     (apply str (interleave consons vowels))))
 
+  (defn abs[n]
+    (if (neg? n) (- n) n))
+
+  (defn round-to-int [n]
+    (let [sign (if (neg? n) -1 1)
+	  rounded-abs (int (+ (abs n) 0.5))]
+      (* sign rounded-abs)))
+
 (defn db-startup
   "does all database setup for current session of work; should be
 executed once; WARNING: deletes the database of icards and slips"
@@ -102,9 +110,7 @@ a working XQDataSource."
 (defn new-full-slip
   ""
   [slip pobj]
-  (let [id (:id slip)
-	iid (:iid slip)]
-    (slip. id iid pobj) ))
+  (update-in slip [:pobj] (fn [x] pobj)))
 
 (defn db->icard
   "get icard data from appn database, return it as an icard record"
@@ -200,12 +206,13 @@ a working XQDataSource."
   (let [slip-idx   *slip-idx*]
     (keys (get-in @*appdb* [slip-idx]))))
 
+;; TODO needs a test in slips.clj
 (defn slip-field
   "given slip, get value of field named field-key (e.g.,:cid)"
   [slip field-key]
   (cond (contains? #{:id :iid :pobj} field-key)   (field-key slip)
 	(contains? #{:id :ttxt :btxt} field-key)
-	(let [icard (lookup-icard (:iid slip))] ;executed if is icard field
+	(let [icard (lookup-icard (:iid slip))] ;executed for icard fields
 	  (icard-field icard field-key))
 	:else (println "ERROR:" field-key "not a valid field for slip" slip) ))
 

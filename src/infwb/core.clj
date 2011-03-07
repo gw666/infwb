@@ -80,6 +80,7 @@
     (.setVisible frame1 true)
     (.setMoveToFrontOnPress dragger true)
     (.setPanEventHandler canvas1 nil)
+    (.addInputEventListener canvas1 dragger)
     )
 
   
@@ -106,6 +107,14 @@
   (def card2 (nth card-vec 1))
   (.removeChild layer1 card)
   (.removeChild layer1 card2)
+
+  (defn abs[n]
+    (if (neg? n) (- n) n))
+
+  (defn round-to-int [n]
+    (let [sign (if (neg? n) -1 1)
+	  rounded-abs (int (+ (abs n) 0.5))]
+      (* sign rounded-abs)))
 
   
 
