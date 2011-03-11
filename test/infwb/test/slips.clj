@@ -37,10 +37,7 @@
 (defn test-slips-setup []
   (println "doing setup")
   (db-startup)
-  (let [iid-seq ["gw667_090815161114586" "gw667_090815162059614"
-		 "gw667_090815163031398" "gw667_090815164115403"
-		 "gw667_090815164740709" "gw667_090815165446504"]
-	]
+  (let [iid-seq (db->all-iids)]
     (doseq [card iid-seq]
       (db->appdb card))
     ))
@@ -91,9 +88,7 @@
 
 (deftest test-display-all-slips []
 	 (println "5 test-display-all-slips")
-  (let [iid-seq ["gw667_090815161114586" "gw667_090815162059614"
-		 "gw667_090815163031398" "gw667_090815164115403"
-		 "gw667_090815164740709" "gw667_090815165446504"]
+  (let [iid-seq (appdb->all-iids)
 	]
     (doseq [iid iid-seq]
       (let [icard (lookup-icard iid)
@@ -115,6 +110,7 @@
   (test-write-1-slip)
   (test-create-pobj)
   (test-add-pobj-to-appdb)
-;  (test-display-1-slip)
-  (test-display-all-slips))
+  (test-display-1-slip)
+;;  (test-display-all-slips)
+  )
 

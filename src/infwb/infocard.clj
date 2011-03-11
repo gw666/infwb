@@ -18,8 +18,8 @@
    (java.awt.geom   Dimension2D Point2D)
    (java.awt   BasicStroke Color Font GraphicsEnvironment Rectangle)))
 
-(def ^{:dynamic true} *width*   270)  ;width of a slip
-(def ^{:dynamic true} *height*   175)  ;height of a slip
+(def ^{:dynamic true} *width*   270)  ;;width of a slip
+(def ^{:dynamic true} *height*   175)  ;;height of a slip
 
 (defn wrap
   "Return PText containing given text & width to wrap to"

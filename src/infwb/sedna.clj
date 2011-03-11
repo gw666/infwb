@@ -37,8 +37,8 @@
 executed once; WARNING: deletes the database of icards and slips"
   []
   ;WARNING - RE-EXECUTING THIS DELETES ICARD DATABASE
-  (def ^{:dynamic true} *icard-idx*   0) ;icard db is 0th element of @*appdb*
-  (def ^{:dynamic true} *slip-idx*    1) ;slip db is 1st element of @*appdb*
+  (def ^{:dynamic true} *icard-idx*   0) ;;icard db is 0th element of @*appdb*
+  (def ^{:dynamic true} *slip-idx*    1) ;;slip db is 1st element of @*appdb*
   (def ^{:dynamic true} *appdb* (atom [{} {}]))
   
   (def ^{:dynamic true} *xqs* (SednaXQDataSource.)) ;naughty; OK for debugging
@@ -85,28 +85,30 @@ a working XQDataSource."
    (str "for $card in collection('test')/infomlFile/" filter)
    (str "return " result)))
 
-;; One important characteristic of the icard "section" of *appdb* (itself a
+;; One important characteristic of the icard "section" of \*appdb\* (itself a
 ;; map) is that the value of the id field of the icard is also the key
 ;; of that map.
-(defrecord icard [id     ;string; icard-id (iid) of infocard
-		  ttxt   ;string; title text
-		  btxt]  ;string; body text
+(defrecord icard [id     ;;string; icard-id (iid) of infocard
+		  ttxt   ;;string; title text
+		  btxt]  ;;string; body text
   )
 
 (defn new-icard [id ttxt btxt]
   (icard. id ttxt btxt))
 
-(defrecord slip [id      ;string; id of slip
-		 iid     ;string; card-id of icard to be displayed
-		 pobj]   ;Piccolo object that implements slip
+(defrecord slip [id      ;;string; id of slip
+		 iid     ;;string; card-id of icard to be displayed
+		 pobj]   ;;Piccolo object that implements slip
   )
 
-
+;; a partial slip does not have a pobj (the Piccolo object that will
+;; display the card) attached to it
 (defn new-partial-slip
   [icard-id]  (let [rand-key   (str "sl:" (rand-kayko 3))
 		    empty-pobj   nil]
 		(slip. rand-key icard-id empty-pobj)))
 
+;; a full slip _does_ have a pobj
 (defn new-full-slip
   ""
   [slip pobj]
@@ -120,10 +122,13 @@ a working XQDataSource."
 		 "($card/data/title/string(), $card/data/content/string())")]
     (new-icard iid (get data-vec 0) (get data-vec 1))))
 
+;; use this to find the state of the in-app icards database
 (defn db->all-iids
   "get a sequence of all icard IDs from appn database"
   []
   (run-db-query "infoml[position() != 1]" "$card/@cardId/string()"))
+
+;; used only when populating \*appdb\* with new icards
 
 ;; TODO: confirm correct behavior for replace vs. add
 (defn icard->appdb
@@ -132,7 +137,7 @@ a working XQDataSource."
   (let [id (:id icard)
 	icard-idx   *icard-idx*
 	id-exists?  (get-in @*appdb* [icard-idx id])]
-    (if id-exists?   ;if true, replaces existing; false adds new icard
+    (if id-exists?   ;;if true, replaces existing; false adds new icard
       (swap! *appdb* assoc-in [icard-idx id] icard)
       (swap! *appdb* update-in [icard-idx] assoc id icard)))
   nil)
@@ -178,7 +183,7 @@ a working XQDataSource."
   (let [id (:id slip)
 	slip-idx   *slip-idx*
 	id-exists?  (get-in @*appdb* [slip-idx id])]
-    (if id-exists?   ;if true, replaces existing; false adds new slip
+    (if id-exists?   ;;if true, replaces existing; false adds new slip
       (swap! *appdb* assoc-in [slip-idx id] slip)
       (swap! *appdb* update-in [slip-idx] assoc id slip)))
   nil)
@@ -201,7 +206,7 @@ a working XQDataSource."
   (lookup-icard (:iid slip)))
 
 (defn appdb->all-sids
-  "return a seq of all the id values of the appdb icard database"
+  "return a seq of all the id values of the appdb slip database"
   []
   (let [slip-idx   *slip-idx*]
     (keys (get-in @*appdb* [slip-idx]))))
@@ -212,7 +217,7 @@ a working XQDataSource."
   [slip field-key]
   (cond (contains? #{:id :iid :pobj} field-key)   (field-key slip)
 	(contains? #{:id :ttxt :btxt} field-key)
-	(let [icard (lookup-icard (:iid slip))] ;executed for icard fields
+	(let [icard (lookup-icard (:iid slip))] ;;executed for icard fields
 	  (icard-field icard field-key))
 	:else (println "ERROR:" field-key "not a valid field for slip" slip) ))
 
@@ -223,3 +228,15 @@ a working XQDataSource."
 	btxt (slip-field slip :btxt)]
 ;    (swank.core/break)
     (infocard x y ttxt btxt)))
+
+(defn ls
+  "Performs roughly the same task as the UNIX `ls`.  That is, returns a seq of the filenames
+   at a given directory.  If a path to a file is supplied, then the seq contains only the
+   original path given."
+  [path]
+  (let [file (java.io.File. path)]
+    (if (.isDirectory file)
+      (seq (.list file))
+      (when (.exists file)
+        [path]))))
+
