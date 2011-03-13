@@ -16,6 +16,12 @@
     (:use [infwb.infocard]))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; MISCELLANEOUS ROUTINES
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  
 (defn rand-kayko
   "creates a random key of 2*len characters"
   [len]
@@ -32,6 +38,23 @@
 	  rounded-abs (int (+ (abs n) 0.5))]
       (* sign rounded-abs)))
 
+(defn ls
+  "Performs roughly the same task as the UNIX `ls`.  That is, returns a seq of the filenames
+   at a given directory.  If a path to a file is supplied, then the seq contains only the
+   original path given."
+  [path]
+  (let [file (java.io.File. path)]
+    (if (.isDirectory file)
+      (seq (.list file))
+      (when (.exists file)
+        [path]))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; HOUSEKEEPING
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn db-startup
   "does all database setup for current session of work; should be
 executed once; WARNING: deletes the database of icards and slips"
@@ -45,19 +68,16 @@ executed once; WARNING: deletes the database of icards and slips"
   (doto *xqs*
     (.setProperty "serverName" "localhost")
     (.setProperty "databaseName" "brain")))
-  
-(defn get-result
-  "gets the result of an XQuery"
-  ([result-sequence]
-     (get-result result-sequence (vector)))
-  ([result-sequence result-vector]
-     (if (not  (.next result-sequence))
-       result-vector
-       (recur result-sequence (conj result-vector (.getItemAsString result-sequence (Properties.)))))))
 
-  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; DATABASE ACCESS USING XQUERY
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;insights taken from ~/tech/schemestuff/InfWb/main/sedna-utilities.ss
+
+(declare get-result)
 
 (defn run-db-query
   "Returns results of db query; filter selects records, result extracts
@@ -77,17 +97,33 @@ a working XQDataSource."
     (.close conn)
     result))
 
-(defn show-db-query
-  "Returns full query that is executed by (run-db-query filter result)"
-  [filter result]
-  (vector
-   "declare default element namespace 'http://infoml.org/infomlFile';"
-   (str "for $card in collection('test')/infomlFile/" filter)
-   (str "return " result)))
+(defn get-result
+  "gets the result of an XQuery"
+  ([result-sequence]
+     (get-result result-sequence (vector)))
+  ([result-sequence result-vector]
+     (if (not  (.next result-sequence))
+       result-vector
+       (recur result-sequence (conj result-vector (.getItemAsString result-sequence (Properties.)))))))
+
+;(defn show-db-query
+;  "Returns full query that is executed by (run-db-query filter result)"
+;  [filter result]
+;  (vector
+;   "declare default element namespace 'http://infoml.org/infomlFile';"
+;   (str "for $card in collection('test')/infomlFile/" filter)
+;   (str "return " result)))
 
 ;; One important characteristic of the icard "section" of \*appdb\* (itself a
 ;; map) is that the value of the id field of the icard is also the key
 ;; of that map.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; ICARDS: creating
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defrecord icard [id     ;;string; icard-id (iid) of infocard
 		  ttxt   ;;string; title text
 		  btxt]  ;;string; body text
@@ -95,24 +131,6 @@ a working XQDataSource."
 
 (defn new-icard [id ttxt btxt]
   (icard. id ttxt btxt))
-
-(defrecord slip [id      ;;string; id of slip
-		 iid     ;;string; card-id of icard to be displayed
-		 pobj]   ;;Piccolo object that implements slip
-  )
-
-;; a partial slip does not have a pobj (the Piccolo object that will
-;; display the card) attached to it
-(defn new-partial-slip
-  [icard-id]  (let [rand-key   (str "sl:" (rand-kayko 3))
-		    empty-pobj   nil]
-		(slip. rand-key icard-id empty-pobj)))
-
-;; a full slip _does_ have a pobj
-(defn new-full-slip
-  ""
-  [slip pobj]
-  (update-in slip [:pobj] (fn [x] pobj)))
 
 (defn db->icard
   "get icard data from appn database, return it as an icard record"
@@ -122,15 +140,46 @@ a working XQDataSource."
 		 "($card/data/title/string(), $card/data/content/string())")]
     (new-icard iid (get data-vec 0) (get data-vec 1))))
 
-;; use this to find the state of the in-app icards database
 (defn db->all-iids
-  "get a sequence of all icard IDs from appn database"
+  "from appn database, get seq of all icard IDs"
   []
   (run-db-query "infoml[position() != 1]" "$card/@cardId/string()"))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; SLIPS: creating
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defrecord slip [id      ;;string; id of slip
+		 iid     ;;string; card-id of icard to be displayed
+		 pobj]   ;;Piccolo object that implements slip
+  )
+
+(declare slip-pobj)
+
+(defn new-slip
+  [icard-id]  (let [rand-key   (str "sl:" (rand-kayko 3))
+		    default-x   0
+		    default-y   0
+		    pobj   (slip-pobj slip default-x default-y)]
+		(slip. rand-key icard-id pobj)))
+
+(defn icard->new-slip
+  "given icard, create the corresponding partial slip"
+  [icard]
+  (new-slip (:id icard)))
 
 ;; used only when populating \*appdb\* with new icards
 
 ;; TODO: confirm correct behavior for replace vs. add
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; APPDB: populating it with icards
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn icard->appdb
   "Stores the icard record in the in-memory database"
   [icard]
@@ -154,12 +203,19 @@ a working XQDataSource."
 ;	(println "Storing" iid)
 	(icard->appdb icard) ))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; ACCESSING ICARDS AND THEIR DATA
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 (defn icard-field
   "given icard, get value of field named field-key (e.g.,:cid)"
   [icard field-key]
   (field-key icard))
 
-(defn lookup-icard
+(defn iid->icard  ;; aka "lookup-icard" (from appdb)
   "given its id, retrieve an icard from the appdb"
   [id]
   (let [icard-idx   *icard-idx*]
@@ -176,6 +232,19 @@ a working XQDataSource."
   []
   (count (keys (nth @*appdb* 0))))
 
+(defn slip->icard
+  "given a slip id, return its icard from the appdb"
+  [slip]
+  ;;the :iid field of the slip contains the id of the corresp. icard
+  (iid->icard (:iid slip)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; APPDB: populating it with slips
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 ;; TODO: unit tests for this fcn
 (defn slip->appdb
   "Stores the slip record in the in-memory database"
@@ -188,22 +257,17 @@ a working XQDataSource."
       (swap! *appdb* update-in [slip-idx] assoc id slip)))
   nil)
 
-(defn lookup-slip
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; ACCESSING SLIPS AND THEIR DATA
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn sid->slip  ;; aka "lookup-slip" (from appdb)
   "given its id, retrieve a slip from the appdb"
   [id]
   (let [slip-idx   *slip-idx*]
     (get-in @*appdb* [slip-idx id])))
-
-(defn icard->new-slip
-  "given icard, create the corresponding partial slip"
-  [icard]
-  (new-partial-slip (:id icard)))
-
-(defn slip->icard
-  "given a slip id, return its icard from the appdb"
-  [slip]
-  ;;the :iid field of the slip contains the id of the corresp. icard
-  (lookup-icard (:iid slip)))
 
 (defn appdb->all-sids
   "return a seq of all the id values of the appdb slip database"
@@ -217,9 +281,10 @@ a working XQDataSource."
   [slip field-key]
   (cond (contains? #{:id :iid :pobj} field-key)   (field-key slip)
 	(contains? #{:id :ttxt :btxt} field-key)
-	(let [icard (lookup-icard (:iid slip))] ;;executed for icard fields
+	(let [icard (iid->icard (:iid slip))] ;;executed for icard fields
 	  (icard-field icard field-key))
-	:else (println "ERROR:" field-key "not a valid field for slip" slip) ))
+	;; eg, (. <pobject> :getX) is same as (.getX <pobject>)
+	:else (. (:pobj slip) field-name) ))
 
 (defn slip-pobj
   "given a slip & its position, return its Piccolo infocard"
@@ -229,14 +294,33 @@ a working XQDataSource."
 ;    (swank.core/break)
     (infocard x y ttxt btxt)))
 
-(defn ls
-  "Performs roughly the same task as the UNIX `ls`.  That is, returns a seq of the filenames
-   at a given directory.  If a path to a file is supplied, then the seq contains only the
-   original path given."
-  [path]
-  (let [file (java.io.File. path)]
-    (if (.isDirectory file)
-      (seq (.list file))
-      (when (.exists file)
-        [path]))))
+(defn position-to
+  "move a slip's Piccolo infocard to a given location; returns: slip"
+  [slip x y]
+  (let [pobj   (:pobj slip)]
+    (.setX pobj x)
+    (.setY pobj y))
+  slip)
+  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; DISPLAYING SLIPS ON THE DESKTOP
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; InfWb is largely about slips. If a function does say what it is operating
+;; on, it is probably doing so on a slip. Omitting mention of a slip in a
+;; function name is a way of keeping code succinct.
+
+(defn show
+  "display a slip at a given location in a given layer"
+  [slip   x y   layer]
+  (.addChild layer (position-to slip x y layer)))
+
+(defn show-seq
+  "display seq of slips, starting at (x y), using dx, dy as offset
+for each next slip to be displayed"
+  [slip-seq   x y   dx dy   layer]
+  (let [x-coords   (iterate x #(+ % dx))
+	y-coords   (iterate y #(+ % dy))]
+    (map show slip-seq x-coords y-coords layer)))

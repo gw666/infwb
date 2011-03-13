@@ -34,13 +34,13 @@
   (let [icard1 (db->icard "gw667_090815161114586")
 	_ (icard->appdb icard1)]
     (is (= "the ability to think"
-	    (:ttxt (appdb "gw667_090815161114586")) ))))
+	    (:ttxt (iid->icard "gw667_090815161114586")) ))))
 
 (deftest test-db-to-appdb []
 	 (println "4 test-db-to-appdb")
 	 (db->appdb "gw667_090815162059614")
 	 (is (= "to label, categorize, and find precedents"
-		  (:ttxt (appdb "gw667_090815162059614")) )))
+		  (:ttxt (iid->icard "gw667_090815162059614")) )))
 
 (deftest test-get-all-icards []
 	 (println "5 test-get-all-icards")

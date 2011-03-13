@@ -43,7 +43,6 @@
     ))
   
 (deftest test-write-1-slip []
-	 (println "1 test-write-1-slip")
 	 (let [test-iid   "gw667_090815161114586"
 	       an-icard (db->icard test-iid)
 	       a-slip (icard->new-slip an-icard)
@@ -57,7 +56,6 @@
 	   ))
 
 (deftest test-create-pobj []
-	 (println "2 test-create-pobj")
 	 (let [slip-id (nth (appdb->all-sids) 0)
 	       x-position 100
 	       y-position 50
@@ -67,7 +65,6 @@
 	    ))))
 
 (deftest test-add-pobj-to-appdb []
-	 (println "3 test-add-pobj-to-appdb")
 	 (let [slip-id (nth (appdb->all-sids) 0)
 	       partial-slip (lookup-slip slip-id)
 	       x-position 100
@@ -78,7 +75,6 @@
 	   (is (= pobj (:pobj (lookup-slip slip-id)))) ))
 
 (deftest test-display-1-slip []
-	 (println "4 test-display-1-slip")
 	 (let [slip-id (nth (appdb->all-sids) 0)
 	       slip (lookup-slip slip-id)
 	       card (:pobj slip)]
@@ -87,7 +83,6 @@
 	   (is true)))
 
 (deftest test-display-all-slips []
-	 (println "5 test-display-all-slips")
   (let [iid-seq (appdb->all-iids)
 	]
     (doseq [iid iid-seq]
@@ -102,15 +97,47 @@
 	   ))
     (println "test-display-all-slips passes if cards are visible in window")
     (is true)))
+
+(deftest test-make-1-slip []
+  (let [test-iid "gw667_090815162059614"
+	test-ttxt "to label, categorize, and find precedents"
+	default-x   0
+	default-y   0
+	test-slip (new-slip test-iid)
+	_   (slip->appdb test-slip)]
+    (is (= test-ttxt (slip-field test-slip :ttxt) ":ttxt field")) ))
+
+(deftest test-slip-field []
+  (let [slip-id (nth (appdb->all-sids) 0)
+	new-x   62
+	new-y  118
+	test-slip (new-slip slip-id)]
+    (position-to test-slip new-x new-y)
+    (is (= new-x (round-to-int (slip-field test-slip :getX)) "getX"))
+    (is (= new-y (round-to-int (slip-field test-slip :getY)) "getY")) ))
+
+(deftest test-show-1-slip []
+  (println "\n### WARN: Be sure that layer1 is defined ###\n")
+  (let [slip-id (nth (appdb->all-sids) 0) 
+	test-slip (new-slip slip-id)
+	test-x   51
+	test-y  149]
+    (println "test-show-1-slip succeeds if you see slip named"
+	     (slip-field test-slip :ttxt) "onscreen") ))
+
 	 
 
 
 (defn test-ns-hook []
+  (println "### Did you define needed variables (e.g., layer1)? ###\n")
   (test-slips-setup)
-  (test-write-1-slip)
-  (test-create-pobj)
-  (test-add-pobj-to-appdb)
-  (test-display-1-slip)
-;;  (test-display-all-slips)
+  ;; (test-write-1-slip)
+  ;; (test-create-pobj)
+  ;; (test-add-pobj-to-appdb)
+  ;; (test-display-1-slip)
+  ;; (test-display-all-slips)
+  (test-make-1-slip)
+  (test-slip-field)
+  (test-show-1-slip)
   )
 
