@@ -281,7 +281,7 @@ a working XQDataSource."
   [slip field-key]
   (cond (contains? #{:id :iid :pobj} field-key)   (field-key slip)
 	(contains? #{:id :ttxt :btxt} field-key)
-	(let [icard (iid->icard (:iid slip))] ;;executed for icard fields
+	(let [icard (iid->icard (:iid sl2ip))] ;;executed for icard fields
 	  (icard-field icard field-key))
 	;; eg, (. <pobject> :getX) is same as (.getX <pobject>)
 	:else (. (:pobj slip) field-name) ))
