@@ -281,7 +281,7 @@ a working XQDataSource."
   [slip field-key]
   (cond (contains? #{:id :iid :pobj} field-key)   (field-key slip)
 	(contains? #{:id :ttxt :btxt} field-key)
-	(let [icard (iid->icard (:iid sl2ip))] ;;executed for icard fields
+	(let [icard (iid->icard (:iid slip))] ;;executed for icard fields
 	  (icard-field icard field-key))
 	;; eg, (. <pobject> :getX) is same as (.getX <pobject>)
 	:else (. (:pobj slip) field-name) ))
@@ -308,9 +308,9 @@ a working XQDataSource."
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; InfWb is largely about slips. If a function does say what it is operating
-;; on, it is probably doing so on a slip. Omitting mention of a slip in a
-;; function name is a way of keeping code succinct.
+;; InfWb is largely about slips. If a function does not say what it is 
+;; operating on, it is probably doing so on a slip. Omitting mention of 
+;; a slip in a function name is a way of keeping code succinct.
 
 (defn show
   "display a slip at a given location in a given layer"
