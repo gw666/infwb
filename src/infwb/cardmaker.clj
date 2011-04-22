@@ -20,35 +20,59 @@
 
 (defn make-icard
   "returns an infocard string created from the given inputs"
-  [id tag1]
-  (let [out1 (ByteArrayOutputStream.)
+  [id title p-seq tag-seq]
+  (let [out (ByteArrayOutputStream.)
 	objFactory (ObjectFactory.)
 	myInfomlFile (.createInfomlFile objFactory)
 	infomlTypeList (.getInfoml myInfomlFile)
-	infocard1 (InfomlType.)
-	selectors1 (SelectorsType.)
-					;	data1 (ContentAgentContainerLocationType.)
-	tagList (.getTag selectors1)
+	infocard (InfomlType.)
+	
+	selectors (SelectorsType.)
+	tagList (.getTag selectors)
+	
+	data (ContentAgentContainerLocationType.)
+	mySRTType (SimpleRichTextType.)
+	titleContainer (.getContent mySRTType)
+
+	myRTWEType (RichTextWithExactType.)
+	contentContainer (.getPOrQuotationOrPoem myRTWEType)
 	]
-    (.setCardId infocard1 id)
-    (.setEncoding infocard1 "UTF-8")
-    (.setVersion infocard1 (BigDecimal. "1.0"))
+    
+    (.setCardId infocard id)
+    (.setEncoding infocard "UTF-8")
+    (.setVersion infocard (BigDecimal. "1.0"))
 
-    (.add infomlTypeList infocard1)
-    (.setSelectors infocard1 selectors1)
-    (.add tagList tag1)
+    (.add infomlTypeList infocard)
+    (.setSelectors infocard selectors)
+    (doseq [tag tag-seq]
+      (.add tagList tag))
 
+    (.setData infocard data)
+    (.setTitle data mySRTType)
+    (.add titleContainer title) ;plain title text--no styling
+
+    (.setContent data myRTWEType)
+    (doseq [p-text p-seq]
+      (let [this-p (SimpleRichTextType.)
+	    this-pContainer (.getContent this-p)]
+	(.add contentContainer this-p)
+	(.add this-pContainer p-text)))
+	    
+
+    (try
     (let [jc (JAXBContext/newInstance "org.infoml.jaxb")
 	  m (.createMarshaller jc)]
 
-	;    (.setData infocard1 data1)
-
+; currently not needed because infomlFile info is 
+;      (. m setProperty  Marshaller/JAXB_SCHEMA_LOCATION
+;	 "http://infoml.org/infomlFile     http://infoml.org/s/infomlFile.xsd")
       (. m setProperty  Marshaller/JAXB_FORMATTED_OUTPUT Boolean/TRUE)
-      (. m setProperty  Marshaller/JAXB_SCHEMA_LOCATION
-	 "http://infoml.org/infomlFile     http://infoml.org/s/infomlFile.xsd")
-      (.marshal m myInfomlFile out1)
-      (.toString out1)   ; it works!
-      )))
+
+      (.marshal m myInfomlFile out)
+      (.toString out)   ; it works!
+      )  ; end of let
+    (catch RuntimeException e (.printStackTrace e)))  ; end of try
+    ))
     
 
 (comment   ;forms for creating infocards
