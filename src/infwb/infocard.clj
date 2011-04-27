@@ -1,8 +1,6 @@
 ; project: github/gw666/infwb
 ; file: src/infwb/infocard.clj
 
-; HISTORY:
-
 (ns infwb.infocard
   (:gen-class)
   (:import

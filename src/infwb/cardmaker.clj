@@ -6,17 +6,18 @@
   (:import
    ; for creating infocards
    (org.infoml.jaxb     ContainerType
-    ContentAgentContainerLocationType
-    InfomlFile  InfomlType  ObjectFactory  PType
-    RichTextWithExactType
-    SelectorsType
-    SimpleRichTextType)
+			ContentAgentContainerLocationType
+			InfomlFile  InfomlType  ObjectFactory  PType
+			RichTextWithExactType
+			SelectorsType
+			SimpleRichTextType)
 
    (java.io ByteArrayOutputStream  IOException)
 
    (javax.xml.bind  JAXBContext  JAXBException  Marshaller
-		    Unmarshaller))
-  )
+		    Unmarshaller)
+   (my.numberaddition   NumberAdditionUI)
+  ))
 
 (defn make-icard
   "returns an infocard string created from the given inputs"
@@ -69,7 +70,10 @@
       (. m setProperty  Marshaller/JAXB_FORMATTED_OUTPUT Boolean/TRUE)
 
       (.marshal m myInfomlFile out)
-      (.toString out)   ; it works!
+      (let [raw-output (.toString out)
+	    parsed-output
+	    (re-matches #"(?s).*(<infoml .*</infoml>).*" raw-output)]
+	(nth parsed-output 1))	;matched part is second item in seq
       )  ; end of let
     (catch RuntimeException e (.printStackTrace e)))  ; end of try
     ))
