@@ -1,9 +1,5 @@
 ; project: github/gw666/infwb
 ; file: src/infwb/sedna.clj
-; last changed: 2/19/11
-
-; HISTORY:
-
 
 ;; see http://www.cfoster.net/articles/xqj-tutorial/simple-xquery.xml
 
@@ -132,7 +128,7 @@ a working XQDataSource."
 (defn new-icard [id ttxt btxt]
   (icard. id ttxt btxt))
 
-(defn db->icard
+(defn appdb->icard
   "get icard data from appn database, return it as an icard record"
   [iid]
   (let [data-vec 
@@ -141,8 +137,11 @@ a working XQDataSource."
     (new-icard iid (get data-vec 0) (get data-vec 1))))
 
 (defn db->all-iids
-  "from appn database, get seq of all icard IDs"
+  "from Sedna database, get seq of all icard IDs"
   []
+  ;; assumes that position 1 contains the file's "all-pointers" record,
+  ;; which is not an end-user "actual" infocard; this assumption
+  ;; may change in the future
   (run-db-query "infoml[position() != 1]" "$card/@cardId/string()"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -156,14 +155,15 @@ a working XQDataSource."
 		 pobj]   ;;Piccolo object that implements slip
   )
 
-(declare slip-pobj)
+(declare make-pobj)
 
 (defn new-slip
-  [icard-id]  (let [rand-key   (str "sl:" (rand-kayko 3))
-		    default-x   0
-		    default-y   0
-		    pobj   (slip-pobj slip default-x default-y)]
-		(slip. rand-key icard-id pobj)))
+  [icard-id]
+  (let [rand-key   (str "sl:" (rand-kayko 3))
+	default-x   0
+	default-y   0
+	pobj   (make-pobj slip default-x default-y)]
+    (slip. rand-key icard-id pobj)))
 
 (defn icard->new-slip
   "given icard, create the corresponding partial slip"
@@ -194,7 +194,7 @@ a working XQDataSource."
 (defn db->appdb
   "copy icard (if found) from (persistent) db to appdb"
   [iid]
-  (let [icard (db->icard iid)
+  (let [icard (appdb->icard iid)
 	not-found? (and
 		    (nil? (:ttxt icard)) (nil? (:btxt icard)))]
     (if not-found?
@@ -215,7 +215,7 @@ a working XQDataSource."
   [icard field-key]
   (field-key icard))
 
-(defn iid->icard  ;; aka "lookup-icard" (from appdb)
+(defn get-icard  ;; aka "lookup-icard" (from appdb)
   "given its id, retrieve an icard from the appdb"
   [id]
   (let [icard-idx   *icard-idx*]
@@ -227,7 +227,7 @@ a working XQDataSource."
   (let [icard-idx   *icard-idx*]
     (keys (get-in @*appdb* [icard-idx]))))
 
-(defn icard-db-size
+(defn icard-appdb-size
   "number of icards in the application's internal icard db"
   []
   (count (keys (nth @*appdb* 0))))
@@ -236,7 +236,7 @@ a working XQDataSource."
   "given a slip id, return its icard from the appdb"
   [slip]
   ;;the :iid field of the slip contains the id of the corresp. icard
-  (iid->icard (:iid slip)))
+  (get-icard (:iid slip)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -263,7 +263,7 @@ a working XQDataSource."
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn sid->slip  ;; aka "lookup-slip" (from appdb)
+(defn get-slip  ;; aka "lookup-slip" (from appdb)
   "given its id, retrieve a slip from the appdb"
   [id]
   (let [slip-idx   *slip-idx*]
@@ -281,12 +281,12 @@ a working XQDataSource."
   [slip field-key]
   (cond (contains? #{:id :iid :pobj} field-key)   (field-key slip)
 	(contains? #{:id :ttxt :btxt} field-key)
-	(let [icard (iid->icard (:iid slip))] ;;executed for icard fields
+	(let [icard (get-icard (:iid slip))] ;;executed for icard fields
 	  (icard-field icard field-key))
 	;; eg, (. <pobject> :getX) is same as (.getX <pobject>)
 	:else (. (:pobj slip) field-name) ))
 
-(defn slip-pobj
+(defn make-pobj
   "given a slip & its position, return its Piccolo infocard"
   [slip x y]
   (let [ttxt (slip-field slip :ttxt)
@@ -294,7 +294,7 @@ a working XQDataSource."
 ;    (swank.core/break)
     (infocard x y ttxt btxt)))
 
-(defn position-to
+(defn move-to
   "move a slip's Piccolo infocard to a given location; returns: slip"
   [slip x y]
   (let [pobj   (:pobj slip)]
@@ -315,7 +315,7 @@ a working XQDataSource."
 (defn show
   "display a slip at a given location in a given layer"
   [slip   x y   layer]
-  (.addChild layer (position-to slip x y layer)))
+  (.addChild layer (move-to slip x y layer)))
 
 (defn show-seq
   "display seq of slips, starting at (x y), using dx, dy as offset

@@ -33,9 +33,12 @@
 ;; =============== GLOBALS ===============
 
 
-;; (defn -main[]
-;;   (db-startup)
-;;   (prn "InfWb app db has started up")
+(defn -main[]
+  (db-startup)
+  (println "If no error, InfWb app db has started up.")
+  (println "If **ERROR**, have you started the Sedna database?"))
+
+  
 (declare title-text)
 (declare body-text)
 
@@ -48,6 +51,7 @@
 
 
 (defn -main []
+  (db-startup)
   (let [frame1 (PFrame.)
 	canvas1 (.getCanvas frame1)
 	layer1 (.getLayer canvas1)
@@ -58,10 +62,7 @@
 
 ;installs drag-PNode handler onto left-mouse button
     (.setPanEventHandler canvas1 nil)
-    (.addInputEventListener canvas1 dragger)
-;(swank.core/break)
-    (let [card-vec (testme layer1 "my title" "my body")]
-      (vector frame1 layer1 card-vec))))
+    (.addInputEventListener canvas1 dragger)))
 
 
   
@@ -77,6 +78,8 @@
       (doseq [card all-icards]
 	(db->appdb card))))
 
+  (load-all-icards-to-appdb)
+  
   (do
     (def frame1 (PFrame.))
     (def canvas1 (.getCanvas frame1))
