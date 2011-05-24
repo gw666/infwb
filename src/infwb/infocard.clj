@@ -32,8 +32,8 @@
     (.setBounds wrapped-text 0 0 wrap-width 100)
     wrapped-text))
 
-(defn infocard
-  "Create basic infocard (ready to be added as the child of a layer)"
+(defn make-pinfocard
+  "Create basic Piccolo infocard object (ready to be added to a layer)"
   [box-x box-y title-text body-text]
 
   (let [cbox (PClip.)

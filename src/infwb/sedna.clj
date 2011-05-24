@@ -120,15 +120,17 @@ a working XQDataSource."
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord icard [id     ;;string; icard-id (iid) of infocard
+(defrecord icard [iid     ;;string; icard-id (iid) of infocard
 		  ttxt   ;;string; title text
 		  btxt]  ;;string; body text
   )
 
-(defn new-icard [id ttxt btxt]
-  (icard. id ttxt btxt))
+(def ^{:dynamic true} *icard-fields* (list :iid :ttxt :btxt))
 
-(defn appdb->icard
+(defn new-icard [iid ttxt btxt]
+  (icard. iid ttxt btxt))
+
+(defn db->icard
   "get icard data from appn database, return it as an icard record"
   [iid]
   (let [data-vec 
@@ -144,35 +146,49 @@ a working XQDataSource."
   ;; may change in the future
   (run-db-query "infoml[position() != 1]" "$card/@cardId/string()"))
 
+(declare icard-field)
+
+(defn get-all-fields
+  "returns list of all the infocard's fields"
+  [icard]
+  (map #(icard-field icard %) *icard-fields*))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; SLIPS: creating
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord slip [id      ;;string; id of slip
+(defrecord slip [sid      ;;string; id of slip
 		 iid     ;;string; card-id of icard to be displayed
 		 pobj]   ;;Piccolo object that implements slip
   )
 
-(declare make-pobj)
+;; (defn make-pobj  ;OBSOLETE
+;;   "given a slip & its position, return its Piccolo infocard"
+;;   [slip x y]
+;;   (let [ttxt (slip-field slip :ttxt)
+;; 	btxt (slip-field slip :btxt)]
+;; ;    (swank.core/break)
+;;     (make-pinfocard x y ttxt btxt)))
+
+(declare get-icard)
 
 (defn new-slip
-  [icard-id]
-  (let [rand-key   (str "sl:" (rand-kayko 3))
-	default-x   0
-	default-y   0
-	pobj   (make-pobj slip default-x default-y)]
+  "create slip from infocard, with its pobj at (0 0)"
+  ([icard-id x y]
+  (let [icard (get-icard icard-id)
+	; this does nothing, for now
+	icard-field-list (get-all-fields icard)
+	rand-key   (str "sl:" (rand-kayko 3))
+	pobj   (make-pinfocard
+		x
+		y
+		(icard-field icard :ttxt)
+		(icard-field icard :btxt))]
     (slip. rand-key icard-id pobj)))
+  ([icard-id]   (new-slip icard-id 0 0 )))
 
-(defn icard->new-slip
-  "given icard, create the corresponding partial slip"
-  [icard]
-  (new-slip (:id icard)))
-
-;; used only when populating \*appdb\* with new icards
-
-;; TODO: confirm correct behavior for replace vs. add
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -183,18 +199,18 @@ a working XQDataSource."
 (defn icard->appdb
   "Stores the icard record in the in-memory database"
   [icard]
-  (let [id (:id icard)
+  (let [iid (:iid icard)
 	icard-idx   *icard-idx*
-	id-exists?  (get-in @*appdb* [icard-idx id])]
+	id-exists?  (get-in @*appdb* [icard-idx iid])]
     (if id-exists?   ;;if true, replaces existing; false adds new icard
-      (swap! *appdb* assoc-in [icard-idx id] icard)
-      (swap! *appdb* update-in [icard-idx] assoc id icard)))
+      (swap! *appdb* assoc-in [icard-idx iid] icard)
+      (swap! *appdb* update-in [icard-idx] assoc iid icard)))
   nil)
 
 (defn db->appdb
   "copy icard (if found) from (persistent) db to appdb"
   [iid]
-  (let [icard (appdb->icard iid)
+  (let [icard (db->icard iid)
 	not-found? (and
 		    (nil? (:ttxt icard)) (nil? (:btxt icard)))]
     (if not-found?
@@ -213,22 +229,23 @@ a working XQDataSource."
 (defn icard-field
   "given icard, get value of field named field-key (e.g.,:cid)"
   [icard field-key]
+  ;this fcn isolates the operation from its implementation
   (field-key icard))
 
 (defn get-icard  ;; aka "lookup-icard" (from appdb)
-  "given its id, retrieve an icard from the appdb"
-  [id]
+  "given its iid, retrieve an icard from the appdb"
+  [iid]
   (let [icard-idx   *icard-idx*]
-    (get-in @*appdb* [icard-idx id])))
+    (get-in @*appdb* [icard-idx iid])))
 
 (defn appdb->all-iids
-  "return a seq of all the id values of the appdb icard database"
+"return a seq of all the id values of the appdb icard database"
   []
   (let [icard-idx   *icard-idx*]
     (keys (get-in @*appdb* [icard-idx]))))
 
 (defn icard-appdb-size
-  "number of icards in the application's internal icard db"
+  "number of icards in the application's internal ic`ard db"
   []
   (count (keys (nth @*appdb* 0))))
 
@@ -249,12 +266,12 @@ a working XQDataSource."
 (defn slip->appdb
   "Stores the slip record in the in-memory database"
   [slip]
-  (let [id (:id slip)
+  (let [sid (:sid slip)
 	slip-idx   *slip-idx*
-	id-exists?  (get-in @*appdb* [slip-idx id])]
+	id-exists?  (get-in @*appdb* [slip-idx sid])]
     (if id-exists?   ;;if true, replaces existing; false adds new slip
-      (swap! *appdb* assoc-in [slip-idx id] slip)
-      (swap! *appdb* update-in [slip-idx] assoc id slip)))
+      (swap! *appdb* assoc-in [slip-idx sid] slip)
+      (swap! *appdb* update-in [slip-idx] assoc sid slip)))
   nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -264,10 +281,10 @@ a working XQDataSource."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn get-slip  ;; aka "lookup-slip" (from appdb)
-  "given its id, retrieve a slip from the appdb"
-  [id]
+  "given its sid, retrieve a slip from the appdb"
+  [sid]
   (let [slip-idx   *slip-idx*]
-    (get-in @*appdb* [slip-idx id])))
+    (get-in @*appdb* [slip-idx sid])))
 
 (defn appdb->all-sids
   "return a seq of all the id values of the appdb slip database"
@@ -286,14 +303,6 @@ a working XQDataSource."
 	;; eg, (. <pobject> :getX) is same as (.getX <pobject>)
 	:else (. (:pobj slip) field-name) ))
 
-(defn make-pobj
-  "given a slip & its position, return its Piccolo infocard"
-  [slip x y]
-  (let [ttxt (slip-field slip :ttxt)
-	btxt (slip-field slip :btxt)]
-;    (swank.core/break)
-    (infocard x y ttxt btxt)))
-
 (defn move-to
   "move a slip's Piccolo infocard to a given location; returns: slip"
   [slip x y]
@@ -302,6 +311,7 @@ a working XQDataSource."
     (.setY pobj y))
   slip)
   
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; DISPLAYING SLIPS ON THE DESKTOP
@@ -314,8 +324,11 @@ a working XQDataSource."
 
 (defn show
   "display a slip at a given location in a given layer"
+  ; BUG: move-to moves the PClip but not its contents
   [slip   x y   layer]
-  (.addChild layer (move-to slip x y layer)))
+  (let [_   (move-to slip x y)
+	pobj   (slip-field slip :pobj)]
+    (.addChild layer pobj)))
 
 (defn show-seq
   "display seq of slips, starting at (x y), using dx, dy as offset

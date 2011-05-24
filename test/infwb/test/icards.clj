@@ -34,13 +34,13 @@
   (let [icard1 (db->icard "gw667_090815161114586")
 	_ (icard->appdb icard1)]
     (is (= "the ability to think"
-	    (:ttxt (iid->icard "gw667_090815161114586")) ))))
+	    (:ttxt (get-icard "gw667_090815161114586")) ))))
 
 (deftest test-db-to-appdb []
 	 (println "4 test-db-to-appdb")
 	 (db->appdb "gw667_090815162059614")
 	 (is (= "to label, categorize, and find precedents"
-		  (:ttxt (iid->icard "gw667_090815162059614")) )))
+		  (:ttxt (get-icard "gw667_090815162059614")) )))
 
 (deftest test-get-all-icards []
 	 (println "5 test-get-all-icards")
@@ -58,14 +58,14 @@
 ;; (deftest test-all-icards-to-appdb []
 ;; 	 (println "6 test-all-icards-to-appdb")
 ;; 	 (map db->appdb (db->all-iids))
-;; 	 (is (= 67 (icard-db-size))) )
+;; 	 (is (= 67 (icard-appdb-size))) )
 
 (deftest test-all-icards-to-appdb []
 	 (println "6 test-all-icards-to-appdb")
 	 (let [all-iids (db->all-iids)]
 	   (doseq [card all-iids]
 	     (db->appdb card)))
-	 (is (= 67 (icard-db-size))) )
+	 (is (= 67 (icard-appdb-size))) )
 
 (defn test-ns-hook []
   (println "Did you recompile the test file?")

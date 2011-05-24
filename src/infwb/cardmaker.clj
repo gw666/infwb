@@ -12,16 +12,16 @@
 			SelectorsType
 			SimpleRichTextType)
 
-   (java.io ByteArrayOutputStream  IOException)
+   (java.io  ByteArrayOutputStream IOException)
 
    (javax.xml.bind  JAXBContext  JAXBException  Marshaller
 		    Unmarshaller)
-   (my.numberaddition   NumberAdditionUI)
-  ))
+;   (my.numberaddition NumberAdditionUI)
+   ))
 
 (defn make-icard
   "returns an infocard string created from the given inputs"
-  [id title p-seq tag-seq]
+  [iid title p-seq tag-seq]
   (let [out (ByteArrayOutputStream.)
 	objFactory (ObjectFactory.)
 	myInfomlFile (.createInfomlFile objFactory)
@@ -39,7 +39,7 @@
 	contentContainer (.getPOrQuotationOrPoem myRTWEType)
 	]
     
-    (.setCardId infocard id)
+    (.setCardId infocard iid)
     (.setEncoding infocard "UTF-8")
     (.setVersion infocard (BigDecimal. "1.0"))
 
@@ -64,12 +64,16 @@
     (let [jc (JAXBContext/newInstance "org.infoml.jaxb")
 	  m (.createMarshaller jc)]
 
-; currently not needed because infomlFile info is 
+; currently not needed because infomlFile info is not used
 ;      (. m setProperty  Marshaller/JAXB_SCHEMA_LOCATION
 ;	 "http://infoml.org/infomlFile     http://infoml.org/s/infomlFile.xsd")
       (. m setProperty  Marshaller/JAXB_FORMATTED_OUTPUT Boolean/TRUE)
 
       (.marshal m myInfomlFile out)
+
+      ; rawOutput is a string containing an infomlFile element with one
+      ; infoml element inside it. The code below captures (and returns)
+      ; the string of the infoml element only
       (let [raw-output (.toString out)
 	    parsed-output
 	    (re-matches #"(?s).*(<infoml .*</infoml>).*" raw-output)]
