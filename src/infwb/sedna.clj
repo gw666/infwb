@@ -8,7 +8,8 @@
   (:import (javax.xml.xquery   XQConnection XQDataSource
 			       XQResultSequence)
 	   (net.cfoster.sedna.xqj   SednaXQDataSource)
-	   (java.util   Properties))
+	   (java.util   Properties)
+	   (java.awt.geom AffineTransform))
     (:use [infwb.infocard]))
 
 
@@ -164,35 +165,47 @@ a working XQDataSource."
 		 pobj]   ;;Piccolo object that implements slip
   )
 
-;; (defn make-pobj  ;OBSOLETE
-;;   "given a slip & its position, return its Piccolo infocard"
-;;   [slip x y]
-;;   (let [ttxt (slip-field slip :ttxt)
-;; 	btxt (slip-field slip :btxt)]
-;; ;    (swank.core/break)
-;;     (make-pinfocard x y ttxt btxt)))
-
 (declare get-icard)
 
 (defn new-slip
-  "create slip from infocard, with its pobj at (0 0)"
-  ([icard-id x y]
-  (let [icard (get-icard icard-id)
+  "create slip from infocard, with its pobj at (x y), or default to (0 0)"
+  ([iid x y]
+  (let [icard (get-icard iid)
 	; this does nothing, for now
-	icard-field-list (get-all-fields icard)
+;	icard-field-list (get-all-fields icard)
 	rand-key   (str "sl:" (rand-kayko 3))
 	pobj   (make-pinfocard
 		x
 		y
 		(icard-field icard :ttxt)
 		(icard-field icard :btxt))]
-    (slip. rand-key icard-id pobj)))
-  ([icard-id]   (new-slip icard-id 0 0 )))
+    (slip. rand-key iid pobj)))
+  ([iid]   (new-slip iid 0 0 )))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; APPDB: populating it with icards
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; There is currently some confusion between an instance of an icard
+; record--called 'icard' in source code--and the id value--the 'iid',
+; or "icard ID".
+;
+; In general, we want the system to use values that it sees as infocards,
+; without knowing what is "inside" the value. Infocards are operated on
+; by various functions in an implementation-independent way, so that if
+; I decide to change the implementation, none of the code "above" the
+; implementation level need be modified.
+; 
+; Current implementation details: an infocard's value is its iid; to get
+; its icard record, use (get-icard iid); to get an icard record's fields,
+; use (icard-field icard :fieldname).
+;
+; NB: Slips are similar, with (get-slip sid), (slip-field slip :fieldname)
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -218,6 +231,15 @@ a working XQDataSource."
       (do
 ;	(println "Storing" iid)
 	(icard->appdb icard) ))))
+
+(defn load-all-icards-to-appdb
+  "populates *appdb* with infocards; should be done once only"
+  []
+    (let [all-iids (db->all-iids)]
+      (doseq [iid all-iids]
+	(db->appdb iid))))
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -245,7 +267,7 @@ a working XQDataSource."
     (keys (get-in @*appdb* [icard-idx]))))
 
 (defn icard-appdb-size
-  "number of icards in the application's internal ic`ard db"
+  "number of icards in the application's internal icard db"
   []
   (count (keys (nth @*appdb* 0))))
 
@@ -257,7 +279,7 @@ a working XQDataSource."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-; APPDB: populating it with slips
+; APPDB: populating it with slips    
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -273,6 +295,12 @@ a working XQDataSource."
       (swap! *appdb* assoc-in [slip-idx sid] slip)
       (swap! *appdb* update-in [slip-idx] assoc sid slip)))
   nil)
+
+(defn iid->slip->appdb
+  "Given iid, creates slip, then adds slip to *appdb*"
+  [iid]
+  (let [slip (new-slip iid)]
+    (slip->appdb slip)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -303,12 +331,21 @@ a working XQDataSource."
 	;; eg, (. <pobject> :getX) is same as (.getX <pobject>)
 	:else (. (:pobj slip) field-name) ))
 
+;; (defn move-to
+;;   "move a slip's Piccolo infocard to a given location; returns: slip"
+;;   [slip   ^Double x   ^Double y]
+;;   (let [pobj   (:pobj slip)
+;; 	at     (.AffineTranform (Double. 1.0) (Double. 0.0)
+;; 				(Double. 0.0) (Double. 1.0) x y)]
+;;     (.setTransform pobj at))
+;;   slip)
+  
 (defn move-to
   "move a slip's Piccolo infocard to a given location; returns: slip"
-  [slip x y]
-  (let [pobj   (:pobj slip)]
-    (.setX pobj x)
-    (.setY pobj y))
+  [slip   ^Float x   ^Float y]
+  (let [pobj   (:pobj slip)
+	at1    (AffineTransform. 1. 0. 0. 1. x y)]
+    (.setTransform pobj at1))
   slip)
   
 
