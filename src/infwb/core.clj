@@ -13,57 +13,41 @@
    (edu.umd.cs.piccolo         PCanvas PNode PLayer)
    (edu.umd.cs.piccolo.event   PDragEventHandler)
    (edu.umd.cs.piccolox   PFrame)
-;   (java.awt   Point)
+
    (java.awt.geom   AffineTransform))
   (:use [infwb.infocard])
   (:use [infwb.sedna])  )
 
 ;; =============== GLOBALS ===============
 
+(defn -main []
+  
+  (db-startup)
+  (load-all-icards-to-appdb)
+  (load-all-slips-to-appdb)
 
-
-;; (defn -main []
-;;   (db-startup)
-;;   (let [frame1 (PFrame.)
-;; 	canvas1 (.getCanvas frame1)
-;; 	layer1 (.getLayer canvas1)
-;; 	dragger (PDragEventHandler.)]
+  (let [frame1       (PFrame.)
+	canvas1      (.getCanvas frame1)
+	layer1       (.getLayer canvas1)
+	dragger      (PDragEventHandler.)
+	sids         (appdb->all-sids)
+	slips        (map get-slip sids)
+	[slips1 slips2]    (split-at 33 slips)]
     
-;;     (.setVisible frame1 true)
-;;     (.setMoveToFrontOnPress dragger true)
-
-;; ;installs drag-PNode handler onto left-mouse button
-;;     (.setPanEventHandler canvas1 nil)
-;;     (.addInputEventListener canvas1 dragger)))
-
-  (defn load-all-icards-to-appdb []
-    (let [all-iids (db->all-iids)]
-      (doseq [iid all-iids]
-	(db->appdb iid))))
-
-  (do
-    (db-startup)
-    (load-all-icards-to-appdb)
-    (def frame1 (PFrame.))
     (.setSize frame1 500 700)
-    (def canvas1 (.getCanvas frame1))
-    (def layer1 (.getLayer canvas1))
-    (def dragger (PDragEventHandler.))    
     (.setVisible frame1 true)
     (.setMoveToFrontOnPress dragger true)
     (.setPanEventHandler canvas1 nil)
-    (.addInputEventListener canvas1 dragger))
+    (.addInputEventListener canvas1 dragger)
+
+    (show-seq slips1    20 20    0 25  layer1)
     
-  (def s (new-slip "gw667_090815161114586"))
-  (def pobj (slip-field s :pobj))  
-  (show s 0 0 layer1)
-  
-  (def s2 (new-slip "gw667_090905202452835"))
-  (def pobj2 (slip-field s2 :pobj))
-  (show s2 0 00 layer1)
+;    (swank.core/break)
+    
+    (show-seq slips2   370 20    0 25  layer1)))
     
 
-  
+
 		    
 
 
@@ -86,7 +70,31 @@
     (.addInputEventListener canvas1 dragger)
     )
 
+  (show (get-slip "sl:zepola") 100 50 layer1)
+  (show (get-slip "sl:nufuxa") 100 50 layer1)
+  (show (get-slip "sl:leluvu") 100 50 layer1)
+
+  (def sids (appdb->all-sids))
+  (def slips (map get-slip sids))
+  (def s1-4 (take 4 slips))
+  (show-seq s1-4 20 20    0 25  layer1)
+  (show-seq s1-4 320 20    0 25  layer1)
+
+  (let [[slips1 slips2] (split-at 33 slips)]
+      (show-seq slips1    20 20    0 25  layer1)
+      (show-seq slips2   370 20    0 25  layer1))
   
+  (def s (new-slip "gw667_090815161114586"))
+  (def pobj (slip-field s :pobj))  
+  (show s 0 0 layer1)
+  
+  (def s2 (new-slip "gw667_090905202452835"))
+  (def pobj2 (slip-field s2 :pobj))
+  (show s2 0 00 layer1)
+    
+
+
+
   (def s (new-slip "gw667_090815161114586"))
   (def pobj (slip-field s :pobj))
   (.addChild layer1 pobj)

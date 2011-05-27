@@ -302,6 +302,11 @@ a working XQDataSource."
   (let [slip (new-slip iid)]
     (slip->appdb slip)))
 
+(defn load-all-slips-to-appdb []
+  (let [all-iids (db->all-iids)]
+    (doseq [iid all-iids]
+      (iid->slip->appdb iid))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; ACCESSING SLIPS AND THEIR DATA
@@ -324,7 +329,7 @@ a working XQDataSource."
 (defn slip-field
   "given slip, get value of field named field-key (e.g.,:cid)"
   [slip field-key]
-  (cond (contains? #{:id :iid :pobj} field-key)   (field-key slip)
+  (cond (contains? #{:sid :iid :pobj} field-key)   (field-key slip)
 	(contains? #{:id :ttxt :btxt} field-key)
 	(let [icard (get-icard (:iid slip))] ;;executed for icard fields
 	  (icard-field icard field-key))
@@ -365,12 +370,14 @@ a working XQDataSource."
   [slip   x y   layer]
   (let [_   (move-to slip x y)
 	pobj   (slip-field slip :pobj)]
+    (println "Drawing slip " (slip-field slip :sid) "at (" x " " y ")")
     (.addChild layer pobj)))
 
 (defn show-seq
   "display seq of slips, starting at (x y), using dx, dy as offset
 for each next slip to be displayed"
   [slip-seq   x y   dx dy   layer]
-  (let [x-coords   (iterate x #(+ % dx))
-	y-coords   (iterate y #(+ % dy))]
-    (map show slip-seq x-coords y-coords layer)))
+  (let [x-coords   (iterate #(+ % dx) x)
+	y-coords   (iterate #(+ % dy) y)
+        layer-seq  (repeat layer)]
+    (map show slip-seq x-coords y-coords layer-seq)))
