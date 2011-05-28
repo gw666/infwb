@@ -1,10 +1,26 @@
 ; project: github/gw666/infwb
 ; file: src/infwb/core.clj
 
-; HISTORY:
+;; Status as of 110527:
 
-; IMPORTANT: To start: compile sedna, core; run (ns infwb.core), (db-startup)
-;
+;; To run:
+
+;; 1) Sedna database must be running, with file
+;; 'infwb/src/hofstadter, doidge.XML' loaded into a database named 'brain'.
+
+;; 2) With a cli in this project's directory (currently
+;; ~/tech/clojurestuff/cljprojects/infwb), execute 'lein run'
+
+;; To run from REPL:
+
+;; 1) Load emacs, connect to SLIME
+;; 2) Execute '(ns infwb.core)'
+;; 3) Execute '(load-file "src/infwb/infocard.clj")'
+;; 4) Execute '(load-file "src/infwb/infocard.clj")'
+;; 5) Execute '(load-file "src/infwb/core.clj")'
+;; 6) Set breakpoints with '(swank.core/break)'
+;; 7) Run by executing '(-main)'
+
 
 (ns infwb.core
   (:gen-class)
@@ -20,11 +36,15 @@
 
 ;; =============== GLOBALS ===============
 
-(defn -main []
-  
+(defn initialize []
   (db-startup)
   (load-all-icards-to-appdb)
-  (load-all-slips-to-appdb)
+  (load-all-slips-to-appdb))
+  
+  
+(defn -main []
+
+  (initialize)
 
   (let [frame1       (PFrame.)
 	canvas1      (.getCanvas frame1)
@@ -32,7 +52,12 @@
 	dragger      (PDragEventHandler.)
 	sids         (appdb->all-sids)
 	slips        (map get-slip sids)
-	[slips1 slips2]    (split-at 33 slips)]
+	[slips1 slips-temp]    (split-at 20 slips)
+	[slips2 slips3]        (split-at 23 slips-temp)]
+
+;	[slips1 temp]    (split-at 4 slips)
+;	[slips2 temp2]   (split-at 4 temp)	
+;	]
     
     (.setSize frame1 500 700)
     (.setVisible frame1 true)
@@ -40,11 +65,13 @@
     (.setPanEventHandler canvas1 nil)
     (.addInputEventListener canvas1 dragger)
 
-    (show-seq slips1    20 20    0 25  layer1)
+     (dorun (show-seq slips1    40 20    0 25  layer1))
+     (dorun (show-seq slips2   370 20    0 25  layer1))
+     (dorun (show-seq slips3   700 20    0 25  layer1))
     
 ;    (swank.core/break)
-    
-    (show-seq slips2   370 20    0 25  layer1)))
+     ))
+
     
 
 
@@ -69,6 +96,19 @@
     (.setPanEventHandler canvas1 nil)
     (.addInputEventListener canvas1 dragger)
     )
+
+  (do
+    (def temp1 (split-at 4 slips))
+    (def slips1 (first temp1))
+    (def temp2 (second temp1))
+    (def temp3 (split-at 4 temp2))
+    (def slips2 (first temp3))
+    )
+
+  (show-seq slips1 20 20    0 25  layer1)
+  (show-seq slips2 320 20    0 25  layer1)
+  
+    
 
   (show (get-slip "sl:zepola") 100 50 layer1)
   (show (get-slip "sl:nufuxa") 100 50 layer1)

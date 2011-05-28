@@ -1,13 +1,11 @@
 # infwb
 
-FIXME: write description
+InfWb: Infocard Workbench, managed by leiningen
 
 ## Usage
 
-FIXME: write
+lein run
 
-## License
+## Notes
 
-Copyright (C) 2010 FIXME
-
-Distributed under the Eclipse Public License, the same as Clojure.
+For additional notes, see comments in core.clj. Result of running is shown in 'Infocard Workbench desktop.gif'. Cards can be moved by dragging them. Right mouse click plus dragging to either right or left invokes built-in zooming, but do this just before you close the application. Zooming in/out often leaves the application unusable because you will no longer be able to see some/all the cards.

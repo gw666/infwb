@@ -377,7 +377,11 @@ a working XQDataSource."
   "display seq of slips, starting at (x y), using dx, dy as offset
 for each next slip to be displayed"
   [slip-seq   x y   dx dy   layer]
+  (println "Reached show-seq, x y = " x " " y)
   (let [x-coords   (iterate #(+ % dx) x)
 	y-coords   (iterate #(+ % dy) y)
         layer-seq  (repeat layer)]
-    (map show slip-seq x-coords y-coords layer-seq)))
+;    (dorun
+     (map show slip-seq x-coords y-coords layer-seq))
+;    )
+  )
