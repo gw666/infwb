@@ -32,7 +32,9 @@
 
    (java.awt.geom   AffineTransform))
   (:use [infwb.infocard])
-  (:use [infwb.sedna])  )
+  (:use [infwb.sedna])
+   (:use [clojure.test])
+  )
 
 ;; =============== GLOBALS ===============
 

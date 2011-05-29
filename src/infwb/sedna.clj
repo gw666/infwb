@@ -329,12 +329,23 @@ a working XQDataSource."
 (defn slip-field
   "given slip, get value of field named field-key (e.g.,:cid)"
   [slip field-key]
-  (cond (contains? #{:sid :iid :pobj} field-key)   (field-key slip)
-	(contains? #{:id :ttxt :btxt} field-key)
+  (cond (contains? #{:sid :iid :pobj} field-key)
+	(field-key slip)
+	
+	(contains? #{:iid :ttxt :btxt} field-key)
 	(let [icard (get-icard (:iid slip))] ;;executed for icard fields
 	  (icard-field icard field-key))
-	;; eg, (. <pobject> :getX) is same as (.getX <pobject>)
-	:else (. (:pobj slip) field-name) ))
+	
+	(= :x field-key)
+	(let [pobj (slip-field slip :pobj)]
+	  (.getXOffset pobj))
+
+	(= :y field-key)
+	(let [pobj (slip-field slip :pobj)]
+	  (.getYOffset pobj))
+	
+	))
+
 
 ;; (defn move-to
 ;;   "move a slip's Piccolo infocard to a given location; returns: slip"
