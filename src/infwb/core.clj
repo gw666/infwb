@@ -40,7 +40,7 @@
 
 (defn initialize []
   (db-startup)
-  (load-all-icards-to-appdb)
+  (load-iid-seq-to-appdb (db->all-iids))
   (load-all-slips-to-appdb))
   
   
@@ -85,7 +85,7 @@
   (db-startup)
   
 
-  (load-all-icards-to-appdb)
+  (load-iid-seq-to-appdb (db->all-iids))
   
   (do
     (def frame1 (PFrame.))

@@ -121,15 +121,15 @@ a working XQDataSource."
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord icard [iid     ;;string; icard-id (iid) of infocard
-		  ttxt   ;;string; title text
-		  btxt]  ;;string; body text
+(defrecord icard [iid    ;;string; icard-id (iid) of infocard
+		  ttxt   ;;atom pointing to string; title text
+		  btxt]  ;;atom pointing to string; body text
   )
 
 (def ^{:dynamic true} *icard-fields* (list :iid :ttxt :btxt))
 
 (defn new-icard [iid ttxt btxt]
-  (icard. iid ttxt btxt))
+  (icard. iid (atom ttxt) (atom btxt)))
 
 (defn db->icard
   "get icard data from appn database, return it as an icard record"
@@ -168,18 +168,19 @@ a working XQDataSource."
 (declare get-icard)
 
 (defn new-slip
-  "create slip from infocard, with its pobj at (x y), or default to (0 0)"
+  "create slip from infocard, with its pobj at (x y), or default to (0 0)--
+NOTE: does *not* add slip to *appdb*"
   ([iid x y]
   (let [icard (get-icard iid)
 	; this does nothing, for now
 ;	icard-field-list (get-all-fields icard)
-	rand-key   (str "sl:" (rand-kayko 3))
+	rand-key   (rand-kayko 3)
 	pobj   (make-pinfocard
 		x
 		y
 		(icard-field icard :ttxt)
 		(icard-field icard :btxt))]
-    (slip. rand-key iid pobj)))
+    (slip. rand-key (atom iid) (atom pobj))))
   ([iid]   (new-slip iid 0 0 )))
 
 
@@ -232,10 +233,10 @@ a working XQDataSource."
 ;	(println "Storing" iid)
 	(icard->appdb icard) ))))
 
-(defn load-all-icards-to-appdb
-  "populates *appdb* with infocards; should be done once only"
-  []
-    (let [all-iids (db->all-iids)]
+(defn load-iid-seq-to-appdb
+  "populates *appdb* with infocards given by the sequence"
+  [iid-seq]
+    (let [all-iids iid-seq]
       (doseq [iid all-iids]
 	(db->appdb iid))))
 
@@ -252,24 +253,24 @@ a working XQDataSource."
   "given icard, get value of field named field-key (e.g.,:cid)"
   [icard field-key]
   ;this fcn isolates the operation from its implementation
-  (field-key icard))
+  (if (= field-key :iid)
+    (:iid icard)
+    @(field-key icard)))
 
 (defn get-icard  ;; aka "lookup-icard" (from appdb)
   "given its iid, retrieve an icard from the appdb"
   [iid]
-  (let [icard-idx   *icard-idx*]
-    (get-in @*appdb* [icard-idx iid])))
+    (get-in @*appdb* [*icard-idx* iid]))
 
 (defn appdb->all-iids
 "return a seq of all the id values of the appdb icard database"
   []
-  (let [icard-idx   *icard-idx*]
-    (keys (get-in @*appdb* [icard-idx]))))
+    (keys (get-in @*appdb* [*icard-idx*])))
 
 (defn icard-appdb-size
   "number of icards in the application's internal icard db"
   []
-  (count (keys (nth @*appdb* 0))))
+  (count (keys (nth @*appdb* *icard-idx*))))
 
 (defn slip->icard
   "given a slip id, return its icard from the appdb"
@@ -284,23 +285,54 @@ a working XQDataSource."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;; TODO: unit tests for this fcn
+;; Definition of '(swap! atom f x y & args)':
+;; Atomically swaps the value of atom to be:
+;; (apply f current-value-of-atom args). Note that f may be called
+;; multiple times, and thus should be free of side effects. Returns
+;; the value that was swapped in.
+
+;; Explanations of two lines of code within slip->appdb:
+
+;; `(swap! *appdb* assoc-in [*slip-idx* sid] slip)` is equiv to
+;; `(apply assoc-in <curr value of *appdb*> [*slip-idx* sid] slip)`,
+;; then assigning the new value back to *appdb*.
+
+;; Let KEY = `(nth *appdb* *slip-idx* sid)`, which is the key `sid`
+;; within the map for slips.
+
+;; The above swap...assoc-in line takes the value `slip` and uses it
+;; to *replace* the value associated with KEY. 
+
+;; -----
+;; `(swap! *appdb* update-in [*slip-idx*] assoc sid slip)` is equiv to
+;; `(apply update-in <curr value of *appdb*> [*slip-idx*] assoc sid slip)`,
+;; then assigning the new value back to *appdb*.
+
+;; Let VAL = `(nth *appdb* *slip-idx*)`, which is the map for slips.
+
+;; The above swap...update-in line performs the following action:
+
+;; `assoc VAL sid slip`, which *prepends* the key/value pair to VAL.
+
 (defn slip->appdb
-  "Stores the slip record in the in-memory database"
+  "Stores the slip record in the in-memory database--NOTE: new slip is
+inserted at the *front* of the map, *before* all existing slips"
   [slip]
   (let [sid (:sid slip)
-	slip-idx   *slip-idx*
-	id-exists?  (get-in @*appdb* [slip-idx sid])]
+	id-exists?  (get-in @*appdb* [*slip-idx* sid])]
     (if id-exists?   ;;if true, replaces existing; false adds new slip
-      (swap! *appdb* assoc-in [slip-idx sid] slip)
-      (swap! *appdb* update-in [slip-idx] assoc sid slip)))
+      (swap! *appdb* assoc-in [*slip-idx* sid] slip)
+      (swap! *appdb* update-in [*slip-idx*] assoc sid slip)))
   nil)
 
+;; WARN: "bare" use of `:sid` to get data from within slip
 (defn iid->slip->appdb
-  "Given iid, creates slip, then adds slip to *appdb*"
+  "Given iid, creates slip, adds slip to *appdb*; returns sid of new slip"
   [iid]
-  (let [slip (new-slip iid)]
-    (slip->appdb slip)))
+  (let [slip (new-slip iid)
+	sid (:sid slip)]
+    (slip->appdb slip)
+    sid))
 
 (defn load-all-slips-to-appdb []
   (let [all-iids (db->all-iids)]
@@ -316,8 +348,12 @@ a working XQDataSource."
 (defn get-slip  ;; aka "lookup-slip" (from appdb)
   "given its sid, retrieve a slip from the appdb"
   [sid]
-  (let [slip-idx   *slip-idx*]
-    (get-in @*appdb* [slip-idx sid])))
+  (let [slip   (get-in @*appdb* [*slip-idx* sid])]
+    (if slip
+      slip
+      {:sid (str "ERROR: Slip '" sid "' is INVALID")
+       :iid (atom (str "ERROR: Slip '" sid "' is INVALID"))
+       :pobj  (atom nil)} )))
 
 (defn appdb->all-sids
   "return a seq of all the id values of the appdb slip database"
@@ -329,37 +365,39 @@ a working XQDataSource."
 (defn slip-field
   "given slip, get value of field named field-key (e.g.,:cid)"
   [slip field-key]
-  (cond (contains? #{:sid :iid :pobj} field-key)
-	(field-key slip)
-	
-	(contains? #{:iid :ttxt :btxt} field-key)
-	(let [icard (get-icard (:iid slip))] ;;executed for icard fields
-	  (icard-field icard field-key))
-	
-	(= :x field-key)
-	(let [pobj (slip-field slip :pobj)]
-	  (.getXOffset pobj))
-
-	(= :y field-key)
-	(let [pobj (slip-field slip :pobj)]
-	  (.getYOffset pobj))
-	
-	))
-
-
-;; (defn move-to
-;;   "move a slip's Piccolo infocard to a given location; returns: slip"
-;;   [slip   ^Double x   ^Double y]
-;;   (let [pobj   (:pobj slip)
-;; 	at     (.AffineTranform (Double. 1.0) (Double. 0.0)
-;; 				(Double. 0.0) (Double. 1.0) x y)]
-;;     (.setTransform pobj at))
-;;   slip)
   
+  (cond   (= :sid field-key)
+	  (:sid slip)
+	  
+	  (contains? #{:iid :pobj} field-key)
+	  @(field-key slip) 
+	
+	  (contains? #{:iid :ttxt :btxt} field-key)
+	  (let [icard (get-icard (slip-field slip :iid))] ;;executed for icard fields
+	    (icard-field icard field-key))
+	
+	  ;; icards are "moved" by changing their transform
+	  ;; getXOffset, getYOffset access the transform's values directly,
+	  ;; eliminating need to xform local X, Y (always 0 0) to globl coords
+	  (= :x field-key)
+	  (let [pobj (slip-field slip :pobj)]
+	    (.getXOffset pobj))
+
+	  (= :y field-key)
+	  (let [pobj (slip-field slip :pobj)]
+	    (.getYOffset pobj))
+	  
+	  ))
+
+(defn slip-appdb-size
+  "number of icards in the application's internal icard db"
+  []
+  (count (keys (nth @*appdb* *slip-idx*))))
+
 (defn move-to
   "move a slip's Piccolo infocard to a given location; returns: slip"
   [slip   ^Float x   ^Float y]
-  (let [pobj   (:pobj slip)
+  (let [pobj   @(:pobj slip)
 	at1    (AffineTransform. 1. 0. 0. 1. x y)]
     (.setTransform pobj at1))
   slip)
@@ -381,7 +419,6 @@ a working XQDataSource."
   [slip   x y   layer]
   (let [_   (move-to slip x y)
 	pobj   (slip-field slip :pobj)]
-    (println "Drawing slip " (slip-field slip :sid) "at (" x " " y ")")
     (.addChild layer pobj)))
 
 (defn show-seq

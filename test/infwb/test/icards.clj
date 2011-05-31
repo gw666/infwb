@@ -9,8 +9,8 @@
   (:use [infwb.core] :reload)
   (:use [clojure.test]))
 
-;; Required manual setup: Sedna must have a db named "text" with a collection
-;; called "test". Collection must have a copy of the file
+;; Required manual setup: Sedna must have a db named "brain".
+;; Collection must have a copy of the file
 ;; "/Users/gw/Documents/99-IMPORTANT DOCUMENTS/permanent infocards, sch
 ;; ema v0.90/hofstadter, doidge.XML". The file's
 ;; lowest key is "gw667_090815161114586", and there should be 67 records.
@@ -22,8 +22,8 @@
 (deftest test-read-icard-from-db []
 	 (println "1 test-read-icard-from-db")
 	 (is (and
-	      (not= nil (:ttxt (db->icard "gw667_090815161114586")))
-	      (= nil (:ttxt (db->icard "INVALID KEY"))) )))
+	      (not= nil (icard-field (db->icard "gw667_090815161114586") :ttxt))
+	      (= nil (icard-field (db->icard "INVALID KEY") :ttxt)) )))
 
 (deftest test-get-all-iids []
 	 (println "2 test-get-all-iids")
@@ -34,13 +34,13 @@
   (let [icard1 (db->icard "gw667_090815161114586")
 	_ (icard->appdb icard1)]
     (is (= "the ability to think"
-	    (:ttxt (get-icard "gw667_090815161114586")) ))))
+	    (icard-field (db->icard "gw667_090815161114586") :ttxt) ))))
 
 (deftest test-db-to-appdb []
 	 (println "4 test-db-to-appdb")
 	 (db->appdb "gw667_090815162059614")
 	 (is (= "to label, categorize, and find precedents"
-		  (:ttxt (get-icard "gw667_090815162059614")) )))
+		  (icard-field (get-icard "gw667_090815162059614") :ttxt) )))
 
 (deftest test-get-all-icards []
 	 (println "5 test-get-all-icards")

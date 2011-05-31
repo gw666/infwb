@@ -7,8 +7,8 @@
   (:use [infwb.core] :reload)
   (:use [clojure.test]))
 
-;; Required manual setup: Sedna must have a db named "text" with a collection
-;; called "test". Collection must have a copy of the file
+;; Required manual setup: Sedna must have a database named "brain".
+;; Database must have a copy of the file
 ;; "/Users/gw/Documents/99-IMPORTANT DOCUMENTS/permanent infocards, sch
 ;; ema v0.90/hofstadter, doidge.XML". The file's
 ;; lowest key is "gw667_090815161114586", and there should be 67 records.
@@ -39,6 +39,13 @@
     (doseq [card iid-seq]
       (db->appdb card))
     ))
+
+(defn reset-slip-db
+  "Clears out the slip-db so as to enable another round of testing without
+having to run `(test-slips-setup)`, which is time-consuming, again"
+  []
+  (swap! *appdb* assoc-in [*slip-idx*] {})
+  nil)
   
 
 ;; (deftest test-display-all-slips []
@@ -56,18 +63,42 @@
 ;;     (println "test-display-all-slips passes if cards are visible in window")
 ;;     (is true)))
 
-(deftest test-make-1-slip []
-  (let [test-iid "gw667_090815162059614"
+;; (test-slips-setup) should run before this fcn runs. This makes
+;; appdb slip db empty.
+;; At end of this fcn, appdb slip db has one entry based on first iid.
+(deftest test-make-1-slip
+  "Creates test suite's first slip, based on first iid"
+  []
+  (let [test-iid (nth (appdb->all-iids) 0)
 	test-ttxt (icard-field (get-icard test-iid) :ttxt)
 	test-slip (new-slip test-iid)
 	_   (slip->appdb test-slip)]
-    (is (= test-ttxt (slip-field test-slip :ttxt)) ":ttxt field")))
+    (is (= test-ttxt (slip-field test-slip :ttxt)) ":ttxt field")
+    (is (= 1 (count (appdb->all-sids)))) ))
 
+;; DEV: This must be modified whenever a field is added
+;; This test works on the first slip, which was created by (test-make-1-slip)
 (deftest test-slip-field []
-  (let [slip-id (nth (appdb->all-sids) 0)
+  (let [iid (nth (appdb->all-iids) 0)
+	sid (nth (appdb->all-sids) 0)
+	slip (get-slip sid)
+	icard (get-icard iid)
+	ttxt (icard-field icard :ttxt)
+	btxt (icard-field icard :btxt)]
+    (is (= sid (slip-field slip :sid)))
+    (is (= iid (slip-field slip :iid)))
+    (is (= ttxt (slip-field slip :ttxt)))
+    (is (= btxt (slip-field slip :btxt))) ))
+  
+;; This test works on the first slip, which was created by (test-make-1-slip)
+(deftest test-move-slip
+  "Moves an existing slip, then checks to see whether move worked by
+examining the pobj's x and y values (using `slip-field`)"
+  []
+  (let [slip-id (nth (appdb->all-sids) 0) ; get first slip in appdb
 	new-x   62
 	new-y  118
-	test-slip (new-slip slip-id)]
+	test-slip (get-slip slip-id)]
     (move-to test-slip new-x new-y)
     (is (= new-x (round-to-int (slip-field test-slip :x))) "x")
     (is (= new-y (round-to-int (slip-field test-slip :y))) "y") ))
@@ -75,18 +106,32 @@
 (deftest test-show-1-slip []
   (println "\n### WARN: Be sure that layer1 is defined ###\n")
   (let [slip-id (nth (appdb->all-sids) 0) 
-	test-slip (new-slip slip-id)
-	test-x   51
-	test-y  149]
-    (println "test-show-1-slip succeeds if you see slip named"
-	     (slip-field test-slip :ttxt) "onscreen") ))
+	test-slip (get-slip slip-id)
+	test-x   50
+	test-y  150]
+    (println "test-show-1-slip succeeds if you see slip named '"
+	     (slip-field test-slip :ttxt) "' onscreen at ("
+	     test-x " " test-y ")")
+    (show test-slip test-x test-y layer1) ))
+
+;; this fcn creates a second slip
+(deftest test-make-slip-from-db []
+  (let [iid2 (nth (appdb->all-iids) 1)
+	sid2   (iid->slip->appdb iid2)
+	slip2   (get-slip sid2)]
+    (is (= iid2 (slip-field slip2 :iid)))
+    (is (= sid2 (slip-field slip2 :sid)))
+    (is (= (slip-field (get-slip "INVALID KEY") :iid)
+	   "ERROR: Slip 'INVALID KEY' is INVALID"))
+    ))
 
 	 
 
 
 (defn test-ns-hook []
-  (println "### Did you define needed variables (e.g., layer1)? ###\n")
-  (test-slips-setup)
+  (println "### Did you define needed variables (e.g., layer1)? ###")
+  (println "### Did you re-eval? '(ns infwb.test.slips ... )' ? ###\n")
+  ;; (test-slips-setup)
   ;; (test-write-1-slip)
   ;; (test-create-pobj)
   ;; (test-add-pobj-to-appdb)
@@ -94,6 +139,8 @@
   ;; (test-display-all-slips)
   (test-make-1-slip)
   (test-slip-field)
+  (test-move-slip)
   (test-show-1-slip)
+  (test-make-slip-from-db)
   )
 
