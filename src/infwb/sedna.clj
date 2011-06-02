@@ -364,7 +364,7 @@ inserted at the *front* of the map, *before* all existing slips"
 (defn slip-field
   "given slip, get value of field named field-key (e.g.,:cid)"
   [slip field-key]
-  (swank.core/break)
+;  (swank.core/break)
   (cond   (= :sid field-key)
 	  (:sid slip)
 	  

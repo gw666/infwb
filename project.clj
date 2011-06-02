@@ -12,9 +12,6 @@
                  [org.clojure/clojure-contrib "1.2.0"]
 		 [org.clojars.gw666/sxqj "beta2"]
 		 [org.clojars.gw666/piccolo2dcore "1.3"]
-		 [org.clojars.gw666/piccolo2dextras "1.3"]]
-; project also uses 'infoml-classes-1_0.jar', which has been placed in  
-; the lib folder manually--you MUST replace this if you do 'lein clean'
-  :dev-dependencies [[swank-clojure "1.3.0-SNAPSHOT"]
-;		     [marginalia "0.5.0"]
-		     ])
+		 [org.clojars.gw666/piccolo2dextras "1.3"]
+	     [infoml-classes "1.0"]]
+  :dev-dependencies [[swank-clojure "1.3.0-SNAPSHOT"]])

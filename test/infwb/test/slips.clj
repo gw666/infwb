@@ -98,7 +98,7 @@ examining the pobj's x and y values (using `slip-field`)"
 	test-y  150]
     (println "test-show-1-slip succeeds if you see slip named '"
 	     (slip-field test-slip :ttxt) "' onscreen at ("
-	     test-x " " test-y ")")
+	     test-x " " test-y ")\n")
     (show test-slip test-x test-y layer1) ))
 
 ;; this fcn creates a second slip
@@ -124,10 +124,15 @@ examining the pobj's x and y values (using `slip-field`)"
   ;; (test-add-pobj-to-appdb)
   ;; (test-display-1-slip)
   ;; (test-display-all-slips)
+  (println "running (test-make-1-slip)")
   (test-make-1-slip)
+  (println "running (test-slip-field)")
   (test-slip-field)
+  (println "running (test-move-slip)")
   (test-move-slip)
+  (println "running (test-show-1-slip)")
   (test-show-1-slip)
+  (println "running (test-make-slip-from-db)")
   (test-make-slip-from-db)
   )
 
