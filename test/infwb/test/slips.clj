@@ -35,8 +35,8 @@
 (defn test-slips-setup []
   (println "doing setup; all icards being loaded into local db")
   (db-startup)
-  (let [iid-seq (db->all-iids)]
-    (doseq [card iid-seq]
+  (let [icard-seq (db->all-icards)]
+    (doseq [card icard-seq]
       (db->appdb card))
     ))
 
@@ -48,45 +48,32 @@ having to run `(test-slips-setup)`, which is time-consuming, again"
   nil)
   
 
-;; (deftest test-display-all-slips []
-;;   (let [iid-seq (appdb->all-iids)
-;; 	]
-;;     (doseq [iid iid-seq]
-;;       (let [slip (new-slip iid)
-;; 	    _   (slip->appdb slip)
-;; 	    pobj (slip-pobj slip (rand-int 300) (rand-int 200))
-;; 	    full-slip   (new-full-slip slip pobj)
-;; 	    _   (slip->appdb full-slip)
-;; 	       card (:pobj full-slip)]
-;; 	   (.addChild layer1 card)
-;; 	   ))
-;;     (println "test-display-all-slips passes if cards are visible in window")
-;;     (is true)))
 
 ;; (test-slips-setup) should run before this fcn runs. This makes
 ;; appdb slip db empty.
-;; At end of this fcn, appdb slip db has one entry based on first iid.
+;; At end of this fcn, appdb slip db has one entry based on first icard.
 (deftest test-make-1-slip
-  "Creates test suite's first slip, based on first iid"
+  "Creates test suite's first slip, based on first icard"
   []
-  (let [test-iid (nth (appdb->all-iids) 0)
-	test-ttxt (icard-field (get-icard test-iid) :ttxt)
-	test-slip (new-slip test-iid)
+  (let [test-icard (nth (appdb->all-icards) 0)
+	test-ttxt (icdata-field (get-icdata test-icard) :ttxt)
+	test-slip (new-slip test-icard)
 	_   (slip->appdb test-slip)]
+;    (swank.core/break)
     (is (= test-ttxt (slip-field test-slip :ttxt)) ":ttxt field")
     (is (= 1 (count (appdb->all-sids)))) ))
 
 ;; DEV: This must be modified whenever a field is added
 ;; This test works on the first slip, which was created by (test-make-1-slip)
 (deftest test-slip-field []
-  (let [iid (nth (appdb->all-iids) 0)
+  (let [icard (nth (appdb->all-icards) 0)
 	sid (nth (appdb->all-sids) 0)
 	slip (get-slip sid)
-	icard (get-icard iid)
-	ttxt (icard-field icard :ttxt)
-	btxt (icard-field icard :btxt)]
+	icdata (get-icdata icard)
+	ttxt (icdata-field icdata :ttxt)
+	btxt (icdata-field icdata :btxt)]
     (is (= sid (slip-field slip :sid)))
-    (is (= iid (slip-field slip :iid)))
+    (is (= icard (slip-field slip :icard)))
     (is (= ttxt (slip-field slip :ttxt)))
     (is (= btxt (slip-field slip :btxt))) ))
   
@@ -116,12 +103,12 @@ examining the pobj's x and y values (using `slip-field`)"
 
 ;; this fcn creates a second slip
 (deftest test-make-slip-from-db []
-  (let [iid2 (nth (appdb->all-iids) 1)
-	sid2   (iid->slip->appdb iid2)
+  (let [icard2 (nth (appdb->all-icards) 1)
+	sid2   (icard->slip->appdb icard2)
 	slip2   (get-slip sid2)]
-    (is (= iid2 (slip-field slip2 :iid)))
+    (is (= icard2 (slip-field slip2 :icard)))
     (is (= sid2 (slip-field slip2 :sid)))
-    (is (= (slip-field (get-slip "INVALID KEY") :iid)
+    (is (= (slip-field (get-slip "INVALID KEY") :icard)
 	   "ERROR: Slip 'INVALID KEY' is INVALID"))
     ))
 

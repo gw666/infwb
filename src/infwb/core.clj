@@ -16,7 +16,7 @@
 ;; 1) Load emacs, connect to SLIME
 ;; 2) Execute '(ns infwb.core)'
 ;; 3) Execute '(load-file "src/infwb/infocard.clj")'
-;; 4) Execute '(load-file "src/infwb/infocard.clj")'
+;; 4) Execute '(load-file "src/infwb/sedna.clj")'
 ;; 5) Execute '(load-file "src/infwb/core.clj")'
 ;; 6) Set breakpoints with '(swank.core/break)'
 ;; 7) Run by executing '(-main)'
@@ -33,14 +33,15 @@
    (java.awt.geom   AffineTransform))
   (:use [infwb.infocard])
   (:use [infwb.sedna])
-   (:use [clojure.test])
+;   (:use [clojure.test])
   )
 
 ;; =============== GLOBALS ===============
 
+; ??? (declare load-icdata-seq-to-appdb)
 (defn initialize []
   (db-startup)
-  (load-iid-seq-to-appdb (db->all-iids))
+  (load-icard-seq-to-appdb (db->all-icards))
   (load-all-slips-to-appdb))
   
   
@@ -85,7 +86,7 @@
   (db-startup)
   
 
-  (load-iid-seq-to-appdb (db->all-iids))
+  (load-icard-seq-to-appdb (db->all-icards))
   
   (do
     (def frame1 (PFrame.))
@@ -98,6 +99,7 @@
     (.setPanEventHandler canvas1 nil)
     (.addInputEventListener canvas1 dragger)
     )
+  
 
   (do
     (def temp1 (split-at 4 slips))
@@ -151,7 +153,7 @@
 
   (.removeChild layer1 pobj)
 
-  (def iids (appdb->all-iids))
+  (def icards (appdb->all-icards))
   (def sids (appdb->all-sids))
  
   (def s2 (new-slip "gw667_090905202452835"))

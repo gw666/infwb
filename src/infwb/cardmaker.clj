@@ -21,7 +21,7 @@
 
 (defn make-icard
   "returns an infocard string created from the given inputs"
-  [iid title p-seq tag-seq]
+  [icard title p-seq tag-seq]
   (let [out (ByteArrayOutputStream.)
 	objFactory (ObjectFactory.)
 	myInfomlFile (.createInfomlFile objFactory)
@@ -39,7 +39,7 @@
 	contentContainer (.getPOrQuotationOrPoem myRTWEType)
 	]
     
-    (.setCardId infocard iid)
+    (.setCardId infocard icard)
     (.setEncoding infocard "UTF-8")
     (.setVersion infocard (BigDecimal. "1.0"))
 

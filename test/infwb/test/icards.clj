@@ -22,30 +22,30 @@
 (deftest test-read-icard-from-db []
 	 (println "1 test-read-icard-from-db")
 	 (is (and
-	      (not= nil (icard-field (db->icard "gw667_090815161114586") :ttxt))
-	      (= nil (icard-field (db->icard "INVALID KEY") :ttxt)) )))
+	      (not= nil (icdata-field (db->icdata "gw667_090815161114586") :ttxt))
+	      (= nil (icdata-field (db->icdata "INVALID KEY") :ttxt)) )))
 
-(deftest test-get-all-iids []
-	 (println "2 test-get-all-iids")
-	 (is (= 67 (count (db->all-iids)))) )
+(deftest test-get-all-icards []
+	 (println "2 test-get-all-icards")
+	 (is (= 67 (count (db->all-icards)))) )
 
 (deftest test-write-1-icard []
   (println "3 test-write-1-icard")
-  (let [icard1 (db->icard "gw667_090815161114586")
-	_ (icard->appdb icard1)]
+  (let [icdata1 (db->icdata "gw667_090815161114586")
+	_ (icdata->appdb icdata1)]
     (is (= "the ability to think"
-	    (icard-field (db->icard "gw667_090815161114586") :ttxt) ))))
+	    (icdata-field (db->icdata "gw667_090815161114586") :ttxt) ))))
 
 (deftest test-db-to-appdb []
 	 (println "4 test-db-to-appdb")
 	 (db->appdb "gw667_090815162059614")
 	 (is (= "to label, categorize, and find precedents"
-		  (icard-field (get-icard "gw667_090815162059614") :ttxt) )))
+		  (icdata-field (get-icdata "gw667_090815162059614") :ttxt) )))
 
-(deftest test-get-all-icards []
-	 (println "5 test-get-all-icards")
+(deftest test-get-all-icards2 []
+	 (println "5 test-get-all-icards2")
 	 (is (= 67
-		(count (map db->icard (db->all-iids))) )))
+		(count (map db->icdata (db->all-icards))) )))
 
 ;; vers below doesn't seem to work--too much for Clojure or Java to handle?
 ;;   Or maybe there is an issue of parallelism. Here's the err msg:
@@ -53,31 +53,27 @@
 ;; 6 test-all-icards-to-appdb
 
 ;; FAIL in (test-all-icards-to-appdb) (core.clj:46)
-;; expected: (= 67 (icard-db-size))
+;; expected: (= 67 (icdata-db-size))
 ;;   actual: (not (= 67 0)) 
 ;; (deftest test-all-icards-to-appdb []
 ;; 	 (println "6 test-all-icards-to-appdb")
-;; 	 (map db->appdb (db->all-iids))
-;; 	 (is (= 67 (icard-appdb-size))) )
+;; 	 (map db->appdb (db->all-icards))
+;; 	 (is (= 67 (icdata-appdb-size))) )
 
 (deftest test-all-icards-to-appdb []
 	 (println "6 test-all-icards-to-appdb")
-	 (let [all-iids (db->all-iids)]
-	   (doseq [card all-iids]
+	 (let [all-icards (db->all-icards)]
+	   (doseq [card all-icards]
 	     (db->appdb card)))
-	 (is (= 67 (icard-appdb-size))) )
+	 (is (= 67 (icdata-appdb-size))) )
 
 (defn test-ns-hook []
   (println "Did you recompile the test file?")
   (db-startup)
   (test-read-icard-from-db)
-  (test-get-all-iids)
+  (test-get-all-icards)
   (test-write-1-icard)
   (test-db-to-appdb)
-  (test-get-all-icards)
+  (test-get-all-icards2)
   (test-all-icards-to-appdb))
-
-;; WARN: next assumes that frame1, etc. setup at the def level
-
-
 

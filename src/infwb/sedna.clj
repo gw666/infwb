@@ -54,10 +54,10 @@
 
 (defn db-startup
   "does all database setup for current session of work; should be
-executed once; WARNING: deletes the database of icards and slips"
+executed once; WARNING: deletes the database of icdatas and slips"
   []
-  ;WARNING - RE-EXECUTING THIS DELETES ICARD DATABASE
-  (def ^{:dynamic true} *icard-idx*   0) ;;icard db is 0th element of @*appdb*
+  ;WARNING - RE-EXECUTING THIS DELETES ICDATA DATABASE
+  (def ^{:dynamic true} *icdata-idx*   0) ;;icdata db is 0th element of @*appdb*
   (def ^{:dynamic true} *slip-idx*    1) ;;slip db is 1st element of @*appdb*
   (def ^{:dynamic true} *appdb* (atom [{} {}]))
   
@@ -111,8 +111,8 @@ a working XQDataSource."
 ;   (str "for $card in collection('test')/infomlFile/" filter)
 ;   (str "return " result)))
 
-;; One important characteristic of the icard "section" of \*appdb\* (itself a
-;; map) is that the value of the id field of the icard is also the key
+;; One important characteristic of the icdata "section" of \*appdb\* (itself a
+;; map) is that the value of the id field of the icdata is also the key
 ;; of that map.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -121,38 +121,38 @@ a working XQDataSource."
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord icard [iid    ;;string; icard-id (iid) of infocard
+(defrecord icdata [icard    ;;string; id of infocard
 		  ttxt   ;;atom pointing to string; title text
 		  btxt]  ;;atom pointing to string; body text
   )
 
-(def ^{:dynamic true} *icard-fields* (list :iid :ttxt :btxt))
+(def ^{:dynamic true} *icdata-fields* (list :icard :ttxt :btxt))
 
-(defn new-icard [iid ttxt btxt]
-  (icard. iid (atom ttxt) (atom btxt)))
+(defn new-icdata [icard ttxt btxt]
+  (icdata. icard (atom ttxt) (atom btxt)))
 
-(defn db->icard
-  "get icard data from appn database, return it as an icard record"
-  [iid]
+(defn db->icdata
+  "get icdata data from appn database, return it as an icdata record"
+  [icard]
   (let [data-vec 
-	(run-db-query (str "infoml[@cardId = '" iid "']")
+	(run-db-query (str "infoml[@cardId = '" icard "']")
 		 "($card/data/title/string(), $card/data/content/string())")]
-    (new-icard iid (get data-vec 0) (get data-vec 1))))
+    (new-icdata icard (get data-vec 0) (get data-vec 1))))
 
-(defn db->all-iids
-  "from Sedna database, get seq of all icard IDs"
+(defn db->all-icards
+  "from Sedna database, get seq of all icdata IDs"
   []
   ;; assumes that position 1 contains the file's "all-pointers" record,
   ;; which is not an end-user "actual" infocard; this assumption
   ;; may change in the future
   (run-db-query "infoml[position() != 1]" "$card/@cardId/string()"))
 
-(declare icard-field)
+(declare icdata-field)
 
 (defn get-all-fields
   "returns list of all the infocard's fields"
-  [icard]
-  (map #(icard-field icard %) *icard-fields*))
+  [icdata]
+  (map #(icdata-field icdata %) *icdata-fields*))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -161,32 +161,32 @@ a working XQDataSource."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defrecord slip [sid      ;;string; id of slip
-		 iid     ;;string; card-id of icard to be displayed
+		 icard     ;;string; card-id of icdata to be displayed
 		 pobj]   ;;Piccolo object that implements slip
   )
 
-(declare get-icard)
+(declare get-icdata)
 
 (defn new-slip
   "create slip from infocard, with its pobj at (x y), or default to (0 0)--
 NOTE: does *not* add slip to *appdb*"
-  ([iid x y]
-  (let [icard (get-icard iid)
+  ([icard x y]
+  (let [icdata (get-icdata icard)
 	; this does nothing, for now
-;	icard-field-list (get-all-fields icard)
+;	icdata-field-list (get-all-fields icdata)
 	rand-key   (rand-kayko 3)
 	pobj   (make-pinfocard
 		x
 		y
-		(icard-field icard :ttxt)
-		(icard-field icard :btxt))]
-    (slip. rand-key (atom iid) (atom pobj))))
-  ([iid]   (new-slip iid 0 0 )))
+		(icdata-field icdata :ttxt)
+		(icdata-field icdata :btxt))]
+    (slip. rand-key (atom icard) (atom pobj))))
+  ([icard]   (new-slip icard 0 0 )))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-; APPDB: populating it with icards
+; APPDB: populating it with icdatas
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -210,35 +210,35 @@ NOTE: does *not* add slip to *appdb*"
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn icard->appdb
-  "Stores the icard record in the in-memory database"
-  [icard]
-  (let [iid (:iid icard)
-	icard-idx   *icard-idx*
-	id-exists?  (get-in @*appdb* [icard-idx iid])]
-    (if id-exists?   ;;if true, replaces existing; false adds new icard
-      (swap! *appdb* assoc-in [icard-idx iid] icard)
-      (swap! *appdb* update-in [icard-idx] assoc iid icard)))
+(defn icdata->appdb
+  "Stores the icdata record in the in-memory database"
+  [icdata]
+  (let [icard (:icard icdata)
+	icdata-idx   *icdata-idx*
+	id-exists?  (get-in @*appdb* [icdata-idx icard])]
+    (if id-exists?   ;;if true, replaces existing; false adds new icdata
+      (swap! *appdb* assoc-in [icdata-idx icard] icdata)
+      (swap! *appdb* update-in [icdata-idx] assoc icard icdata)))
   nil)
 
 (defn db->appdb
-  "copy icard (if found) from (persistent) db to appdb"
-  [iid]
-  (let [icard (db->icard iid)
+  "copy icdata (if found) from (persistent) db to appdb"
+  [icard]
+  (let [icdata (db->icdata icard)
 	not-found? (and
-		    (nil? (:ttxt icard)) (nil? (:btxt icard)))]
+		    (nil? (:ttxt icdata)) (nil? (:btxt icdata)))]
     (if not-found?
-      (println "ERROR: card with iid =" iid "not found")
+      (println "ERROR: card with id =" icard "not found")
       (do
-;	(println "Storing" iid)
-	(icard->appdb icard) ))))
+;	(println "Storing" icard)
+	(icdata->appdb icdata) ))))
 
-(defn load-iid-seq-to-appdb
+(defn load-icard-seq-to-appdb
   "populates *appdb* with infocards given by the sequence"
-  [iid-seq]
-    (let [all-iids iid-seq]
-      (doseq [iid all-iids]
-	(db->appdb iid))))
+  [icard-seq]
+    (let [all-icards icard-seq]
+      (doseq [icard all-icards]
+	(db->appdb icard))))
 
 
 
@@ -249,34 +249,34 @@ NOTE: does *not* add slip to *appdb*"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(defn icard-field
-  "given icard, get value of field named field-key (e.g.,:cid)"
-  [icard field-key]
+(defn icdata-field
+  "given icdata, get value of field named field-key (e.g.,:cid)"
+  [icdata field-key]
   ;this fcn isolates the operation from its implementation
-  (if (= field-key :iid)
-    (:iid icard)
-    @(field-key icard)))
+  (if (= field-key :icard)
+    (:icard icdata)
+    @(field-key icdata)))
 
-(defn get-icard  ;; aka "lookup-icard" (from appdb)
-  "given its iid, retrieve an icard from the appdb"
-  [iid]
-    (get-in @*appdb* [*icard-idx* iid]))
+(defn get-icdata  ;; aka "lookup-icdata" (from appdb)
+  "given its id (the 'icard' variable), retrieve an icdata from the appdb"
+  [icard]
+    (get-in @*appdb* [*icdata-idx* icard]))
 
-(defn appdb->all-iids
-"return a seq of all the id values of the appdb icard database"
+(defn appdb->all-icards
+"return a seq of all the id values of the appdb icdata database"
   []
-    (keys (get-in @*appdb* [*icard-idx*])))
+    (keys (get-in @*appdb* [*icdata-idx*])))
 
-(defn icard-appdb-size
-  "number of icards in the application's internal icard db"
+(defn icdata-appdb-size
+  "number of icdatas in the application's internal icdata db"
   []
-  (count (keys (nth @*appdb* *icard-idx*))))
+  (count (keys (nth @*appdb* *icdata-idx*))))
 
-(defn slip->icard
-  "given a slip id, return its icard from the appdb"
+(defn slip->icdata
+  "given a slip id, return its icdata from the appdb"
   [slip]
-  ;;the :iid field of the slip contains the id of the corresp. icard
-  (get-icard (:iid slip)))
+  ;;the :icard field of the slip contains the id of the corresp. icdata
+  (get-icdata (:icard slip)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -326,18 +326,18 @@ inserted at the *front* of the map, *before* all existing slips"
   nil)
 
 ;; WARN: "bare" use of `:sid` to get data from within slip
-(defn iid->slip->appdb
-  "Given iid, creates slip, adds slip to *appdb*; returns sid of new slip"
-  [iid]
-  (let [slip (new-slip iid)
+(defn icard->slip->appdb
+  "Given id (= icard), creates slip, adds slip to *appdb*; returns sid of new slip"
+  [icard]
+  (let [slip (new-slip icard)
 	sid (:sid slip)]
     (slip->appdb slip)
     sid))
 
 (defn load-all-slips-to-appdb []
-  (let [all-iids (db->all-iids)]
-    (doseq [iid all-iids]
-      (iid->slip->appdb iid))))
+  (let [all-icards (db->all-icards)]
+    (doseq [icard all-icards]
+      (icard->slip->appdb icard))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -352,29 +352,29 @@ inserted at the *front* of the map, *before* all existing slips"
     (if slip
       slip
       {:sid (str "ERROR: Slip '" sid "' is INVALID")
-       :iid (atom (str "ERROR: Slip '" sid "' is INVALID"))
+       :icard (atom (str "ERROR: Slip '" sid "' is INVALID"))
        :pobj  (atom nil)} )))
 
 (defn appdb->all-sids
   "return a seq of all the id values of the appdb slip database"
   []
-  (let [slip-idx   *slip-idx*]
-    (keys (get-in @*appdb* [slip-idx]))))
+    (keys (get-in @*appdb* [*slip-idx*])))
 
 ;; TODO needs a test in slips.clj
 (defn slip-field
   "given slip, get value of field named field-key (e.g.,:cid)"
   [slip field-key]
-  
+  (swank.core/break)
   (cond   (= :sid field-key)
 	  (:sid slip)
 	  
-	  (contains? #{:iid :pobj} field-key)
+	  (contains? #{:icard :pobj} field-key)
 	  @(field-key slip) 
 	
-	  (contains? #{:iid :ttxt :btxt} field-key)
-	  (let [icard (get-icard (slip-field slip :iid))] ;;executed for icard fields
-	    (icard-field icard field-key))
+	  (contains? #{:ttxt :btxt} field-key)
+	  (let [icdata (get-icdata (slip-field slip :icard))] ;;executed for icdata fields
+;	  (let [icdata (get-icdata (:icard slip))] ;;executed for icdata fields
+	    (icdata-field icdata field-key))
 	
 	  ;; icards are "moved" by changing their transform
 	  ;; getXOffset, getYOffset access the transform's values directly,
@@ -390,7 +390,7 @@ inserted at the *front* of the map, *before* all existing slips"
 	  ))
 
 (defn slip-appdb-size
-  "number of icards in the application's internal icard db"
+  "number of icards in the application's internal icdata db"
   []
   (count (keys (nth @*appdb* *slip-idx*))))
 
