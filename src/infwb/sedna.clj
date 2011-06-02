@@ -160,7 +160,7 @@ a working XQDataSource."
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord sldata [sid      ;;string; id of sldata
+(defrecord sldata [slip      ;;string; id of sldata
 		 icard     ;;string; card-id of icdata to be displayed
 		 pobj]   ;;Piccolo object that implements sldata
   )
@@ -197,7 +197,7 @@ NOTE: does *not* add sldata to *appdb*"
 ; or "icard ID".
 ;
 ; In general, we want the system to use values that it sees as infocards,
-; without knowing what is "inside" the value. Infocards are operated on
+; without knowing what is "inslipe" the value. Infocards are operated on
 ; by various functions in an implementation-independent way, so that if
 ; I decide to change the implementation, none of the code "above" the
 ; implementation level need be modified.
@@ -206,7 +206,7 @@ NOTE: does *not* add sldata to *appdb*"
 ; its icard record, use (get-icard iid); to get an icard record's fields,
 ; use (icard-field icard :fieldname).
 ;
-; NB: Sldatas are similar, with (get-sldata sid), (sldata-field sldata :fieldname)
+; NB: Sldatas are similar, with (get-sldata slip), (sldata-field sldata :fieldname)
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -288,51 +288,51 @@ NOTE: does *not* add sldata to *appdb*"
 ;; Definition of '(swap! atom f x y & args)':
 ;; Atomically swaps the value of atom to be:
 ;; (apply f current-value-of-atom args). Note that f may be called
-;; multiple times, and thus should be free of side effects. Returns
+;; multiple times, and thus should be free of slipe effects. Returns
 ;; the value that was swapped in.
 
 ;; Explanations of two lines of code within sldata->appdb:
 
-;; `(swap! *appdb* assoc-in [*sldata-idx* sid] sldata)` is equiv to
-;; `(apply assoc-in <curr value of *appdb*> [*sldata-idx* sid] sldata)`,
+;; `(swap! *appdb* assoc-in [*sldata-idx* slip] sldata)` is equiv to
+;; `(apply assoc-in <curr value of *appdb*> [*sldata-idx* slip] sldata)`,
 ;; then assigning the new value back to *appdb*.
 
-;; Let KEY = `(nth *appdb* *sldata-idx* sid)`, which is the key `sid`
+;; Let KEY = `(nth *appdb* *sldata-idx* slip)`, which is the key `slip`
 ;; within the map for sldatas.
 
 ;; The above swap...assoc-in line takes the value `sldata` and uses it
 ;; to *replace* the value associated with KEY. 
 
 ;; -----
-;; `(swap! *appdb* update-in [*sldata-idx*] assoc sid sldata)` is equiv to
-;; `(apply update-in <curr value of *appdb*> [*sldata-idx*] assoc sid sldata)`,
+;; `(swap! *appdb* update-in [*sldata-idx*] assoc slip sldata)` is equiv to
+;; `(apply update-in <curr value of *appdb*> [*sldata-idx*] assoc slip sldata)`,
 ;; then assigning the new value back to *appdb*.
 
 ;; Let VAL = `(nth *appdb* *sldata-idx*)`, which is the map for sldatas.
 
 ;; The above swap...update-in line performs the following action:
 
-;; `assoc VAL sid sldata`, which *prepends* the key/value pair to VAL.
+;; `assoc VAL slip sldata`, which *prepends* the key/value pair to VAL.
 
 (defn sldata->appdb
   "Stores the sldata record in the in-memory database--NOTE: new sldata is
 inserted at the *front* of the map, *before* all existing sldatas"
   [sldata]
-  (let [sid (:sid sldata)
-	id-exists?  (get-in @*appdb* [*sldata-idx* sid])]
+  (let [slip (:slip sldata)
+	id-exists?  (get-in @*appdb* [*sldata-idx* slip])]
     (if id-exists?   ;;if true, replaces existing; false adds new sldata
-      (swap! *appdb* assoc-in [*sldata-idx* sid] sldata)
-      (swap! *appdb* update-in [*sldata-idx*] assoc sid sldata)))
+      (swap! *appdb* assoc-in [*sldata-idx* slip] sldata)
+      (swap! *appdb* update-in [*sldata-idx*] assoc slip sldata)))
   nil)
 
-;; WARN: "bare" use of `:sid` to get data from within sldata
+;; WARN: "bare" use of `:slip` to get data from within sldata
 (defn icard->sldata->appdb
-  "Given id (= icard), creates sldata, adds sldata to *appdb*; returns sid of new sldata"
+  "Given id (= icard), creates sldata, adds sldata to *appdb*; returns slip of new sldata"
   [icard]
   (let [sldata (new-sldata icard)
-	sid (:sid sldata)]
+	slip (:slip sldata)]
     (sldata->appdb sldata)
-    sid))
+    slip))
 
 (defn load-all-sldatas-to-appdb []
   (let [all-icards (db->all-icards)]
@@ -346,16 +346,16 @@ inserted at the *front* of the map, *before* all existing sldatas"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn get-sldata  ;; aka "lookup-sldata" (from appdb)
-  "given its sid, retrieve a sldata from the appdb"
-  [sid]
-  (let [sldata   (get-in @*appdb* [*sldata-idx* sid])]
+  "given its slip, retrieve a sldata from the appdb"
+  [slip]
+  (let [sldata   (get-in @*appdb* [*sldata-idx* slip])]
     (if sldata
       sldata
-      {:sid (str "ERROR: Sldata '" sid "' is INVALID")
-       :icard (atom (str "ERROR: Sldata '" sid "' is INVALID"))
+      {:slip (str "ERROR: Sldata '" slip "' is INVALID")
+       :icard (atom (str "ERROR: Sldata '" slip "' is INVALID"))
        :pobj  (atom nil)} )))
 
-(defn appdb->all-sids
+(defn appdb->all-slips
   "return a seq of all the id values of the appdb sldata database"
   []
     (keys (get-in @*appdb* [*sldata-idx*])))
@@ -365,8 +365,8 @@ inserted at the *front* of the map, *before* all existing sldatas"
   "given sldata, get value of field named field-key (e.g.,:cid)"
   [sldata field-key]
 ;  (swank.core/break)
-  (cond   (= :sid field-key)
-	  (:sid sldata)
+  (cond   (= :slip field-key)
+	  (:slip sldata)
 	  
 	  (contains? #{:icard :pobj} field-key)
 	  @(field-key sldata) 

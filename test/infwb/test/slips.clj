@@ -52,11 +52,11 @@
 	   (and
 	    (is (= "gw667_090815161114586"
 		   (:iid slip-retrieved) ))
-	    (is (= 1 (count (appdb->all-sids)))) )
+	    (is (= 1 (count (appdb->all-slips)))) )
 	   ))
 
 (deftest test-create-pobj []
-	 (let [slip-id (nth (appdb->all-sids) 0)
+	 (let [slip-id (nth (appdb->all-slips) 0)
 	       x-position 100
 	       y-position 50
 	       pobj (slip-pobj (lookup-slip slip-id) x-position y-position)]
@@ -65,7 +65,7 @@
 	    ))))
 
 (deftest test-add-pobj-to-appdb []
-	 (let [slip-id (nth (appdb->all-sids) 0)
+	 (let [slip-id (nth (appdb->all-slips) 0)
 	       partial-slip (lookup-slip slip-id)
 	       x-position 100
 	       y-position 50
@@ -75,7 +75,7 @@
 	   (is (= pobj (:pobj (lookup-slip slip-id)))) ))
 
 (deftest test-display-1-slip []
-	 (let [slip-id (nth (appdb->all-sids) 0)
+	 (let [slip-id (nth (appdb->all-slips) 0)
 	       slip (lookup-slip slip-id)
 	       card (:pobj slip)]
 	   (.addChild layer1 card)
@@ -108,7 +108,7 @@
     (is (= test-ttxt (slip-field test-slip :ttxt) ":ttxt field")) ))
 
 (deftest test-slip-field []
-  (let [slip-id (nth (appdb->all-sids) 0)
+  (let [slip-id (nth (appdb->all-slips) 0)
 	new-x   62
 	new-y  118
 	test-slip (new-slip slip-id)]
@@ -118,7 +118,7 @@
 
 (deftest test-show-1-slip []
   (println "\n### WARN: Be sure that layer1 is defined ###\n")
-  (let [slip-id (nth (appdb->all-sids) 0) 
+  (let [slip-id (nth (appdb->all-slips) 0) 
 	test-slip (new-slip slip-id)
 	test-x   51
 	test-y  149]

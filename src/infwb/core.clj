@@ -42,7 +42,7 @@
 (defn initialize []
   (db-startup)
   (load-icard-seq-to-appdb (db->all-icards))
-  (load-all-slips-to-appdb))
+  (load-all-sldatas-to-appdb))
   
   
 (defn -main []
@@ -53,13 +53,13 @@
 	canvas1      (.getCanvas frame1)
 	layer1       (.getLayer canvas1)
 	dragger      (PDragEventHandler.)
-	sids         (appdb->all-sids)
-	slips        (map get-slip sids)
-	[slips1 slips-temp]    (split-at 20 slips)
-	[slips2 slips3]        (split-at 23 slips-temp)]
+	slips         (appdb->all-slips)
+	sldatas        (map get-sldata slips)
+	[sldatas1 sldatas-temp]    (split-at 20 sldatas)
+	[sldatas2 sldatas3]        (split-at 23 sldatas-temp)]
 
-;	[slips1 temp]    (split-at 4 slips)
-;	[slips2 temp2]   (split-at 4 temp)	
+;	[sldatas1 temp]    (split-at 4 sldatas)
+;	[sldatas2 temp2]   (split-at 4 temp)	
 ;	]
     
     (.setSize frame1 500 700)
@@ -68,9 +68,9 @@
     (.setPanEventHandler canvas1 nil)
     (.addInputEventListener canvas1 dragger)
 
-     (dorun (show-seq slips1    40 20    0 25  layer1))
-     (dorun (show-seq slips2   370 20    0 25  layer1))
-     (dorun (show-seq slips3   700 20    0 25  layer1))
+     (dorun (show-seq sldatas1    40 20    0 25  layer1))
+     (dorun (show-seq sldatas2   370 20    0 25  layer1))
+     (dorun (show-seq sldatas3   700 20    0 25  layer1))
     
 ;    (swank.core/break)
      ))
@@ -102,45 +102,45 @@
   
 
   (do
-    (def temp1 (split-at 4 slips))
-    (def slips1 (first temp1))
+    (def temp1 (split-at 4 sldatas))
+    (def sldatas1 (first temp1))
     (def temp2 (second temp1))
     (def temp3 (split-at 4 temp2))
-    (def slips2 (first temp3))
+    (def sldatas2 (first temp3))
     )
 
-  (show-seq slips1 20 20    0 25  layer1)
-  (show-seq slips2 320 20    0 25  layer1)
+  (show-seq sldatas1 20 20    0 25  layer1)
+  (show-seq sldatas2 320 20    0 25  layer1)
   
     
 
-  (show (get-slip "sl:zepola") 100 50 layer1)
-  (show (get-slip "sl:nufuxa") 100 50 layer1)
-  (show (get-slip "sl:leluvu") 100 50 layer1)
+  (show (get-sldata "sl:zepola") 100 50 layer1)
+  (show (get-sldata "sl:nufuxa") 100 50 layer1)
+  (show (get-sldata "sl:leluvu") 100 50 layer1)
 
-  (def sids (appdb->all-sids))
-  (def slips (map get-slip sids))
-  (def s1-4 (take 4 slips))
+  (def slips (appdb->all-slips))
+  (def sldatas (map get-sldata slips))
+  (def s1-4 (take 4 sldatas))
   (show-seq s1-4 20 20    0 25  layer1)
   (show-seq s1-4 320 20    0 25  layer1)
 
-  (let [[slips1 slips2] (split-at 33 slips)]
-      (show-seq slips1    20 20    0 25  layer1)
-      (show-seq slips2   370 20    0 25  layer1))
+  (let [[sldatas1 sldatas2] (split-at 33 sldatas)]
+      (show-seq sldatas1    20 20    0 25  layer1)
+      (show-seq sldatas2   370 20    0 25  layer1))
   
-  (def s (new-slip "gw667_090815161114586"))
-  (def pobj (slip-field s :pobj))  
+  (def s (new-sldata "gw667_090815161114586"))
+  (def pobj (sldata-field s :pobj))  
   (show s 0 0 layer1)
   
-  (def s2 (new-slip "gw667_090905202452835"))
-  (def pobj2 (slip-field s2 :pobj))
+  (def s2 (new-sldata "gw667_090905202452835"))
+  (def pobj2 (sldata-field s2 :pobj))
   (show s2 0 00 layer1)
     
 
 
 
-  (def s (new-slip "gw667_090815161114586"))
-  (def pobj (slip-field s :pobj))
+  (def s (new-sldata "gw667_090815161114586"))
+  (def pobj (sldata-field s :pobj))
   (.addChild layer1 pobj)
 
   (def at1 (AffineTransform. 1. 0. 0. 1. 2. 5.))
@@ -154,10 +154,10 @@
   (.removeChild layer1 pobj)
 
   (def icards (appdb->all-icards))
-  (def sids (appdb->all-sids))
+  (def slips (appdb->all-slips))
  
-  (def s2 (new-slip "gw667_090905202452835"))
-  (def pobj2 (slip-field s2 :pobj))
+  (def s2 (new-sldata "gw667_090905202452835"))
+  (def pobj2 (sldata-field s2 :pobj))
   (show s2 0 00 layer1)
   (.translate pobj2 100 50)
 (.addChild layer1 pobj2)
