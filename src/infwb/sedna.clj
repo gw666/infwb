@@ -121,23 +121,31 @@ a working XQDataSource."
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord icdata [icard    ;;string; id of infocard
-		  ttxt   ;;atom pointing to string; title text
-		  btxt]  ;;atom pointing to string; body text
+(defrecord icdata [icard ;;string; id of infocard
+		   ttxt	 ;;atom pointing to string; title text
+		   btxt  ;;atom pointing to string; body text
+		   tags] ;;atom pointing to vector of tag strings
   )
+
+;; (defrecord icdata [icard    ;;string; id of infocard
+;; 		  ttxt   ;;atom pointing to string; title text
+;; 		  btxt]  ;;atom pointing to string; body text
+;;   )
 
 (def ^{:dynamic true} *icdata-fields* (list :icard :ttxt :btxt))
 
-(defn new-icdata [icard ttxt btxt]
-  (icdata. icard (atom ttxt) (atom btxt)))
+(defn new-icdata [icard ttxt btxt tags]
+  (icdata. icard (atom ttxt) (atom btxt) (atom tags)))
 
 (defn db->icdata
   "get icdata data from appn database, return it as an icdata record"
   [icard]
   (let [data-vec 
 	(run-db-query (str "infoml[@cardId = '" icard "']")
-		 "($card/data/title/string(), $card/data/content/string())")]
-    (new-icdata icard (get data-vec 0) (get data-vec 1))))
+		 "($card/data/title/string(), $card/data/content/string(), $card/selectors/tag/string())")]
+    (new-icdata icard (get data-vec 0)
+		(get data-vec 1)
+		(drop 2 data-vec) )))
 
 (defn db->all-icards
   "from Sedna database, get seq of all icdata IDs"

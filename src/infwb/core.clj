@@ -21,6 +21,14 @@
 ;; 6) Set breakpoints with '(swank.core/break)'
 ;; 7) Run by executing '(-main)'
 
+;; To develop using REPL, do steps 1-6 above, then:
+;;
+;; 7a) Execute '(db-startup)' to do basic init of *appdb*, Sedna connection
+;; 
+;; 7b) Execute '(initialize)' to do 7a) + load all icards, slips (if any)
+
+
+
 
 (ns infwb.core
   (:gen-class)
