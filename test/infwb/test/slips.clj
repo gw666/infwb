@@ -1,16 +1,14 @@
 ; project: github/gw666/infwb
 ; file: /test/infwb/test/slips
 
-; HISTORY:
-
 (ns infwb.test.slips
   (:use [infwb.infocard] :reload)
   (:use [infwb.sedna] :reload)
   (:use [infwb.core] :reload)
   (:use [clojure.test]))
 
-;; Required manual setup: Sedna must have a db named "text" with a collection
-;; called "test". Collection must have a copy of the file
+;; Required manual setup: Sedna must have a database named "brain".
+;; Database must have a copy of the file
 ;; "/Users/gw/Documents/99-IMPORTANT DOCUMENTS/permanent infocards, sch
 ;; ema v0.90/hofstadter, doidge.XML". The file's
 ;; lowest key is "gw667_090815161114586", and there should be 67 records.
@@ -35,109 +33,106 @@
 ;; 'GW notes on Clojure', topic 'PROPOSED PROCEDURE for using InfWb'
 
 (defn test-slips-setup []
-  (println "doing setup")
+  (println "doing setup; all icards being loaded into local db")
   (db-startup)
-  (let [iid-seq (db->all-iids)]
-    (doseq [card iid-seq]
+  (let [icard-seq (db->all-icards)]
+    (doseq [card icard-seq]
       (db->appdb card))
     ))
+
+(defn reset-sldata-db
+  "Clears out the sldata-db so as to enable another round of testing without
+having to run `(test-sldatas-setup)`, which is time-consuming, again"
+  []
+  (swap! *appdb* assoc-in [*sldata-idx*] {})
+  nil)
   
-(deftest test-write-1-slip []
-	 (let [test-iid   "gw667_090815161114586"
-	       an-icard (db->icard test-iid)
-	       a-slip (icard->new-slip an-icard)
-	       slip-id (slip-field a-slip :id)
-	       _ (slip->appdb a-slip)	;new slip added to appdb
-	       slip-retrieved (lookup-slip slip-id)]
-	   (and
-	    (is (= "gw667_090815161114586"
-		   (:iid slip-retrieved) ))
-	    (is (= 1 (count (appdb->all-slips)))) )
-	   ))
 
-(deftest test-create-pobj []
-	 (let [slip-id (nth (appdb->all-slips) 0)
-	       x-position 100
-	       y-position 50
-	       pobj (slip-pobj (lookup-slip slip-id) x-position y-position)]
-	    (is (= (round-to-int x-position) (round-to-int (.getX pobj)))
-	    (is (= (round-to-int y-position) (round-to-int (.getY pobj)))
-	    ))))
 
-(deftest test-add-pobj-to-appdb []
-	 (let [slip-id (nth (appdb->all-slips) 0)
-	       partial-slip (lookup-slip slip-id)
-	       x-position 100
-	       y-position 50
-	       pobj (slip-pobj (lookup-slip slip-id) x-position y-position)
-	       full-slip   (new-full-slip partial-slip pobj)]
-	   (slip->appdb full-slip)
-	   (is (= pobj (:pobj (lookup-slip slip-id)))) ))
+;; (test-slips-setup) should run before this fcn runs. This makes
+;; appdb slip db empty.
+;; At end of this fcn, appdb sldata db has one entry based on first icard.
+(deftest test-make-1-sldata
+  "Creates test suite's first sldata, based on first icard"
+  []
+  (let [test-icard (nth (appdb->all-icards) 0)
+	test-ttxt (icdata-field (get-icdata test-icard) :ttxt)
+	test-sldata (new-sldata test-icard)
+	_   (sldata->appdb test-sldata)]
+;    (swank.core/break)
+    (is (= test-ttxt (sldata-field test-sldata :ttxt)) ":ttxt field")
+    (is (= 1 (count (appdb->all-slips)))) ))
 
-(deftest test-display-1-slip []
-	 (let [slip-id (nth (appdb->all-slips) 0)
-	       slip (lookup-slip slip-id)
-	       card (:pobj slip)]
-	   (.addChild layer1 card)
-	   (println "test-display-1-slip passes if card is visible in window")
-	   (is true)))
-
-(deftest test-display-all-slips []
-  (let [iid-seq (appdb->all-iids)
-	]
-    (doseq [iid iid-seq]
-      (let [icard (lookup-icard iid)
-	    slip (icard->new-slip icard)
-	    _   (slip->appdb slip)
-	    pobj (slip-pobj slip (rand-int 300) (rand-int 200))
-	    full-slip   (new-full-slip slip pobj)
-	    _   (slip->appdb full-slip)
-	       card (:pobj full-slip)]
-	   (.addChild layer1 card)
-	   ))
-    (println "test-display-all-slips passes if cards are visible in window")
-    (is true)))
-
-(deftest test-make-1-slip []
-  (let [test-iid "gw667_090815162059614"
-	test-ttxt "to label, categorize, and find precedents"
-	default-x   0
-	default-y   0
-	test-slip (new-slip test-iid)
-	_   (slip->appdb test-slip)]
-    (is (= test-ttxt (slip-field test-slip :ttxt) ":ttxt field")) ))
-
-(deftest test-slip-field []
-  (let [slip-id (nth (appdb->all-slips) 0)
+;; DEV: This must be modified whenever a field is added
+;; This test works on the first sldata, which was created by (test-make-1-sldata)
+(deftest test-sldata-field []
+  (let [icard (nth (appdb->all-icards) 0)
+	slip (nth (appdb->all-slips) 0)
+	sldata (get-sldata slip)
+	icdata (get-icdata icard)
+	ttxt (icdata-field icdata :ttxt)
+	btxt (icdata-field icdata :btxt)]
+    (is (= slip (sldata-field sldata :slip)))
+    (is (= icard (sldata-field sldata :icard)))
+    (is (= ttxt (sldata-field sldata :ttxt)))
+    (is (= btxt (sldata-field sldata :btxt))) ))
+  
+;; This test works on the first sldata, which was created by (test-make-1-sldata)
+(deftest test-move-sldata
+  "Moves an existing sldata, then checks to see whether move worked by
+examining the pobj's x and y values (using `sldata-field`)"
+  []
+  (let [sldata-id (nth (appdb->all-slips) 0) ; get first sldata in appdb
 	new-x   62
 	new-y  118
-	test-slip (new-slip slip-id)]
-    (position-to test-slip new-x new-y)
-    (is (= new-x (round-to-int (slip-field test-slip :getX)) "getX"))
-    (is (= new-y (round-to-int (slip-field test-slip :getY)) "getY")) ))
+	test-sldata (get-sldata sldata-id)]
+    (move-to test-sldata new-x new-y)
+    (is (= new-x (round-to-int (sldata-field test-sldata :x))) "x")
+    (is (= new-y (round-to-int (sldata-field test-sldata :y))) "y") ))
 
-(deftest test-show-1-slip []
+(deftest test-show-1-sldata []
   (println "\n### WARN: Be sure that layer1 is defined ###\n")
-  (let [slip-id (nth (appdb->all-slips) 0) 
-	test-slip (new-slip slip-id)
-	test-x   51
-	test-y  149]
-    (println "test-show-1-slip succeeds if you see slip named"
-	     (slip-field test-slip :ttxt) "onscreen") ))
+  (let [sldata-id (nth (appdb->all-slips) 0) 
+	test-sldata (get-sldata sldata-id)
+	test-x   50
+	test-y  150]
+    (println "test-show-1-sldata succeeds if you see sldata named '"
+	     (sldata-field test-sldata :ttxt) "' onscreen at ("
+	     test-x " " test-y ")\n")
+    (show test-sldata test-x test-y layer1) ))
+
+;; this fcn creates a second sldata
+(deftest test-make-sldata-from-db []
+  (let [icard2 (nth (appdb->all-icards) 1)
+	slip2   (icard->sldata->appdb icard2)
+	sldata2   (get-sldata slip2)]
+    (is (= icard2 (sldata-field sldata2 :icard)))
+    (is (= slip2 (sldata-field sldata2 :slip)))
+    (is (= (sldata-field (get-sldata "INVALID KEY") :icard)
+	   "ERROR: Sldata 'INVALID KEY' is INVALID"))
+    ))
 
 	 
 
 
 (defn test-ns-hook []
-  (println "### Did you define needed variables (e.g., layer1)? ###\n")
-  (test-slips-setup)
-  ;; (test-write-1-slip)
+  (println "### Did you define needed variables (e.g., layer1)? ###")
+  (println "### Did you re-eval? '(ns infwb.test.sldatas ... )' ? ###\n")
+  ;; (test-sldatas-setup)
+  ;; (test-write-1-sldata)
   ;; (test-create-pobj)
   ;; (test-add-pobj-to-appdb)
-  ;; (test-display-1-slip)
-  ;; (test-display-all-slips)
-  (test-make-1-slip)
-  (test-slip-field)
-  (test-show-1-slip)
+  ;; (test-display-1-sldata)
+  ;; (test-display-all-sldatas)
+  (println "running (test-make-1-sldata)")
+  (test-make-1-sldata)
+  (println "running (test-sldata-field)")
+  (test-sldata-field)
+  (println "running (test-move-sldata)")
+  (test-move-sldata)
+  (println "running (test-show-1-sldata)")
+  (test-show-1-sldata)
+  (println "running (test-make-sldata-from-db)")
+  (test-make-sldata-from-db)
   )
 
