@@ -13,5 +13,5 @@
 		 [org.clojars.gw666/sxqj "beta2"]
 		 [org.clojars.gw666/piccolo2dcore "1.3"]
 		 [org.clojars.gw666/piccolo2dextras "1.3"]
-	     [infoml-classes "1.0"]]
+	         [infoml-classes "1.0"]]
   :dev-dependencies [[swank-clojure "1.3.0-SNAPSHOT"]])

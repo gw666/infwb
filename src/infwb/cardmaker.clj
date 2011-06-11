@@ -1,22 +1,25 @@
 ; project: github/gw666/infwb
-; file: src/infwb/infocard.clj
+; file: src/infwb/cardmaker.clj
+
+;; IMPORTANT: This version uses JAXB 2.x, not 1.0.6! Also, the jaxb-impl.jar
+;; must be present in the Leiningen lib folder for this to work!
 
 (ns infwb.cardmaker
   (:gen-class)
   (:import
    ; for creating infocards
-   (org.infoml.jaxb     ContainerType
-			ContentAgentContainerLocationType
+   ; used to include ContainerType; omitted 110605
+
+   (javax.xml.bind  JAXBContext  JAXBException  Marshaller
+		    Unmarshaller)
+   
+   (org.infoml.jaxb    	ContentAgentContainerLocationType
 			InfomlFile  InfomlType  ObjectFactory  PType
 			RichTextWithExactType
 			SelectorsType
 			SimpleRichTextType)
 
    (java.io  ByteArrayOutputStream IOException)
-
-   (javax.xml.bind  JAXBContext  JAXBException  Marshaller
-		    Unmarshaller)
-;   (my.numberaddition NumberAdditionUI)
    ))
 
 (defn make-icard
