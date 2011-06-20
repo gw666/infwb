@@ -11,11 +11,27 @@
    ))
 
 ;; These statements, when executed, end with a notecard dialog being
-;; displayed onscreen
-(def mf (MainFrame.))
+;; displayed onscreen; but record and infoml file don't get stored
 (def model (NotecardModel.))
-(def infomlFile (Main. mf))
+(def mainFr (MainFrame.))
+(def infomlFile (Main. mainFr))
 (def ib (InfocardBuilder. infomlFile model))
-(def jframe (JFrame. "Big Whoop"))
-(def nd (NotecardDialog. jframe "nd Title" model ib mf (Boolean. true)))
+(def nd (NotecardDialog. mainFr "New Notecard" model ib mainFr (Boolean. true)))
 
+;; add content to notecard dialog, then execute the following:
+
+(.createContent nd)
+(def sm   MainFrame/setupModel)
+(.setupInf sm)
+(.doSave mainFr)
+
+;; experiments
+
+(let [model (NotecardModel.)
+      mainFr (MainFrame.)
+      infomlFile (Main. mainFr)
+      ib (InfocardBuilder. infomlFile model)
+      nd (NotecardDialog. mainFr "New Notecard" model ib
+			  mainFr (Boolean. true))
+      ]
+  (println (.panel mainFr)))
