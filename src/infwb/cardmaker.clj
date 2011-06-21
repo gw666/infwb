@@ -104,7 +104,7 @@
   (def jc (JAXBContext/newInstance "org.infoml.jaxb"))
   (def m (.createMarshaller jc))
   (.marshal m myInfomlFile out1)
-  (.toString out1)   ; it works!
+  (.toString out1)   ; it works!, but should be wrapped in exception code
   )
   
 
