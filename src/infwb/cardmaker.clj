@@ -4,6 +4,23 @@
 ;; IMPORTANT: This version uses JAXB 2.x, not 1.0.6! Also, the jaxb-impl.jar
 ;; must be present in the Leiningen lib folder for this to work!
 
+;; The following error messages occur when 1.0.6 is present, but 2.x is needed:
+
+;; ----
+;; 3 compiler notes:
+
+;; Unknown location:
+;;   error: java.lang.NoClassDefFoundError: com/sun/msv/grammar/Grammar (cardmaker.clj:7)
+
+;; Unknown location:
+;;   error: java.lang.NoClassDefFoundError: com/sun/msv/grammar/Grammar
+
+;; Unknown location:
+;;   error: java.lang.ClassNotFoundException: com.sun.msv.grammar.Grammar
+
+;; Compilation failed.
+;; ----
+
 (ns infwb.cardmaker
   (:gen-class)
   (:import

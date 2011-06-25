@@ -404,9 +404,12 @@ inserted at the *front* of the map, *before* all existing sldatas"
 
 (defn move-to
   "move a sldata's Piccolo infocard to a given location; returns: sldata"
-  [sldata   ^Float x   ^Float y]
+  [sldata   x   y]
   (let [pobj   @(:pobj sldata)
-	at1    (AffineTransform. 1. 0. 0. 1. x y)]
+	fx     (double x)
+	fy     (double y)
+	at1    (AffineTransform. 1. 0. 0. 1. fx fy)]
+;    (swank.core/break)
     (.setTransform pobj at1))
   sldata)
   
@@ -425,7 +428,7 @@ inserted at the *front* of the map, *before* all existing sldatas"
   "display a sldata at a given location in a given layer"
   ; BUG: move-to moves the PClip but not its contents
   [sldata   x y   layer]
-  (let [_   (move-to sldata x y)
+  (let [_   (move-to sldata (float x) (float y))
 	pobj   (sldata-field sldata :pobj)]
     (.addChild layer pobj)))
 
@@ -438,6 +441,7 @@ for each next sldata to be displayed"
 	y-coords   (iterate #(+ % dy) y)
         layer-seq  (repeat layer)]
 ;    (dorun
-     (map show sldata-seq x-coords y-coords layer-seq))
+;    (swank.core/break)
+    (map show sldata-seq x-coords y-coords layer-seq))
 ;    )
   )
