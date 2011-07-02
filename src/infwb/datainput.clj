@@ -1,7 +1,7 @@
 ; project: github/gw666/infwb
 ; file: src/infwb/datainput.clj
 
-(ns infwb.cardmaker
+(ns infwb.datainput
   (:gen-class)
   (:import
    (javax.swing   JFrame)

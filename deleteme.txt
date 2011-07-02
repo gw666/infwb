@@ -1,0 +1,3 @@
+declare default element namespace 'http://infoml.org/infomlFile';
+for $card in collection('test')/infomlFile/infoml[position() != 1]
+return $card/@cardId/string()

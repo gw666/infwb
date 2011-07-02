@@ -406,9 +406,9 @@ inserted at the *front* of the map, *before* all existing sldatas"
   "move a sldata's Piccolo infocard to a given location; returns: sldata"
   [sldata   x   y]
   (let [pobj   @(:pobj sldata)
-	fx     (double x)
-	fy     (double y)
-	at1    (AffineTransform. 1. 0. 0. 1. fx fy)]
+	dx     (double x)
+	dy     (double y)
+	at1    (AffineTransform. 1. 0. 0. 1. dx dy)]
 ;    (swank.core/break)
     (.setTransform pobj at1))
   sldata)

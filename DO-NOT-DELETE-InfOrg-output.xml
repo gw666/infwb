@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<infomlFile xsi:schemaLocation="http://infoml.org/infomlFile     http://infoml.org/s/infomlFile.xsd" xmlns="http://infoml.org/infomlFile" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <infoml cardId="gw667_110619201956043" encoding="UTF-8" version="1.00">
+        <data>
+            <pointers>
+                <ptr targetId="gw667_110619201956039"/>
+            </pointers>
+        </data>
+    </infoml>
+    <infoml cardId="gw667_110619201956039" encoding="UTF-8" version="1.00">
+        <data>
+            <title>title</title>
+            <content>
+                <p>contents</p>
+            </content>
+            <notes1>
+                <p>notes1</p>
+            </notes1>
+            <notes2>
+                <p>notes2</p>
+            </notes2>
+            <source>
+                <agent role="card creator">
+                    <first>George</first>
+                    <middle>D.</middle>
+                    <surname>Gerbil</surname>
+                </agent>
+            </source>
+        </data>
+        <selectors>
+            <tag>tag1</tag>
+            <tag>tag2</tag>
+        </selectors>
+        <properties>
+            <dateCreated>2011-06-19</dateCreated>
+        </properties>
+    </infoml>
+</infomlFile>
+
