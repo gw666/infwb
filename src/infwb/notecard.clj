@@ -6,7 +6,7 @@
 
 ; http://www.devx.com/Java/Article/38017/1954
 
-(defn frame-content []
+(defn notecard-panel []
   (let [title-field    (editor-pane   :text "")
 	content-field  (editor-pane   :text "")
 	tags-field    (editor-pane   :text "")]
@@ -22,5 +22,5 @@
 		       [ tags-field      "width 400:600"]
 		       ])))
 
-(defn app []
-  (frame :title "MigLayout Example" :resizable? true :content (frame-content)))
+;; (defn app []
+;;   (frame :title "MigLayout Example" :resizable? true :content (frame-content)))
