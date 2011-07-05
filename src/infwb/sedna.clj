@@ -10,7 +10,7 @@
 	   (net.cfoster.sedna.xqj   SednaXQDataSource)
 	   (java.util   Properties)
 	   (java.awt.geom AffineTransform))
-    (:use [infwb.infocard]))
+    (:use [infwb.slip-display]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

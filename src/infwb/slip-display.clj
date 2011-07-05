@@ -1,7 +1,7 @@
 ; project: github/gw666/infwb
 ; file: src/infwb/infocard.clj
 
-(ns infwb.infocard
+(ns infwb.slip-display
   (:gen-class)
   (:import
    (edu.umd.cs.piccolo   PCanvas PNode PLayer)

@@ -1,5 +1,5 @@
 ; project: github/gw666/infwb
-; file: src/infwb/cardmaker.clj
+; file: src/infwb/infoml-utilities.clj
 
 ;; IMPORTANT: This version uses JAXB 2.x, not 1.0.6! Also, the jaxb-impl.jar
 ;; must be present in the Leiningen lib folder for this to work!
@@ -21,12 +21,10 @@
 ;; Compilation failed.
 ;; ----
 
-(ns infwb.cardmaker
+(ns infwb.infoml-utilities
   (:gen-class)
   (:import
-   ; for creating infocards
-   ; used to include ContainerType; omitted 110605
-
+   ; for creating infocards using the InfoML XML application (i.e., schema)
    (javax.xml.bind  JAXBContext  JAXBException  Marshaller
 		    Unmarshaller)
    
@@ -39,8 +37,8 @@
    (java.io  ByteArrayOutputStream IOException)
    ))
 
-(defn make-icard
-  "returns an infocard string created from the given inputs"
+(defn make-notecard
+  "returns an InfoML string for a notecard (icard) created from the given inputs"
   [icard title p-seq tag-seq]
   (let [out (ByteArrayOutputStream.)
 	objFactory (ObjectFactory.)
@@ -122,6 +120,11 @@
   (def m (.createMarshaller jc))
   (.marshal m myInfomlFile out1)
   (.toString out1)   ; it works!, but should be wrapped in exception code
+
+  (def foo (make-icard "org.infoml_123"
+	      "a sample notecard"
+	      ["para 1" "para2"]
+	      ["tag 1" "tag 2" "tag 3"]))
   )
   
 

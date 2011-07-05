@@ -11,7 +11,7 @@
    (javax.swing   JFrame))
 
   (:use seesaw.core)
-  (:use [infwb.infocard])
+  (:use [infwb   core infoml-utilities notecard sedna slip-display])
   (:use [infwb.sedna])
   (:use [infwb.notecard])
   )
@@ -22,8 +22,16 @@
   (load-all-sldatas-to-appdb))
 
 (defn new-notecard-handler [e]
-  ;do nothing for now
-  )
+  (let [notecard-frame
+	(frame :title "New Notecard"
+;;	       :visible true
+	       :resizable? true
+	       :minimum-size [600 :by 700]
+	       :content (notecard-panel)
+	       :on-close :hide)]
+    ;; (println "Created new notecard-frame")
+    (show! notecard-frame)
+    ))
 
 (def new-notecard-action
   (action :name "New Notecard"
@@ -32,7 +40,7 @@
 
 (defn make-app [canvas]
   (frame :title "Infocard Workbench", 
-	 :content canvas,
+	 :content canvas
 	 :menubar (menubar :items
 		  [(menu :text "Actions" :items [new-notecard-action])])
 	 :on-close :hide)
@@ -40,11 +48,13 @@
 
 (defn -main []
 
+  (native!)
+
 ; during debugging, do this manually, once only
 ;  (initialize)  
 
   (let [canvas1      (PCanvas.)
-	frame1       (make-app canvas1)	
+	frame1       (make-app canvas1)
 	layer1       (.getLayer canvas1)
 	dragger      (PDragEventHandler.)
 
@@ -66,6 +76,14 @@
 ;    (dorun (show-seq sldatas1    40 20    0 25  layer1))
 ;    (dorun (show-seq sldatas2   370 20    0 25  layer1))
 ;    (dorun (show-seq sldatas3   700 20    0 25  layer1))
-;    (swank.core/break)
+					;    (swank.core/break)
+    layer1
     ))
 
+(comment
+
+  (def pobj (make-pinfocard 50 100 "New notecard" "It worked!"))
+  (def layer (-main))
+  (.addChild layer pobj)
+  
+ )

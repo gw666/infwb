@@ -1,6 +1,9 @@
 ; project: github/gw666/infwb
 ; file: src/infwb/datainput.clj
 
+;; attempted to create notecards using classes from Infocard Organizer;
+;; attempt failed; file left for reference only
+
 (ns infwb.datainput
   (:gen-class)
   (:import
