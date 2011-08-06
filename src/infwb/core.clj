@@ -11,7 +11,7 @@
    (javax.swing   JFrame))
 
   (:use seesaw.core)
-  (:use [infwb   core infoml-utilities notecard sedna slip-display])
+  (:use [infwb   infoml-utilities notecard sedna slip-display])
   (:use [infwb.sedna])
   (:use [infwb.notecard])
   )

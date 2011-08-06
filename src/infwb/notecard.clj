@@ -4,7 +4,7 @@
 (ns infwb.notecard
   (:import
    (javax.swing   JFrame))
-  (:use [infwb.infocard])
+  (:use [infwb   slip-display])
   (:use [seesaw   core mig]))
 
 (defn vanish [e]
