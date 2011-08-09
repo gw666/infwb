@@ -8,5 +8,9 @@
 		 [org.clojars.gw666/sxqj "beta2"]
 		 [org.clojars.gw666/piccolo2dcore "1.3"]
 		 [org.clojars.gw666/piccolo2dextras "1.3"]
-		 [com.miglayout/miglayout "3.7.4"]]
-  :dev-dependencies [[swank-clojure "1.3.0-SNAPSHOT"]])
+		 [com.miglayout/miglayout "3.7.4"]
+		 ]
+  :dev-dependencies [[swank-clojure "1.3.0-SNAPSHOT"]
+		     [org.clojars.weavejester/autodoc "0.9.0"]]
+  :autodoc {:name "Infocard Workbench (InfWb)",
+	    :web-src-dir "https://github.com/gw666/infwb/blob"})

@@ -16,12 +16,16 @@
   (:use [infwb.notecard])
   )
 
-(defn initialize []
+(defn initialize
+  "runs init code; loads all icards, displays all slips"
+  []
   (db-startup)
-  (load-icard-seq-to-appdb (db->all-icards))
-  (load-all-sldatas-to-appdb))
+  (load-icard-seq-to-localDB (db->all-icards))
+  (load-all-sldatas-to-localDB))
 
-(defn new-notecard-handler [e]
+(defn new-notecard-handler
+  "displays new-notecard window"
+  [e]
   (let [notecard-frame
 	(frame :title "New Notecard"
 ;;	       :visible true
@@ -33,12 +37,15 @@
     (show! notecard-frame)
     ))
 
-(def new-notecard-action
+(def ^{:doc "creates New Notecard menu item, links it to new-notecard-handler"}
+  new-notecard-action
   (action :name "New Notecard"
 	  :key  "menu N"
 	  :handler new-notecard-handler))
 
-(defn make-app [canvas]
+(defn make-app
+  "Creates, displays top-level Infocard Workbench application"
+  [canvas]
   (frame :title "Infocard Workbench", 
 	 :content canvas
 	 :menubar (menubar :items
@@ -46,7 +53,9 @@
 	 :on-close :hide)
   )
 
-(defn -main []
+(defn -main
+  "NOTE: currently assumes 'initialize' has already been called"
+  []
 
   (native!)
 

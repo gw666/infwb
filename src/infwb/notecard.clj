@@ -10,7 +10,9 @@
 (defn vanish [e]
   (.dispose (to-frame e)))
 
-(defn show-notecard [e]
+(defn show-notecard
+  "TEMPORARY fcn to create and show a minimal notecard"
+  [e]
   (let [pobj   (make-pinfocard 50 100 "New notecard" "It worked!")
 	frame  (to-frame e)
 	canvas (.getContentPane frame)
@@ -20,7 +22,8 @@
     (vanish e)
     ))
 
-(defn notecard-panel []
+(defn notecard-panel
+  "creates a panel for entering data for a new notecard; returns a border-panel"[]
   (let [title-field    (editor-pane   :text "")
 	content-field  (editor-pane   :text "")
 	tags-field    (editor-pane   :text "")

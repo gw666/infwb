@@ -2,7 +2,7 @@
 ; file: /test/infwb/test/slips
 
 (ns infwb.test.slips
-  (:use [infwb.infocard] :reload)
+  (:use [infwb.slip-display] :reload)
   (:use [infwb.sedna] :reload)
   (:use [infwb.core] :reload)
   (:use [clojure.test]))
@@ -37,41 +37,43 @@
   (db-startup)
   (let [icard-seq (db->all-icards)]
     (doseq [card icard-seq]
-      (db->appdb card))
+      (db->localDB card))
     ))
 
 (defn reset-sldata-db
   "Clears out the sldata-db so as to enable another round of testing without
 having to run `(test-sldatas-setup)`, which is time-consuming, again"
   []
-  (swap! *appdb* assoc-in [*sldata-idx*] {})
+  (swap! *localDB* assoc-in [*sldata-idx*] {})
   nil)
   
 
 
 ;; (test-slips-setup) should run before this fcn runs. This makes
-;; appdb slip db empty.
-;; At end of this fcn, appdb sldata db has one entry based on first icard.
+;; localDB slip db empty.
+;; At end of this fcn, localDB sldata db has one entry based on first icard.
 (deftest test-make-1-sldata
   "Creates test suite's first sldata, based on first icard"
   []
-  (let [test-icard (nth (appdb->all-icards) 0)
+  (reset-sldata-db)
+  (let [test-icard (nth (localDB->all-icards) 0)
 	test-ttxt (icdata-field (get-icdata test-icard) :ttxt)
 	test-sldata (new-sldata test-icard)
-	_   (sldata->appdb test-sldata)]
+	_   (sldata->localDB test-sldata)]
 ;    (swank.core/break)
     (is (= test-ttxt (sldata-field test-sldata :ttxt)) ":ttxt field")
-    (is (= 1 (count (appdb->all-slips)))) ))
+    (is (= 1 (count (localDB->all-slips)))) ))
 
 ;; DEV: This must be modified whenever a field is added
 ;; This test works on the first sldata, which was created by (test-make-1-sldata)
 (deftest test-sldata-field []
-  (let [icard (nth (appdb->all-icards) 0)
-	slip (nth (appdb->all-slips) 0)
+  (let [icard (nth (localDB->all-icards) 0)
+	slip (nth (localDB->all-slips) 0)
 	sldata (get-sldata slip)
 	icdata (get-icdata icard)
 	ttxt (icdata-field icdata :ttxt)
 	btxt (icdata-field icdata :btxt)]
+;    (swank.core/break)
     (is (= slip (sldata-field sldata :slip)))
     (is (= icard (sldata-field sldata :icard)))
     (is (= ttxt (sldata-field sldata :ttxt)))
@@ -82,7 +84,7 @@ having to run `(test-sldatas-setup)`, which is time-consuming, again"
   "Moves an existing sldata, then checks to see whether move worked by
 examining the pobj's x and y values (using `sldata-field`)"
   []
-  (let [sldata-id (nth (appdb->all-slips) 0) ; get first sldata in appdb
+  (let [sldata-id (nth (localDB->all-slips) 0) ; get first sldata in localDB
 	new-x   62
 	new-y  118
 	test-sldata (get-sldata sldata-id)]
@@ -92,7 +94,7 @@ examining the pobj's x and y values (using `sldata-field`)"
 
 (deftest test-show-1-sldata []
   (println "\n### WARN: Be sure that layer1 is defined ###\n")
-  (let [sldata-id (nth (appdb->all-slips) 0) 
+  (let [sldata-id (nth (localDB->all-slips) 0) 
 	test-sldata (get-sldata sldata-id)
 	test-x   50
 	test-y  150]
@@ -103,8 +105,8 @@ examining the pobj's x and y values (using `sldata-field`)"
 
 ;; this fcn creates a second sldata
 (deftest test-make-sldata-from-db []
-  (let [icard2 (nth (appdb->all-icards) 1)
-	slip2   (icard->sldata->appdb icard2)
+  (let [icard2 (nth (localDB->all-icards) 1)
+	slip2   (icard->sldata->localDB icard2)
 	sldata2   (get-sldata slip2)]
     (is (= icard2 (sldata-field sldata2 :icard)))
     (is (= slip2 (sldata-field sldata2 :slip)))
@@ -121,7 +123,7 @@ examining the pobj's x and y values (using `sldata-field`)"
   ;; (test-sldatas-setup)
   ;; (test-write-1-sldata)
   ;; (test-create-pobj)
-  ;; (test-add-pobj-to-appdb)
+  ;; (test-add-pobj-to-localDB)
   ;; (test-display-1-sldata)
   ;; (test-display-all-sldatas)
   (println "running (test-make-1-sldata)")

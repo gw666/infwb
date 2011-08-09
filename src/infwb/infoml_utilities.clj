@@ -5,7 +5,6 @@
 ;; must be present in the Leiningen lib folder for this to work!
 
 ;; The following error messages occur when 1.0.6 is present, but 2.x is needed:
-
 ;; ----
 ;; 3 compiler notes:
 
@@ -55,8 +54,7 @@
 
 	myRTWEType (RichTextWithExactType.)
 	contentContainer (.getPOrQuotationOrPoem myRTWEType)
-	]
-    
+	]   
     (.setCardId infocard icard)
     (.setEncoding infocard "UTF-8")
     (.setVersion infocard (BigDecimal. "1.0"))
@@ -75,8 +73,7 @@
       (let [this-p (SimpleRichTextType.)
 	    this-pContainer (.getContent this-p)]
 	(.add contentContainer this-p)
-	(.add this-pContainer p-text)))
-	    
+	(.add this-pContainer p-text)))	    
 
     (try
     (let [jc (JAXBContext/newInstance "org.infoml.jaxb")

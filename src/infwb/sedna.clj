@@ -1,6 +1,3 @@
-; project: github/gw666/infwb
-; file: src/infwb/sedna.clj
-
 ;; see http://www.cfoster.net/articles/xqj-tutorial/simple-xquery.xml
 
 (ns infwb.sedna
@@ -57,11 +54,11 @@
 executed once; WARNING: deletes the database of icdatas and sldatas"
   []
   ;WARNING - RE-EXECUTING THIS DELETES ICDATA DATABASE
-  (def ^{:dynamic true} *icdata-idx*   0) ;;icdata db is 0th element of @*appdb*
-  (def ^{:dynamic true} *sldata-idx*    1) ;;sldata db is 1st element of @*appdb*
-  (def ^{:dynamic true} *appdb* (atom [{} {}]))
+  (def ^{:dynamic true} *icdata-idx*   0) ;;icdata db is 0th element of @*localDB*
+  (def ^{:dynamic true} *sldata-idx*    1) ;;sldata db is 1st element of @*localDB*
+  (def ^{:dynamic true} *localDB* (atom [{} {}]))
   
-  (def ^{:dynamic true} *xqs* (SednaXQDataSource.)) ;naughty; OK for debugging
+  (def ^{:dynamic true} *xqs* (SednaXQDataSource.)) ;naughty; OK for development
   (doto *xqs*
     (.setProperty "serverName" "localhost")
     (.setProperty "databaseName" "brain")))
@@ -103,18 +100,6 @@ a working XQDataSource."
        result-vector
        (recur result-sequence (conj result-vector (.getItemAsString result-sequence (Properties.)))))))
 
-;(defn show-db-query
-;  "Returns full query that is executed by (run-db-query filter result)"
-;  [filter result]
-;  (vector
-;   "declare default element namespace 'http://infoml.org/infomlFile';"
-;   (str "for $card in collection('test')/infomlFile/" filter)
-;   (str "return " result)))
-
-;; One important characteristic of the icdata "section" of \*appdb\* (itself a
-;; map) is that the value of the id field of the icdata is also the key
-;; of that map.
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; ICARDS: creating
@@ -132,13 +117,21 @@ a working XQDataSource."
 ;; 		  btxt]  ;;atom pointing to string; body text
 ;;   )
 
-(def ^{:dynamic true} *icdata-fields* (list :icard :ttxt :btxt))
+(def ^{:dynamic true} *icdata-fields* (list :icard :ttxt :btxt :tags))
 
-(defn new-icdata [icard ttxt btxt tags]
+(declare icdata-field)
+
+(defn- get-all-fields
+  "returns list of all the infocard's fields"
+  [icdata]
+  (map #(icdata-field icdata %) *icdata-fields*))
+
+(defn new-icdata
+  [icard ttxt btxt tags]
   (icdata. icard (atom ttxt) (atom btxt) (atom tags)))
 
 (defn db->icdata
-  "get icdata data from appn database, return it as an icdata record"
+  "returns icdata record from localDB"
   [icard]
   (let [data-vec 
 	(run-db-query (str "infoml[@cardId = '" icard "']")
@@ -148,19 +141,13 @@ a working XQDataSource."
 		(drop 2 data-vec) )))
 
 (defn db->all-icards
-  "from Sedna database, get seq of all icdata IDs"
+  "from permanent database, get seq of all icards"
   []
   ;; assumes that position 1 contains the file's "all-pointers" record,
   ;; which is not an end-user "actual" infocard; this assumption
   ;; may change in the future
   (run-db-query "infoml[position() != 1]" "$card/@cardId/string()"))
 
-(declare icdata-field)
-
-(defn get-all-fields
-  "returns list of all the infocard's fields"
-  [icdata]
-  (map #(icdata-field icdata %) *icdata-fields*))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -177,7 +164,7 @@ a working XQDataSource."
 
 (defn new-sldata
   "create sldata from infocard, with its pobj at (x y), or default to (0 0)--
-NOTE: does *not* add sldata to *appdb*"
+NOTE: does *not* add sldata to *localDB*"
   ([icard x y]
   (let [icdata (get-icdata icard)
 	; this does nothing, for now
@@ -194,43 +181,41 @@ NOTE: does *not* add sldata to *appdb*"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-; APPDB: populating it with icdatas
+; LOCALDB: populating it with icdatas
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-; There is currently some confusion between an instance of an icard
-; record--called 'icard' in source code--and the id value--the 'iid',
-; or "icard ID".
+; The data defining an infocard within InfWb is in an icdata (InfoCard DATA)
+; record. This data is a very small subset of all the info that exists
+; in an infoml (XML) element.
+
+; A slip is a visual representation of an icard. There can be multiple
+; slips for a given icard. The data defining a slip is in a sldata 
+; (SLip DATA) record.
 ;
-; In general, we want the system to use values that it sees as infocards,
-; without knowing what is "inslipe" the value. Infocards are operated on
-; by various functions in an implementation-independent way, so that if
-; I decide to change the implementation, none of the code "above" the
-; implementation level need be modified.
-; 
-; Current implementation details: an infocard's value is its iid; to get
-; its icard record, use (get-icard iid); to get an icard record's fields,
-; use (icard-field icard :fieldname).
+; Currently, an infocard, or icard, is defined by the icard field of
+; the icdata record that represents the actual infocard.
 ;
-; NB: Sldatas are similar, with (get-sldata slip), (sldata-field sldata :fieldname)
+; Similarly, a slip is defined by the slip field of the icdata record 
+; that represents the actual infocard.
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn icdata->appdb
-  "Stores the icdata record in the in-memory database"
+(defn icdata->localDB
+  "Stores the icdata record in the localDB"
   [icdata]
   (let [icard (:icard icdata)
 	icdata-idx   *icdata-idx*
-	id-exists?  (get-in @*appdb* [icdata-idx icard])]
+	id-exists?  (get-in @*localDB* [icdata-idx icard])]
     (if id-exists?   ;;if true, replaces existing; false adds new icdata
-      (swap! *appdb* assoc-in [icdata-idx icard] icdata)
-      (swap! *appdb* update-in [icdata-idx] assoc icard icdata)))
+      (swap! *localDB* assoc-in [icdata-idx icard] icdata)
+      (swap! *localDB* update-in [icdata-idx] assoc icard icdata)))
   nil)
 
-(defn db->appdb
-  "copy icdata (if found) from (persistent) db to appdb"
+(defn db->localDB
+  "copy icdata (if found) from (persistent) db to localDB"
   [icard]
   (let [icdata (db->icdata icard)
 	not-found? (and
@@ -239,14 +224,18 @@ NOTE: does *not* add sldata to *appdb*"
       (println "ERROR: card with id =" icard "not found")
       (do
 ;	(println "Storing" icard)
-	(icdata->appdb icdata) ))))
+	(icdata->localDB icdata) ))))
 
-(defn load-icard-seq-to-appdb
-  "populates *appdb* with infocards given by the sequence"
+(defn load-icard-seq-to-localDB
+  "populates *localDB* with infocards given by the sequence"
   [icard-seq]
-    (let [all-icards icard-seq]
-      (doseq [icard all-icards]
-	(db->appdb icard))))
+      (doseq [icard icard-seq]
+	(db->localDB icard)))
+
+(defn load-all-infocards
+  "loads all infocards in permanentDB to localDB"
+  []
+  (load-icard-seq-to-localDB (db->all-icards)))
 
 
 
@@ -265,30 +254,30 @@ NOTE: does *not* add sldata to *appdb*"
     (:icard icdata)
     @(field-key icdata)))
 
-(defn get-icdata  ;; aka "lookup-icdata" (from appdb)
-  "given its id (the 'icard' variable), retrieve an icdata from the appdb"
+(defn get-icdata  ;; aka "lookup-icdata" (from localDB)
+  "given its id (the 'icard' variable), retrieve an icdata from the localDB"
   [icard]
-    (get-in @*appdb* [*icdata-idx* icard]))
+    (get-in @*localDB* [*icdata-idx* icard]))
 
-(defn appdb->all-icards
-"return a seq of all the id values of the appdb icdata database"
+(defn localDB->all-icards
+"return a seq of all the id values of the localDB icdata database"
   []
-    (keys (get-in @*appdb* [*icdata-idx*])))
+    (keys (get-in @*localDB* [*icdata-idx*])))
 
-(defn icdata-appdb-size
+(defn icdata-localDB-size
   "number of icdatas in the application's internal icdata db"
   []
-  (count (keys (nth @*appdb* *icdata-idx*))))
+  (count (keys (nth @*localDB* *icdata-idx*))))
 
 (defn sldata->icdata
-  "given a sldata id, return its icdata from the appdb"
+  "given a sldata id, return its icdata from the localDB"
   [sldata]
   ;;the :icard field of the sldata contains the id of the corresp. icdata
   (get-icdata (:icard sldata)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-; APPDB: populating it with sldatas    
+; LOCALDB: populating it with sldatas    
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -299,53 +288,53 @@ NOTE: does *not* add sldata to *appdb*"
 ;; multiple times, and thus should be free of slipe effects. Returns
 ;; the value that was swapped in.
 
-;; Explanations of two lines of code within sldata->appdb:
+;; Explanations of two lines of code within sldata->localDB:
 
-;; `(swap! *appdb* assoc-in [*sldata-idx* slip] sldata)` is equiv to
-;; `(apply assoc-in <curr value of *appdb*> [*sldata-idx* slip] sldata)`,
-;; then assigning the new value back to *appdb*.
+;; `(swap! *localDB* assoc-in [*sldata-idx* slip] sldata)` is equiv to
+;; `(apply assoc-in <curr value of *localDB*> [*sldata-idx* slip] sldata)`,
+;; then assigning the new value back to *localDB*.
 
-;; Let KEY = `(nth *appdb* *sldata-idx* slip)`, which is the key `slip`
+;; Let KEY = `(nth *localDB* *sldata-idx* slip)`, which is the key `slip`
 ;; within the map for sldatas.
 
 ;; The above swap...assoc-in line takes the value `sldata` and uses it
 ;; to *replace* the value associated with KEY. 
 
 ;; -----
-;; `(swap! *appdb* update-in [*sldata-idx*] assoc slip sldata)` is equiv to
-;; `(apply update-in <curr value of *appdb*> [*sldata-idx*] assoc slip sldata)`,
-;; then assigning the new value back to *appdb*.
+;; `(swap! *localDB* update-in [*sldata-idx*] assoc slip sldata)` is equiv to
+;; `(apply update-in <curr value of *localDB*> [*sldata-idx*] assoc slip sldata)`,
+;; then assigning the new value back to *localDB*.
 
-;; Let VAL = `(nth *appdb* *sldata-idx*)`, which is the map for sldatas.
+;; Let VAL = `(nth *localDB* *sldata-idx*)`, which is the map for sldatas.
 
 ;; The above swap...update-in line performs the following action:
 
 ;; `assoc VAL slip sldata`, which *prepends* the key/value pair to VAL.
 
-(defn sldata->appdb
-  "Stores the sldata record in the in-memory database--NOTE: new sldata is
+(defn sldata->localDB
+  "Stores the sldata record in the in-memory database; NOTE: new sldata is
 inserted at the *front* of the map, *before* all existing sldatas"
   [sldata]
   (let [slip (:slip sldata)
-	id-exists?  (get-in @*appdb* [*sldata-idx* slip])]
+	id-exists?  (get-in @*localDB* [*sldata-idx* slip])]
     (if id-exists?   ;;if true, replaces existing; false adds new sldata
-      (swap! *appdb* assoc-in [*sldata-idx* slip] sldata)
-      (swap! *appdb* update-in [*sldata-idx*] assoc slip sldata)))
+      (swap! *localDB* assoc-in [*sldata-idx* slip] sldata)
+      (swap! *localDB* update-in [*sldata-idx*] assoc slip sldata)))
   nil)
 
 ;; WARN: "bare" use of `:slip` to get data from within sldata
-(defn icard->sldata->appdb
-  "Given id (= icard), creates sldata, adds sldata to *appdb*; returns slip of new sldata"
+(defn icard->sldata->localDB
+  "Given id (= icard), creates sldata, adds sldata to *localDB*; returns slip of new sldata"
   [icard]
   (let [sldata (new-sldata icard)
 	slip (:slip sldata)]
-    (sldata->appdb sldata)
+    (sldata->localDB sldata)
     slip))
 
-(defn load-all-sldatas-to-appdb []
+(defn load-all-sldatas-to-localDB []
   (let [all-icards (db->all-icards)]
     (doseq [icard all-icards]
-      (icard->sldata->appdb icard))))
+      (icard->sldata->localDB icard))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -353,20 +342,20 @@ inserted at the *front* of the map, *before* all existing sldatas"
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn get-sldata  ;; aka "lookup-sldata" (from appdb)
-  "given its slip, retrieve a sldata from the appdb"
+(defn get-sldata  ;; aka "lookup-sldata" (from localDB)
+  "given its slip, retrieve a sldata from the localDB"
   [slip]
-  (let [sldata   (get-in @*appdb* [*sldata-idx* slip])]
+  (let [sldata   (get-in @*localDB* [*sldata-idx* slip])]
     (if sldata
       sldata
       {:slip (str "ERROR: Sldata '" slip "' is INVALID")
        :icard (atom (str "ERROR: Sldata '" slip "' is INVALID"))
        :pobj  (atom nil)} )))
 
-(defn appdb->all-slips
-  "return a seq of all the id values of the appdb sldata database"
+(defn localDB->all-slips
+  "return a seq of all the id values of the localDB sldata database"
   []
-    (keys (get-in @*appdb* [*sldata-idx*])))
+    (keys (get-in @*localDB* [*sldata-idx*])))
 
 ;; TODO needs a test in sldatas.clj
 (defn sldata-field
@@ -397,10 +386,10 @@ inserted at the *front* of the map, *before* all existing sldatas"
 	  
 	  ))
 
-(defn sldata-appdb-size
+(defn sldata-localDB-size
   "number of icards in the application's internal icdata db"
   []
-  (count (keys (nth @*appdb* *sldata-idx*))))
+  (count (keys (nth @*localDB* *sldata-idx*))))
 
 (defn move-to
   "move a sldata's Piccolo infocard to a given location; returns: sldata"

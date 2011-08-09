@@ -1,5 +1,4 @@
-; project: github/gw666/infwb
-; file: src/infwb/infocard.clj
+; was infocard.clj
 
 (ns infwb.slip-display
   (:gen-class)
@@ -16,11 +15,14 @@
    (java.awt.geom   Dimension2D Point2D)
    (java.awt   BasicStroke Color Font GraphicsEnvironment Rectangle)))
 
-(def ^{:dynamic true} *width*   270)  ;;width of a slip
-(def ^{:dynamic true} *height*   175)  ;;height of a slip
+(def ^{:doc "width of a slip"
+       :dynamic true} *width*   270)  ;;width of a slip
+
+(def ^{:doc "height of a slip"
+       :dynamic true} *height*   175)  ;;height of a slip
 
 (defn wrap
-  "Return PText containing given text & width to wrap to"
+  "Return wrapped PText; inputs: text, width to wrap to"
   [text-str wrap-width]
   ;
   ; NOTE: text obj can't be remove!'d if you attempt to re-def it using
@@ -33,7 +35,7 @@
     wrapped-text))
 
 (defn make-pinfocard
-  "Create basic Piccolo infocard object (ready to be added to a layer)"
+  "Create generic infocard object (ready to be added to a Piccolo layer)"
   [box-x box-y title-text body-text]
 
   (let [cbox (PClip.)
