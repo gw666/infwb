@@ -1,8 +1,3 @@
-; project: github/gw666/infwb
-; file: /test/infwb/test/icards
-
-; HISTORY:
-
 (ns infwb.test.icards
 ;;  (:use [infwb.infocard] :reload)
   (:use [infwb.sedna] :reload)
@@ -68,7 +63,7 @@
 	 (is (= 67 (icdata-localDB-size))) )
 
 (defn test-ns-hook []
-  (println "Did you recompile the test file?")
+  (println "##### Did you recompile the test file? #####")
   (db-startup)
   (test-read-icard-from-db)
   (test-get-all-icards)

@@ -1,6 +1,3 @@
-; project: github/gw666/infwb
-; file: /test/infwb/test/slips
-
 (ns infwb.test.slips
   (:use [infwb.slip-display] :reload)
   (:use [infwb.sedna] :reload)
@@ -32,17 +29,17 @@
 ;; When things don't seem to be going right, follow the procedure in
 ;; 'GW notes on Clojure', topic 'PROPOSED PROCEDURE for using InfWb'
 
+;; not needed if (initialize) has been run
 (defn test-slips-setup []
   (println "doing setup; all icards being loaded into local db")
   (db-startup)
   (let [icard-seq (db->all-icards)]
     (doseq [card icard-seq]
-      (db->localDB card))
-    ))
+      (db->localDB card))))
 
 (defn reset-sldata-db
   "Clears out the sldata-db so as to enable another round of testing without
-having to run `(test-sldatas-setup)`, which is time-consuming, again"
+having to run (test-sldatas-setup) again"
   []
   (swap! *localDB* assoc-in [*sldata-idx*] {})
   nil)
@@ -114,12 +111,28 @@ examining the pobj's x and y values (using `sldata-field`)"
 	   "ERROR: Sldata 'INVALID KEY' is INVALID"))
     ))
 
+;; tests icard creation, retrieving of tag data; NOTE: assumes that
+;; all the above tests have been run, leaving 1 slips in localDB
+(deftest test-tags-in-icards-and-slips []
+  (let [icdata (new-icdata "id1234" "title text" "body text" ["tag1" "tag2"])
+	_      (icdata->localDB icdata)
+	icard  (icdata-field icdata :icard)
+	]
+    (is (= "id1234" icard))
+;    (swank.core/break)
+    (let [
+	slip   (icard->sldata->localDB icard)
+	sldata (get-sldata slip)
+	]
+    (is (= 3 (count (localDB->all-slips))))
+    (is (=  ["tag1" "tag2"] (sldata-field sldata :tags)))))
+  )
+
 	 
 
 
 (defn test-ns-hook []
   (println "### Did you define needed variables (e.g., layer1)? ###")
-  (println "### Did you re-eval? '(ns infwb.test.sldatas ... )' ? ###\n")
   ;; (test-sldatas-setup)
   ;; (test-write-1-sldata)
   ;; (test-create-pobj)
@@ -136,5 +149,7 @@ examining the pobj's x and y values (using `sldata-field`)"
   (test-show-1-sldata)
   (println "running (test-make-sldata-from-db)")
   (test-make-sldata-from-db)
+  (println "running (test-tags-in-icards-and-slips)")
+  (test-tags-in-icards-and-slips)
   )
 

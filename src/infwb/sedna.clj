@@ -75,7 +75,7 @@ executed once; WARNING: deletes the database of icdatas and sldatas"
 
 (defn run-db-query
   "Returns results of db query; filter selects records, result extracts
-data from selected records. Influenced by (db-init). Assumes *xqs* is
+data from selected records. Influenced by (db-startup). Assumes *xqs* is
 a working XQDataSource."
   [filter result]
   (let [conn (.getConnection *xqs* "SYSTEM" "MANAGER")
@@ -112,11 +112,6 @@ a working XQDataSource."
 		   tags] ;;atom pointing to vector of tag strings
   )
 
-;; (defrecord icdata [icard    ;;string; id of infocard
-;; 		  ttxt   ;;atom pointing to string; title text
-;; 		  btxt]  ;;atom pointing to string; body text
-;;   )
-
 (def ^{:dynamic true} *icdata-fields* (list :icard :ttxt :btxt :tags))
 
 (declare icdata-field)
@@ -128,6 +123,7 @@ a working XQDataSource."
 
 (defn new-icdata
   [icard ttxt btxt tags]
+  ;; icard will never change, so no need for using an atom
   (icdata. icard (atom ttxt) (atom btxt) (atom tags)))
 
 (defn db->icdata
@@ -157,7 +153,7 @@ a working XQDataSource."
 
 (defrecord sldata [slip      ;;string; id of sldata
 		 icard     ;;string; card-id of icdata to be displayed
-		 pobj]   ;;Piccolo object that implements sldata
+		 pobj]   ;;atom to Piccolo object that implements sldata
   )
 
 (declare get-icdata)
@@ -167,15 +163,13 @@ a working XQDataSource."
 NOTE: does *not* add sldata to *localDB*"
   ([icard x y]
   (let [icdata (get-icdata icard)
-	; this does nothing, for now
-;	icdata-field-list (get-all-fields icdata)
 	rand-key   (rand-kayko 3)
 	pobj   (make-pinfocard
 		x
 		y
 		(icdata-field icdata :ttxt)
 		(icdata-field icdata :btxt))]
-    (sldata. rand-key (atom icard) (atom pobj))))
+    (sldata. rand-key icard (atom pobj))))
   ([icard]   (new-sldata icard 0 0 )))
 
 
@@ -251,7 +245,9 @@ NOTE: does *not* add sldata to *localDB*"
   [icdata field-key]
   ;this fcn isolates the operation from its implementation
   (if (= field-key :icard)
+    ;; then branch--icard stored directly
     (:icard icdata)
+    ;; else branch--all others stored w/atoms, must be dereferenced
     @(field-key icdata)))
 
 (defn get-icdata  ;; aka "lookup-icdata" (from localDB)
@@ -348,8 +344,8 @@ inserted at the *front* of the map, *before* all existing sldatas"
   (let [sldata   (get-in @*localDB* [*sldata-idx* slip])]
     (if sldata
       sldata
-      {:slip (str "ERROR: Sldata '" slip "' is INVALID")
-       :icard (atom (str "ERROR: Sldata '" slip "' is INVALID"))
+      {:slip  (str "ERROR: Sldata '" slip "' is INVALID")
+       :icard (str "ERROR: Sldata '" slip "' is INVALID")
        :pobj  (atom nil)} )))
 
 (defn localDB->all-slips
@@ -362,15 +358,19 @@ inserted at the *front* of the map, *before* all existing sldatas"
   "given sldata, get value of field named field-key (e.g.,:cid)"
   [sldata field-key]
 ;  (swank.core/break)
-  (cond   (= :slip field-key)
-	  (:slip sldata)
-	  
-	  (contains? #{:icard :pobj} field-key)
-	  @(field-key sldata) 
+
+  (cond   (contains? #{:slip :icard} field-key)
+	  ;; these fields are stored as themselves
+	  (field-key sldata)
+
+	  (contains? #{:pobj} field-key)
+	  ;; these return atoms to the datum we actually want
+	  @(field-key sldata)
 	
-	  (contains? #{:ttxt :btxt} field-key)
+	  (contains? #{:ttxt :btxt :tags} field-key)
 	  (let [icdata (get-icdata (sldata-field sldata :icard))] ;;executed for icdata fields
-;	  (let [icdata (get-icdata (:icard sldata))] ;;executed for icdata fields
+					;	  (let [icdata (get-icdata (:icard sldata))] ;;executed for icdata fields
+;	    (swank.core/break)
 	    (icdata-field icdata field-key))
 	
 	  ;; icards are "moved" by changing their transform
