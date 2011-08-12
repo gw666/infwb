@@ -33,9 +33,9 @@
       (* sign rounded-abs)))
 
 (defn ls
-  "Performs roughly the same task as the UNIX `ls`.  That is, returns a seq of the filenames
-   at a given directory.  If a path to a file is supplied, then the seq contains only the
-   original path given."
+  "Performs roughly the same task as the UNIX `ls`.  That is, returns a seq
+of the filenames at a given directory.  If a path to a file is supplied,
+then the seq contains only the original path given."
   [path]
   (let [file (java.io.File. path)]
     (if (.isDirectory file)
@@ -49,6 +49,13 @@
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(declare *xqs*)
+
+(defn set-db-name [name]
+  (doto *xqs*
+    (.setProperty "serverName" "localhost")
+    (.setProperty "databaseName" name)))
+
 (defn db-startup
   "does all database setup for current session of work; should be
 executed once; WARNING: deletes the database of icdatas and sldatas"
@@ -59,9 +66,9 @@ executed once; WARNING: deletes the database of icdatas and sldatas"
   (def ^{:dynamic true} *localDB* (atom [{} {}]))
   
   (def ^{:dynamic true} *xqs* (SednaXQDataSource.)) ;naughty; OK for development
-  (doto *xqs*
-    (.setProperty "serverName" "localhost")
-    (.setProperty "databaseName" "brain")))
+  (set-db-name "brain")  ;REMOVE THIS, EVENTUALLY 8/11/11
+
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -73,23 +80,38 @@ executed once; WARNING: deletes the database of icdatas and sldatas"
 
 (declare get-result)
 
-(defn run-db-query
-  "Returns results of db query; filter selects records, result extracts
-data from selected records. Influenced by (db-startup). Assumes *xqs* is
-a working XQDataSource."
-  [filter result]
+(defn run-XQuery
+  "runs specified XQuery query, returning result(s) in a vector, within
+given database and collection
+
+This function is IMPLEMENTATION-DEPENDENT. It assumes the Sedna XML
+database (http://www.sedna.org/) is running."
+  
+  [query-str db collection]
+  (set-db-name db)
   (let [conn (.getConnection *xqs* "SYSTEM" "MANAGER")
-	xqe (.createExpression conn)
-	xqueryString
-	(str
-	 "declare default element namespace 'http://infoml.org/infomlFile';\n"
-	 "for $card in collection('test')/infomlFile/"
-	 filter "\n"
-	 "return " result)
-	rs (.executeQuery xqe xqueryString)
+	xqe   (.createExpression conn)
+	rs   (.executeQuery xqe query-str)
 	result (get-result rs)]
     (.close conn)
     result))
+
+(defn run-infoml-query
+  "Returns results of an InfoML query; filter selects records, result extracts
+data from selected records. Influenced by (db-startup). Assumes *xqs* is
+a working XQDataSource."
+  [filter result db collection]
+
+  (let [infoml-query
+	(str
+	 "declare default element namespace 'http://infoml.org/infomlFile';\n"
+	 "for $card in collection('"
+	 collection
+	 "')/infomlFile/"
+	 filter "\n"
+	 "return " result)]
+;    (println infoml-query "\n")
+    (run-XQuery infoml-query db collection)))
 
 (defn get-result
   "gets the result of an XQuery"
@@ -99,6 +121,7 @@ a working XQDataSource."
      (if (not  (.next result-sequence))
        result-vector
        (recur result-sequence (conj result-vector (.getItemAsString result-sequence (Properties.)))))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -130,8 +153,10 @@ a working XQDataSource."
   "returns icdata record from localDB"
   [icard]
   (let [data-vec 
-	(run-db-query (str "infoml[@cardId = '" icard "']")
-		 "($card/data/title/string(), $card/data/content/string(), $card/selectors/tag/string())")]
+	(run-infoml-query (str "infoml[@cardId = '" icard "']")
+		 "($card/data/title/string(), $card/data/content/string(), $card/selectors/tag/string())"
+		 "brain"
+		 "test")]
     (new-icdata icard (get data-vec 0)
 		(get data-vec 1)
 		(drop 2 data-vec) )))
@@ -142,7 +167,10 @@ a working XQDataSource."
   ;; assumes that position 1 contains the file's "all-pointers" record,
   ;; which is not an end-user "actual" infocard; this assumption
   ;; may change in the future
-  (run-db-query "infoml[position() != 1]" "$card/@cardId/string()"))
+  (run-infoml-query "infoml[position() != 1]"
+		    "$card/@cardId/string()"
+			       "brain"
+			       "test"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
