@@ -1,5 +1,4 @@
 (ns infwb.test.icards
-;;  (:use [infwb.infocard] :reload)
   (:use [infwb.sedna] :reload)
   (:use [infwb.core] :reload)
   (:use [clojure.test]))
@@ -15,10 +14,11 @@
 ;; 'GW notes on Clojure', topic 'PROPOSED PROCEDURE for using InfWb'
 
 (deftest test-read-icard-from-db []
-	 (println "1 test-read-icard-from-db")
+  (println "1 test-read-icard-from-db")
+  (let [bad-icard   "INVALID ICARD"] ;implementation-dependent icard
 	 (is (and
 	      (not= nil (icdata-field (db->icdata "gw667_090815161114586") :ttxt))
-	      (= nil (icdata-field (db->icdata "INVALID KEY") :ttxt)) )))
+	      (= nil (icdata-field (db->icdata bad-icard) :ttxt)) )) ))
 
 (deftest test-get-all-icards []
 	 (println "2 test-get-all-icards")
@@ -62,13 +62,19 @@
 	     (db->localDB card)))
 	 (is (= 67 (icdata-localDB-size))) )
 
-(defn test-ns-hook []
+(defn test-ns-hook
+  "controls test sequence; NOTE: contains fixed Sedna db & collection names"
+  []
   (println "##### Did you recompile the test file? #####")
-  (db-startup)
-  (test-read-icard-from-db)
-  (test-get-all-icards)
-  (test-write-1-icard)
-  (test-db-to-localDB)
-  (test-get-all-icards2)
-  (test-all-icards-to-localDB))
+
+  (let [db-name "brain"
+	coll-name "test"]
+    
+    (icard-db-startup db-name coll-name)
+    (test-read-icard-from-db)
+    (test-get-all-icards)
+    (test-write-1-icard)
+    (test-db-to-localDB)
+    (test-get-all-icards2)
+    (test-all-icards-to-localDB)))
 

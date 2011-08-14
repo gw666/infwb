@@ -17,11 +17,15 @@
   )
 
 (defn initialize
-  "runs init code; loads all icards, displays all slips"
+  "runs InfWb init code; loads all icards, displays all slips"
   []
-  (db-startup)
-  (load-icard-seq-to-localDB (db->all-icards))
-  (load-all-sldatas-to-localDB))
+  (let [db-name "brain"
+	coll-name "test"]
+    (set-connector-db *icard-connection* db-name)
+    (icard-db-startup db-name coll-name)
+    (clear-localDB)
+    (load-icard-seq-to-localDB (db->all-icards))
+    (load-all-sldatas-to-localDB)))
 
 (defn new-notecard-handler
   "displays new-notecard window"

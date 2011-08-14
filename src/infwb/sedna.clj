@@ -7,8 +7,29 @@
 	   (net.cfoster.sedna.xqj   SednaXQDataSource)
 	   (java.util   Properties)
 	   (java.awt.geom AffineTransform))
-    (:use [infwb   slip-display]))
+  (:use [infwb   slip-display]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; IMPLEMENTATION DETAILS
+;;
+;;   The permanent XML database being used is Sedna (see sedna.org).
+;;   Multiple permDB connections can be made, but there is only one
+;;   infocard (aka icard) database within Sedna; it is defined by
+;;   global variables *icard-db-name* and *icard-coll-name*
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; GLOBAL VARIABLES
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def ^{:dynamic true} *icard-connection* (SednaXQDataSource.)) 
+(def ^{:dynamic true} *icard-coll-name*)
+(def ^{:dynamic true} *icard-db-name*)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -49,25 +70,45 @@ then the seq contains only the original path given."
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(declare *xqs*)
+(defn set-connector-db
+  "Used before any XQuery operation to specify the database to be used
 
-(defn set-db-name [name]
-  (doto *xqs*
-    (.setProperty "serverName" "localhost")
-    (.setProperty "databaseName" name)))
+From Sedna's point of view, the database to be used is given by the
+databaseName property of the SednaConnection named"
+  [connection-name db-name]
+  (doto connection-name
+    (.setProperty "serverName"   "localhost")
+    (.setProperty "databaseName"   db-name)))
 
-(defn db-startup
+(defn set-icard-db-name
+  "Used only before InfWb-specific XQuery queries to specify the
+permDB database to be used"
+  [name]
+  (def *icard-db-name*   name))
+
+(defn set-icard-coll-name
+  "Used only before InfWb-specific XQuery queries to specify the
+collection to be used"
+  [name]
+  (def *icard-coll-name*   name))
+
+(defn clear-localDB []
+    (def ^{:dynamic true} *localDB* (atom [{} {}])))
+
+(defn icard-db-startup
   "does all database setup for current session of work; should be
 executed once; WARNING: deletes the database of icdatas and sldatas"
-  []
-  ;WARNING - RE-EXECUTING THIS DELETES ICDATA DATABASE
-  (def ^{:dynamic true} *icdata-idx*   0) ;;icdata db is 0th element of @*localDB*
-  (def ^{:dynamic true} *sldata-idx*    1) ;;sldata db is 1st element of @*localDB*
-  (def ^{:dynamic true} *localDB* (atom [{} {}]))
+  [icard-db-name icard-coll-name]
   
-  (def ^{:dynamic true} *xqs* (SednaXQDataSource.)) ;naughty; OK for development
-  (set-db-name "brain")  ;REMOVE THIS, EVENTUALLY 8/11/11
-
+  ;; icdata db is 0th element of @*localDB*
+  (def ^{:dynamic true} *icdata-idx*   0)
+  
+  ;;sldata db is 1st element of @*localDB*
+  (def ^{:dynamic true} *sldata-idx*    1)
+  
+  (set-connector-db *icard-connection* icard-db-name)
+  (set-icard-db-name icard-db-name)
+  (set-icard-coll-name icard-coll-name)
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -81,15 +122,16 @@ executed once; WARNING: deletes the database of icdatas and sldatas"
 (declare get-result)
 
 (defn run-XQuery
-  "runs specified XQuery query, returning result(s) in a vector, within
-given database and collection
+  "runs specified XQuery query through the given connection,
+returning result(s) in a vector, within given database and collection
 
-This function is IMPLEMENTATION-DEPENDENT. It assumes the Sedna XML
-database (http://www.sedna.org/) is running."
+This function is IMPLEMENTATION-DEPENDENT. It assumes that the Sedna XML
+database (http://www.sedna.org/) is running.
+
+The appropriate collection name, if any, must be part of query-str"
   
-  [query-str db collection]
-  (set-db-name db)
-  (let [conn (.getConnection *xqs* "SYSTEM" "MANAGER")
+  [query-str connection]
+  (let [conn (.getConnection connection "SYSTEM" "MANAGER")
 	xqe   (.createExpression conn)
 	rs   (.executeQuery xqe query-str)
 	result (get-result rs)]
@@ -97,21 +139,22 @@ database (http://www.sedna.org/) is running."
     result))
 
 (defn run-infoml-query
-  "Returns results of an InfoML query; filter selects records, result extracts
-data from selected records. Influenced by (db-startup). Assumes *xqs* is
-a working XQDataSource."
-  [filter result db collection]
+  "Returns results of an InfoML query
+
+filter arg selects records; result arg extracts data from selected records.
+Hardwired to use *icard-connection* and *icard-coll-name*"
+  [filter result]
 
   (let [infoml-query
 	(str
 	 "declare default element namespace 'http://infoml.org/infomlFile';\n"
 	 "for $card in collection('"
-	 collection
+	 *icard-coll-name*
 	 "')/infomlFile/"
 	 filter "\n"
 	 "return " result)]
 ;    (println infoml-query "\n")
-    (run-XQuery infoml-query db collection)))
+    (run-XQuery infoml-query *icard-connection*)))
 
 (defn get-result
   "gets the result of an XQuery"
@@ -150,16 +193,21 @@ a working XQDataSource."
   (icdata. icard (atom ttxt) (atom btxt) (atom tags)))
 
 (defn db->icdata
-  "returns icdata record from localDB"
+  "returns icdata record from permDB"
   [icard]
   (let [data-vec 
 	(run-infoml-query (str "infoml[@cardId = '" icard "']")
-		 "($card/data/title/string(), $card/data/content/string(), $card/selectors/tag/string())"
-		 "brain"
-		 "test")]
+			  "($card/data/title/string(), $card/data/content/string(), $card/selectors/tag/string())")]
     (new-icdata icard (get data-vec 0)
 		(get data-vec 1)
 		(drop 2 data-vec) )))
+
+(defn valid-flag
+  "returns false if icdata is the result of asking for the data of a
+icard that does not exist (i.e., not found in permanent database);
+if icard *is* valid, returns a non-nil value that is *not* boolean true"
+  [icdata]
+  (or @(:ttxt icdata) @(:btxt icdata) (> 0 (count @(:tags icdata)))))
 
 (defn db->all-icards
   "from permanent database, get seq of all icards"
@@ -168,9 +216,7 @@ a working XQDataSource."
   ;; which is not an end-user "actual" infocard; this assumption
   ;; may change in the future
   (run-infoml-query "infoml[position() != 1]"
-		    "$card/@cardId/string()"
-			       "brain"
-			       "test"))
+		    "$card/@cardId/string()"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
