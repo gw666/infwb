@@ -23,7 +23,7 @@
     (icard-db-startup db-name coll-name)
     (clear-localDB)
     (println "cleared localDB...")
-    (load-icard-seq-to-localDB (db->all-icards))
+    (load-icard-seq-to-localDB (permDB->all-icards))
     (println "loaded all icards to icdata DB...")
     (load-all-sldatas-to-localDB)
     (println "created one slip for each icard; done")))

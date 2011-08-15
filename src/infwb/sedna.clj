@@ -31,6 +31,12 @@
 (def ^{:dynamic true} *icard-coll-name*)
 (def ^{:dynamic true} *icard-db-name*)
 
+;; icdata db is 0th element of @*localDB*
+(def ^{:dynamic true} *icdata-idx*   0)
+  
+;; sldata db is 1st element of @*localDB*
+(def ^{:dynamic true} *sldata-idx*    1)
+  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; MISCELLANEOUS ROUTINES
@@ -100,16 +106,24 @@ collection to be used"
 executed once; WARNING: deletes the database of icdatas and sldatas"
   [icard-db-name icard-coll-name]
   
-  ;; icdata db is 0th element of @*localDB*
-  (def ^{:dynamic true} *icdata-idx*   0)
-  
-  ;;sldata db is 1st element of @*localDB*
-  (def ^{:dynamic true} *sldata-idx*    1)
-  
   (set-connector-db *icard-connection* icard-db-name)
   (set-icard-db-name icard-db-name)
   (set-icard-coll-name icard-coll-name)
   )
+
+(defn reset-icard-db
+  "Clears out the icard-db in localDB (helpful for testing)"
+  []
+  (swap! *localDB* assoc-in [*icdata-idx*] {})
+  nil)
+  
+(defn reset-sldata-db
+  "Clears out the sldata-db in localDB (helpful for testing)"
+  []
+  (swap! *localDB* assoc-in [*sldata-idx*] {})
+  nil)
+  
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -121,6 +135,8 @@ executed once; WARNING: deletes the database of icdatas and sldatas"
 
 (declare get-result)
 
+;; for convenience, this ns has already defined the Sedna
+;; connection named *icard-connection*
 (defn run-XQuery
   "runs specified XQuery query through the given connection,
 returning result(s) in a vector, within given database and collection
@@ -283,7 +299,7 @@ NOTE: does *not* add sldata to *localDB*"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn icdata->localDB
-  "Stores the icdata record in the localDB"
+  "Stores the icdata record in the localDB; returns icdata"
   [icdata]
   (let [icard (:icard icdata)
 	icdata-idx   *icdata-idx*
@@ -291,7 +307,7 @@ NOTE: does *not* add sldata to *localDB*"
     (if id-exists?   ;;if true, replaces existing; false adds new icdata
       (swap! *localDB* assoc-in [icdata-idx icard] icdata)
       (swap! *localDB* update-in [icdata-idx] assoc icard icdata)))
-  nil)
+  icdata)
 
 (defn permDB->localDB
   "copy icdata (if found) from (persistent) db to localDB"

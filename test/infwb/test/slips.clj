@@ -32,19 +32,10 @@
 ;; not needed if (initialize) has been run
 (defn test-slips-setup []
   (println "doing setup; all icards being loaded into local db")
-  (db-startup)
+  (icard-db-startup)
   (let [icard-seq (permDB->all-icards)]
     (doseq [card icard-seq]
       (permDB->localDB card))))
-
-(defn reset-sldata-db
-  "Clears out the sldata-db so as to enable another round of testing without
-having to run (test-sldatas-setup) again"
-  []
-  (swap! *localDB* assoc-in [*sldata-idx*] {})
-  nil)
-  
-
 
 ;; (test-slips-setup) should run before this fcn runs. This makes
 ;; localDB slip db empty.
@@ -54,7 +45,7 @@ having to run (test-sldatas-setup) again"
   []
   (reset-sldata-db)
   (let [test-icard (nth (localDB->all-icards) 0)
-	test-ttxt (icdata-field (local->icdata test-icard) :ttxt)
+	test-ttxt (icdata-field (localDB->icdata test-icard) :ttxt)
 	test-sldata (new-sldata test-icard)
 	_   (sldata->localDB test-sldata)]
 ;    (swank.core/break)
@@ -67,7 +58,7 @@ having to run (test-sldatas-setup) again"
   (let [icard (nth (localDB->all-icards) 0)
 	slip (nth (localDB->all-slips) 0)
 	sldata (get-sldata slip)
-	icdata (local->icdata icard)
+	icdata (localDB->icdata icard)
 	ttxt (icdata-field icdata :ttxt)
 	btxt (icdata-field icdata :btxt)]
 ;    (swank.core/break)
