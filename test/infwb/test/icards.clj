@@ -22,25 +22,25 @@
 
 (deftest test-get-all-icards []
 	 (println "2 test-get-all-icards")
-	 (is (= 67 (count (db->all-icards)))) )
+	 (is (= 68 (count (db->all-icards)))) )
 
 (deftest test-write-1-icard []
   (println "3 test-write-1-icard")
   (let [icdata1 (db->icdata "gw667_090815161114586")
 	_ (icdata->localDB icdata1)]
     (is (= "the ability to think"
-	    (icdata-field (db->icdata "gw667_090815161114586") :ttxt) ))))
+	    (icdata-field (permDB->icdata "gw667_090815161114586") :ttxt) ))))
 
 (deftest test-db-to-localDB []
 	 (println "4 test-db-to-localDB")
-	 (db->localDB "gw667_090815162059614")
+	 (permDB->localDB "gw667_090815162059614")
 	 (is (= "to label, categorize, and find precedents"
-		  (icdata-field (get-icdata "gw667_090815162059614") :ttxt) )))
+		  (icdata-field (local->icdata "gw667_090815162059614") :ttxt) )))
 
 (deftest test-get-all-icards2 []
 	 (println "5 test-get-all-icards2")
 	 (is (= 67
-		(count (map db->icdata (db->all-icards))) )))
+		(count (map permDB->icdata (permDB->all-icards))) )))
 
 ;; vers below doesn't seem to work--too much for Clojure or Java to handle?
 ;;   Or maybe there is an issue of parallelism. Here's the err msg:
@@ -52,14 +52,14 @@
 ;;   actual: (not (= 67 0)) 
 ;; (deftest test-all-icards-to-appdb []
 ;; 	 (println "6 test-all-icards-to-appdb")
-;; 	 (map db->appdb (db->all-icards))
+;; 	 (map permDB->localDB (permDB->all-icards))
 ;; 	 (is (= 67 (icdata-appdb-size))) )
 
 (deftest test-all-icards-to-localDB []
 	 (println "6 test-all-icards-to-localDB")
-	 (let [all-icards (db->all-icards)]
+	 (let [all-icards (permDB->all-icards)]
 	   (doseq [card all-icards]
-	     (db->localDB card)))
+	     (permDB->localDB card)))
 	 (is (= 67 (icdata-localDB-size))) )
 
 (defn test-ns-hook

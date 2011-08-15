@@ -192,7 +192,7 @@ Hardwired to use *icard-connection* and *icard-coll-name*"
   ;; icard will never change, so no need for using an atom
   (icdata. icard (atom ttxt) (atom btxt) (atom tags)))
 
-(defn db->icdata
+(defn permDB->icdata
   "returns icdata record from permDB"
   [icard]
   (let [data-vec 
@@ -202,14 +202,25 @@ Hardwired to use *icard-connection* and *icard-coll-name*"
 		(get data-vec 1)
 		(drop 2 data-vec) )))
 
-(defn valid-flag
+(defn valid-from-permDB?
   "returns false if icdata is the result of asking for the data of a
-icard that does not exist (i.e., not found in permanent database);
-if icard *is* valid, returns a non-nil value that is *not* boolean true"
+icard that does not exist in the permanent database; else returns true"
   [icdata]
-  (or @(:ttxt icdata) @(:btxt icdata) (> 0 (count @(:tags icdata)))))
+  (let [result
+	(or @(:ttxt icdata) @(:btxt icdata) (> 0 (count @(:tags icdata))))]
+    (if (= result false)
+      false
+      true)))
 
-(defn db->all-icards
+(defn valid-from-localDB?
+  "returns false if icdata is the result of asking for the data of a
+icard that does not exist in the local database; else returns true"
+  [icdata]
+  (if (= icdata nil)
+    false
+    true))
+
+(defn permDB->all-icards
   "from permanent database, get seq of all icards"
   []
   ;; assumes that position 1 contains the file's "all-pointers" record,
@@ -230,13 +241,13 @@ if icard *is* valid, returns a non-nil value that is *not* boolean true"
 		 pobj]   ;;atom to Piccolo object that implements sldata
   )
 
-(declare get-icdata)
+(declare localDB->icdata)
 
 (defn new-sldata
   "create sldata from infocard, with its pobj at (x y), or default to (0 0)--
 NOTE: does *not* add sldata to *localDB*"
   ([icard x y]
-  (let [icdata (get-icdata icard)
+  (let [icdata (localDB->icdata icard)
 	rand-key   (rand-kayko 3)
 	pobj   (make-pinfocard
 		x
@@ -282,10 +293,10 @@ NOTE: does *not* add sldata to *localDB*"
       (swap! *localDB* update-in [icdata-idx] assoc icard icdata)))
   nil)
 
-(defn db->localDB
+(defn permDB->localDB
   "copy icdata (if found) from (persistent) db to localDB"
   [icard]
-  (let [icdata (db->icdata icard)
+  (let [icdata (permDB->icdata icard)
 	not-found? (and
 		    (nil? (:ttxt icdata)) (nil? (:btxt icdata)))]
     (if not-found?
@@ -298,12 +309,12 @@ NOTE: does *not* add sldata to *localDB*"
   "populates *localDB* with infocards given by the sequence"
   [icard-seq]
       (doseq [icard icard-seq]
-	(db->localDB icard)))
+	(permDB->localDB icard)))
 
 (defn load-all-infocards
   "loads all infocards in permanentDB to localDB"
   []
-  (load-icard-seq-to-localDB (db->all-icards)))
+  (load-icard-seq-to-localDB (permDB->all-icards)))
 
 
 
@@ -324,7 +335,7 @@ NOTE: does *not* add sldata to *localDB*"
     ;; else branch--all others stored w/atoms, must be dereferenced
     @(field-key icdata)))
 
-(defn get-icdata  ;; aka "lookup-icdata" (from localDB)
+(defn localDB->icdata  ;; aka "lookup-icdata" (from localDB)
   "given its id (the 'icard' variable), retrieve an icdata from the localDB"
   [icard]
     (get-in @*localDB* [*icdata-idx* icard]))
@@ -343,7 +354,7 @@ NOTE: does *not* add sldata to *localDB*"
   "given a sldata id, return its icdata from the localDB"
   [sldata]
   ;;the :icard field of the sldata contains the id of the corresp. icdata
-  (get-icdata (:icard sldata)))
+  (localDB->icdata (:icard sldata)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -402,7 +413,7 @@ inserted at the *front* of the map, *before* all existing sldatas"
     slip))
 
 (defn load-all-sldatas-to-localDB []
-  (let [all-icards (db->all-icards)]
+  (let [all-icards (permDB->all-icards)]
     (doseq [icard all-icards]
       (icard->sldata->localDB icard))))
 
@@ -442,9 +453,9 @@ inserted at the *front* of the map, *before* all existing sldatas"
 	  @(field-key sldata)
 	
 	  (contains? #{:ttxt :btxt :tags} field-key)
-	  (let [icdata (get-icdata (sldata-field sldata :icard))] ;;executed for icdata fields
-					;	  (let [icdata (get-icdata (:icard sldata))] ;;executed for icdata fields
-;	    (swank.core/break)
+
+	  ;;executed for icdata fields
+	  (let [icdata (localDB->icdata (sldata-field sldata :icard))] 
 	    (icdata-field icdata field-key))
 	
 	  ;; icards are "moved" by changing their transform

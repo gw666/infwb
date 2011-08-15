@@ -12,8 +12,6 @@
 
   (:use seesaw.core)
   (:use [infwb   infoml-utilities notecard sedna slip-display])
-  (:use [infwb.sedna])
-  (:use [infwb.notecard])
   )
 
 (defn initialize
@@ -24,8 +22,11 @@
     (set-connector-db *icard-connection* db-name)
     (icard-db-startup db-name coll-name)
     (clear-localDB)
+    (println "cleared localDB...")
     (load-icard-seq-to-localDB (db->all-icards))
-    (load-all-sldatas-to-localDB)))
+    (println "loaded all icards to icdata DB...")
+    (load-all-sldatas-to-localDB)
+    (println "created one slip for each icard; done")))
 
 (defn new-notecard-handler
   "displays new-notecard window"

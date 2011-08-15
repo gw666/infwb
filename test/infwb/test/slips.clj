@@ -33,9 +33,9 @@
 (defn test-slips-setup []
   (println "doing setup; all icards being loaded into local db")
   (db-startup)
-  (let [icard-seq (db->all-icards)]
+  (let [icard-seq (permDB->all-icards)]
     (doseq [card icard-seq]
-      (db->localDB card))))
+      (permDB->localDB card))))
 
 (defn reset-sldata-db
   "Clears out the sldata-db so as to enable another round of testing without
@@ -54,7 +54,7 @@ having to run (test-sldatas-setup) again"
   []
   (reset-sldata-db)
   (let [test-icard (nth (localDB->all-icards) 0)
-	test-ttxt (icdata-field (get-icdata test-icard) :ttxt)
+	test-ttxt (icdata-field (local->icdata test-icard) :ttxt)
 	test-sldata (new-sldata test-icard)
 	_   (sldata->localDB test-sldata)]
 ;    (swank.core/break)
@@ -67,7 +67,7 @@ having to run (test-sldatas-setup) again"
   (let [icard (nth (localDB->all-icards) 0)
 	slip (nth (localDB->all-slips) 0)
 	sldata (get-sldata slip)
-	icdata (get-icdata icard)
+	icdata (local->icdata icard)
 	ttxt (icdata-field icdata :ttxt)
 	btxt (icdata-field icdata :btxt)]
 ;    (swank.core/break)
