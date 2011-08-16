@@ -25,8 +25,6 @@
 ;
 ; GLOBAL VARIABLES
 ;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (def ^{:dynamic true} *icard-connection* (SednaXQDataSource.)) 
 (def ^{:dynamic true} *icard-coll-name*)
 (def ^{:dynamic true} *icard-db-name*)
@@ -157,8 +155,9 @@ The appropriate collection name, if any, must be part of query-str"
 (defn run-infoml-query
   "Returns results of an InfoML query
 
-filter arg selects records; result arg extracts data from selected records.
-Hardwired to use *icard-connection* and *icard-coll-name*"
+filter arg selects records; result arg extracts data from selected records
+(current infoml element is held in variable $card).  Hardwired to use
+*icard-connection* and *icard-coll-name*"
   [filter result]
 
   (let [infoml-query

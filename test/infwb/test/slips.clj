@@ -6,9 +6,9 @@
 
 ;; Required manual setup: Sedna must have a database named "brain".
 ;; Database must have a copy of the file
-;; "/Users/gw/Documents/99-IMPORTANT DOCUMENTS/permanent infocards, sch
-;; ema v0.90/hofstadter, doidge.XML". The file's
+;; "~/tech/clojurestuff/cljprojects/infwb/src/four-notecards.XML". The file's
 ;; lowest key is "gw667_090815161114586", and there should be 67 records.
+;;
 ;; NB: The function (db-startup) is run at the start of testing.
 ;;
 ;; Also, set needed top-level vars for Piccolo with the following:
@@ -24,7 +24,7 @@
 ;;     (.addInputEventListener canvas1 dragger)
 ;;     )
 ;;
-;; COMPILATION WILL FAIL if these variables aren't defined.
+;; COMPILATION WILL FAIL if these variables aren't defined FIRST.
 ;;
 ;; When things don't seem to be going right, follow the procedure in
 ;; 'GW notes on Clojure', topic 'PROPOSED PROCEDURE for using InfWb'

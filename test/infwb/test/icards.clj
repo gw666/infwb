@@ -5,9 +5,9 @@
 
 ;; Required manual setup: Sedna must have a db named "brain".
 ;; The 'brain' collection must have a copy of the file
-;; "/Users/gw/Documents/99-IMPORTANT DOCUMENTS/permanent infocards, sch
-;; ema v0.90/hofstadter, doidge.XML". The file's
+;; "~/tech/clojurestuff/cljprojects/infwb/src/four-notecards.XML". The file's
 ;; lowest key is "gw667_090815161114586", and there should be 4 records.
+;;
 ;; NB: The function (db-startup) is run at the start of testing.
 ;;
 ;; When things don't seem to be going right, follow the procedure in

@@ -15,7 +15,7 @@
   )
 
 (defn initialize
-  "runs InfWb init code; loads all icards, displays all slips"
+  "runs InfWb init code; loads all icards, creates slip for each icard"
   []
   (let [db-name "brain"
 	coll-name "test"]
