@@ -43,7 +43,7 @@
 (deftest test-make-1-sldata
   "Creates test suite's first sldata, based on first icard"
   []
-  (reset-sldata-db)
+  (reset-slips-db)
   (let [test-icard (nth (localDB->all-icards) 0)
 	test-ttxt (icdata-field (localDB->icdata test-icard) :ttxt)
 	test-sldata (new-sldata test-icard)

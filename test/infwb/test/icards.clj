@@ -18,13 +18,15 @@
   (let [bad-icard   "INVALID ICARD"]   ;implementation-dependent icard
     (is (not= nil (icdata-field (permDB->icdata "gw667_090815161114586")
 				:ttxt)))
-    (is (= nil (icdata-field (permDB->icdata bad-icard) :ttxt)) )))
+    (is (= nil (icdata-field (permDB->icdata bad-icard) :ttxt)) ))
+  ;; this test leaves icards-db empty
+  (reset-icards-db))
 
 (deftest test-get-all-icards []
 	 (println "2 test-get-all-icards")
 	 (is (= 4 (count (permDB->all-icards)))) )
 
-(deftest test-write-1-icard []
+(deftest test-write-1-icard-to-localDB []
   (println "3 test-write-1-icard")
   (let [icdata1 (permDB->icdata "gw667_090815161114586")
 	_ (icdata->localDB icdata1)]
@@ -73,7 +75,7 @@
     (icard-db-startup db-name coll-name)
     (test-read-icard-from-permDB)
     (test-get-all-icards)
-    (test-write-1-icard)
+    (test-write-1-icard-to-localDB)
     (test-db-to-localDB)
     (test-get-all-icards2)
     (test-all-icards-to-localDB)))

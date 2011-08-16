@@ -109,13 +109,13 @@ executed once; WARNING: deletes the database of icdatas and sldatas"
   (set-icard-coll-name icard-coll-name)
   )
 
-(defn reset-icard-db
-  "Clears out the icard-db in localDB (helpful for testing)"
+(defn reset-icards-db
+  "Clears out the icards-db in localDB (helpful for testing)"
   []
   (swap! *localDB* assoc-in [*icdata-idx*] {})
   nil)
   
-(defn reset-sldata-db
+(defn reset-slips-db
   "Clears out the sldata-db in localDB (helpful for testing)"
   []
   (swap! *localDB* assoc-in [*sldata-idx*] {})
@@ -168,7 +168,6 @@ filter arg selects records; result arg extracts data from selected records
 	 "')/infomlFile/"
 	 filter "\n"
 	 "return " result)]
-;    (println infoml-query "\n")
     (run-XQuery infoml-query *icard-connection*)))
 
 (defn get-result
@@ -207,16 +206,6 @@ filter arg selects records; result arg extracts data from selected records
   ;; icard will never change, so no need for using an atom
   (icdata. icard (atom ttxt) (atom btxt) (atom tags)))
 
-(defn permDB->icdata
-  "returns icdata record from permDB"
-  [icard]
-  (let [data-vec 
-	(run-infoml-query (str "infoml[@cardId = '" icard "']")
-			  "($card/data/title/string(), $card/data/content/string(), $card/selectors/tag/string())")]
-    (new-icdata icard (get data-vec 0)
-		(get data-vec 1)
-		(drop 2 data-vec) )))
-
 (defn valid-from-permDB?
   "returns false if icdata is the result of asking for the data of a
 icard that does not exist in the permanent database; else returns true"
@@ -235,6 +224,34 @@ icard that does not exist in the local database; else returns true"
     false
     true))
 
+(defn permDB->icdata-NEW
+  "returns icdata record from permDB"
+  [icard]
+  (let [data-vec 
+	(run-infoml-query (str "infoml[@cardId = '" icard "']")
+			  "($card/data/title/string(), $card/data/content/string(), $card/selectors/tag/string())")]
+    (swank.core/break)
+    (if (valid-from-permDB? data-vec)
+      (new-icdata icard (get data-vec 0)
+		  (get data-vec 1)
+		  (drop 2 data-vec) )
+      (println "WARNING: " icard " is not a valid infocard (from permDB->icdata"))
+    ))
+
+(defn permDB->icdata
+  "returns icdata record from permDB"
+  [icard]
+  (let [data-vec 
+       (run-infoml-query (str "infoml[@cardId = '" icard "']")
+                         "($card/data/title/string(), $card/data/content/string(), $card/selectors/tag/string())")]
+    (swank.core/break)
+    (if (valid-from-permDB? data-vec)
+      (new-icdata icard (get data-vec 0)
+                 (get data-vec 1)
+                 (drop 2 data-vec) )
+      (println "WARNING: " icard " is not a valid infocard (from permDB->icdata"))
+    ))
+
 (defn permDB->all-icards
   "from permanent database, get seq of all icards"
   []
@@ -251,9 +268,9 @@ icard that does not exist in the local database; else returns true"
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defrecord sldata [slip      ;;string; id of sldata
-		 icard     ;;string; card-id of icdata to be displayed
-		 pobj]   ;;atom to Piccolo object that implements sldata
+(defrecord sldata [slip	 ;;string; id of sldata
+		   icard ;;string; card-id of icdata to be displayed
+		   pobj] ;;atom to Piccolo object that implements sldata
   )
 
 (declare localDB->icdata)
@@ -311,14 +328,11 @@ NOTE: does *not* add sldata to *localDB*"
 (defn permDB->localDB
   "copy icdata (if found) from (persistent) db to localDB"
   [icard]
-  (let [icdata (permDB->icdata icard)
-	not-found? (and
-		    (nil? (:ttxt icdata)) (nil? (:btxt icdata)))]
-    (if not-found?
+  (let [icdata (permDB->icdata icard)]
+    (if (valid-from-permDB? icdata)
+      (icdata->localDB icdata)
       (println "ERROR: card with id =" icard "not found")
-      (do
-;	(println "Storing" icard)
-	(icdata->localDB icdata) ))))
+      )))
 
 (defn load-icard-seq-to-localDB
   "populates *localDB* with infocards given by the sequence"
@@ -365,11 +379,11 @@ NOTE: does *not* add sldata to *localDB*"
   []
   (count (keys (nth @*localDB* *icdata-idx*))))
 
-(defn sldata->icdata
-  "given a sldata id, return its icdata from the localDB"
-  [sldata]
+(defn slip->icdata
+  "given a slip, return its icdata from the localDB"
+  [slip]
   ;;the :icard field of the sldata contains the id of the corresp. icdata
-  (localDB->icdata (:icard sldata)))
+  (localDB->icdata (:icard slip)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -486,13 +500,13 @@ inserted at the *front* of the map, *before* all existing sldatas"
 	  
 	  ))
 
-(defn sldata-localDB-size
+(defn slip-localDB-size
   "number of icards in the application's internal icdata db"
   []
   (count (keys (nth @*localDB* *sldata-idx*))))
 
 (defn move-to
-  "move a sldata's Piccolo infocard to a given location; returns: sldata"
+  "move a slip's Piccolo infocard to a given location; returns: sldata"
   [sldata   x   y]
   (let [pobj   @(:pobj sldata)
 	dx     (double x)
@@ -505,7 +519,7 @@ inserted at the *front* of the map, *before* all existing sldatas"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-; DISPLAYING SLDATAS ON THE DESKTOP
+; DISPLAYING SLIPS ON THE DESKTOP
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -522,8 +536,8 @@ inserted at the *front* of the map, *before* all existing sldatas"
     (.addChild layer pobj)))
 
 (defn show-seq
-  "display seq of sldatas, starting at (x y), using dx, dy as offset
-for each next sldata to be displayed"
+  "display seq of slips, starting at (x y), using dx, dy as offset
+for each next slip to be displayed"
   [sldata-seq   x y   dx dy   layer]
   (println "Reached show-seq, x y = " x " " y)
   (let [x-coords   (iterate #(+ % dx) x)
