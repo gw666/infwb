@@ -15,10 +15,14 @@
 
 (deftest test-read-icard-from-permDB []
   (println "1 test-read-icard-from-db")
-  (let [bad-icard   "INVALID ICARD"]   ;implementation-dependent icard
-    (is (not= nil (icdata-field (permDB->icdata "gw667_090815161114586")
-				:ttxt)))
-    (is (= nil (icdata-field (permDB->icdata bad-icard) :ttxt)) ))
+  (reset-icards-db)
+  (let [bad-icard   "INVALID ICARD"   ;implementation-dependent icard
+	icard-title (icdata-field (permDB->icdata "gw667_090815161114586")
+				  :ttxt)
+	invalid-icard (permDB->icdata bad-icard)
+	]
+    (is (not= nil icard-title))
+    (is (= nil invalid-icard) ))
   ;; this test leaves icards-db empty
   (reset-icards-db))
 
@@ -31,7 +35,7 @@
   (let [icdata1 (permDB->icdata "gw667_090815161114586")
 	_ (icdata->localDB icdata1)]
     (is (= "the ability to think"
-	    (icdata-field (permDB->icdata "gw667_090815161114586") :ttxt) ))))
+	    (icdata-field (localDB->icdata "gw667_090815161114586") :ttxt) ))))
 
 (deftest test-db-to-localDB []
 	 (println "4 test-db-to-localDB")

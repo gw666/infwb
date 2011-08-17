@@ -224,33 +224,28 @@ icard that does not exist in the local database; else returns true"
     false
     true))
 
-(defn permDB->icdata-NEW
-  "returns icdata record from permDB"
+(defn permDB->icdata
+  "returns icdata record from permDB; if nil, icard was invalid"
   [icard]
   (let [data-vec 
 	(run-infoml-query (str "infoml[@cardId = '" icard "']")
 			  "($card/data/title/string(), $card/data/content/string(), $card/selectors/tag/string())")]
-    (swank.core/break)
-    (if (valid-from-permDB? data-vec)
+
+    ; At this point, if the icard *was* found in permDB, data-vec contains
+    ; the expected contents: title-string in position 0, body-string in
+    ; position 1, and zero or more tags in the rest of the vector
+    ;
+    ; If the icard was *not* found, data-vec contains an empty vector
+    ; (i.e., [])
+    
+    (if (= 0 (count data-vec))
+      (doall
+       (println "WARNING: '" icard
+		"' is not a valid infocard (from permDB->icdata)")
+       nil)
       (new-icdata icard (get data-vec 0)
 		  (get data-vec 1)
-		  (drop 2 data-vec) )
-      (println "WARNING: " icard " is not a valid infocard (from permDB->icdata"))
-    ))
-
-(defn permDB->icdata
-  "returns icdata record from permDB"
-  [icard]
-  (let [data-vec 
-       (run-infoml-query (str "infoml[@cardId = '" icard "']")
-                         "($card/data/title/string(), $card/data/content/string(), $card/selectors/tag/string())")]
-    (swank.core/break)
-    (if (valid-from-permDB? data-vec)
-      (new-icdata icard (get data-vec 0)
-                 (get data-vec 1)
-                 (drop 2 data-vec) )
-      (println "WARNING: " icard " is not a valid infocard (from permDB->icdata"))
-    ))
+		  (drop 2 data-vec)))))
 
 (defn permDB->all-icards
   "from permanent database, get seq of all icards"
