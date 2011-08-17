@@ -17,12 +17,13 @@
   (println "1 test-read-icard-from-db")
   (reset-icards-db)
   (let [bad-icard   "INVALID ICARD"   ;implementation-dependent icard
+	bad-retrieved-icard   (permDB->icdata bad-icard)
 	icard-title (icdata-field (permDB->icdata "gw667_090815161114586")
 				  :ttxt)
-	invalid-icard (permDB->icdata bad-icard)
+	invalid-title (icdata-field bad-retrieved-icard :ttxt)
 	]
     (is (not= nil icard-title))
-    (is (= nil invalid-icard) ))
+    (is (= nil invalid-title) ))
   ;; this test leaves icards-db empty
   (reset-icards-db))
 
