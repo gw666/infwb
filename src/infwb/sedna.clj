@@ -29,12 +29,10 @@
 (def ^{:dynamic true} *icard-coll-name*)
 (def ^{:dynamic true} *icard-db-name*)
 
-;; icdata db is 0th element of @*localDB*
-(def ^{:dynamic true} *icdata-idx*   0)
-  
-;; sldata db is 1st element of @*localDB*
-(def ^{:dynamic true} *sldata-idx*    1)
-  
+;; in-memory databases for icdata (icard) and sldata (slip) data
+(def ^{:dynamic true} *localDB-icdata* (atom {}))
+(def ^{:dynamic true} *localDB-sldata* (atom {}))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; MISCELLANEOUS ROUTINES
@@ -96,8 +94,11 @@ collection to be used"
   [name]
   (def *icard-coll-name*   name))
 
-(defn clear-localDB []
-    (def ^{:dynamic true} *localDB* (atom [{} {}])))
+(defn clear-localDB-icdata []
+    (reset! *localDB-icdata* {}))
+
+(defn clear-localDB-sldata []
+    (reset! *localDB-sldata* {}))
 
 (defn icard-db-startup
   "does all database setup for current session of work; should be
@@ -112,14 +113,12 @@ executed once; WARNING: deletes the database of icdatas and sldatas"
 (defn reset-icards-db
   "Clears out the icards-db in localDB (helpful for testing)"
   []
-  (swap! *localDB* assoc-in [*icdata-idx*] {})
-  nil)
+  (reset! *localDB-icdata* {}))
   
 (defn reset-slips-db
   "Clears out the sldata-db in localDB (helpful for testing)"
   []
-  (swap! *localDB* assoc-in [*sldata-idx*] {})
-  nil)
+  (reset! *localDB-sldata* {}))
   
 
 
@@ -225,6 +224,8 @@ icard that does not exist in the local database; else returns true"
 (defn permDB->icdata
   "returns icdata record from permDB; check with valid-from-permDB?"
   [icard]
+
+  ;; query returns [icard title body tag1* tag2* ... tagN*]; * = if tag exists
   (let [data-vec
 	(run-infoml-query (str "infoml[@cardId = '" icard "']")
 			  "($card/data/title/string(), $card/data/content/string(), $card/selectors/tag/string())")]
@@ -233,29 +234,6 @@ icard that does not exist in the local database; else returns true"
 		(get data-vec 1)
 		(drop 2 data-vec) )))
 
-
-;; (defn permDB->icdata
-;;   "returns icdata record from permDB; if nil, icard was invalid"
-;;   [icard]
-;;   (let [data-vec 
-;; 	(run-infoml-query (str "infoml[@cardId = '" icard "']")
-;; 			  "($card/data/title/string(), $card/data/content/string(), $card/selectors/tag/string())")]
-
-;;     ; At this point, if the icard *was* found in permDB, data-vec contains
-;;     ; the expected contents: title-string in position 0, body-string in
-;;     ; position 1, and zero or more tags in the rest of the vector
-;;     ;
-;;     ; If the icard was *not* found, data-vec contains an empty vector
-;;     ; (i.e., [])
-    
-;;     (if (= 0 (count data-vec))
-;;       (doall
-;;        (println "WARNING: '" icard
-;; 		"' is not a valid infocard (from permDB->icdata)")
-;;        nil)
-;;       (new-icdata icard (get data-vec 0)
-;; 		  (get data-vec 1)
-;; 		  (drop 2 data-vec)))))
 
 (defn permDB->all-icards
   "from permanent database, get seq of all icards"
@@ -319,15 +297,29 @@ NOTE: does *not* add sldata to *localDB*"
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; (defn icdata->localDB
+;;   "Stores the icdata record in the localDB; returns icdata"
+;;   [icdata]
+;;   (let [icard (:icard icdata)
+;; 	icdata-idx   *icdata-idx*
+;; 	id-exists?  (get-in @*localDB* [icdata-idx icard])]
+;;     (if id-exists?   ;;if true, replaces existing; false adds new icdata
+;;       ; replaces << value associated with icard >> with (this) icdata
+;;       (swap! *localDB* assoc-in [icdata-idx icard] icdata)
+;;       ; adds << icard (key), icdata (value) >> pair to *localDB*
+;;       (swap! *localDB* update-in [icdata-idx] assoc icard icdata)))
+;;   icdata)
+
 (defn icdata->localDB
   "Stores the icdata record in the localDB; returns icdata"
   [icdata]
   (let [icard (:icard icdata)
-	icdata-idx   *icdata-idx*
-	id-exists?  (get-in @*localDB* [icdata-idx icard])]
+	id-exists?  (:icard @*localDB-icdata*)]
     (if id-exists?   ;;if true, replaces existing; false adds new icdata
-      (swap! *localDB* assoc-in [icdata-idx icard] icdata)
-      (swap! *localDB* update-in [icdata-idx] assoc icard icdata)))
+      ; replaces << value associated with icard >> with (this) icdata
+      (swap! *localDB-icdata* update-in [icard] (fn [x] icdata))
+      ; adds << icard (key), icdata (value) >> pair to *localDB*
+      (swap! *localDB-icdata* assoc icard icdata)))
   icdata)
 
 (defn permDB->localDB
@@ -372,17 +364,12 @@ NOTE: does *not* add sldata to *localDB*"
 (defn localDB->icdata  ;; aka "lookup-icdata" (from localDB)
   "given its id (the 'icard' variable), retrieve an icdata from the localDB"
   [icard]
-    (get-in @*localDB* [*icdata-idx* icard]))
+    (@*localDB-icdata* icard))
 
 (defn localDB->all-icards
 "return a seq of all the id values of the localDB icdata database"
   []
-    (keys (get-in @*localDB* [*icdata-idx*])))
-
-(defn icdata-localDB-size
-  "number of icdatas in the application's internal icdata db"
-  []
-  (count (keys (nth @*localDB* *icdata-idx*))))
+    (keys @*localDB-icdata*))
 
 (defn slip->icdata
   "given a slip, return its icdata from the localDB"
@@ -426,16 +413,28 @@ NOTE: does *not* add sldata to *localDB*"
 
 ;; `assoc VAL slip sldata`, which *prepends* the key/value pair to VAL.
 
+;; (defn sldata->localDB
+;;   "Stores the sldata record in the in-memory database; NOTE: new sldata is
+;; inserted at the *front* of the map, *before* all existing sldatas"
+;;   [sldata]
+;;   (let [slip (:slip sldata)
+;; 	id-exists?  (get-in @*localDB* [*sldata-idx* slip])]
+;;     (if id-exists?   ;;if true, replaces existing; false adds new sldata
+;;       (swap! *localDB* assoc-in [*sldata-idx* slip] sldata)
+;;       (swap! *localDB* update-in [*sldata-idx*] assoc slip sldata)))
+;;   nil)
+
 (defn sldata->localDB
-  "Stores the sldata record in the in-memory database; NOTE: new sldata is
-inserted at the *front* of the map, *before* all existing sldatas"
+  "Stores the sldata record in the localDB; returns sldata"
   [sldata]
   (let [slip (:slip sldata)
-	id-exists?  (get-in @*localDB* [*sldata-idx* slip])]
+	id-exists?  (:slip @*localDB-sldata*)]
     (if id-exists?   ;;if true, replaces existing; false adds new sldata
-      (swap! *localDB* assoc-in [*sldata-idx* slip] sldata)
-      (swap! *localDB* update-in [*sldata-idx*] assoc slip sldata)))
-  nil)
+      ; replaces << value associated with slip >> with (this) sldata
+      (swap! *localDB-sldata* update-in [slip] (fn [x] sldata))
+      ; adds << slip (key), sldata (value) >> pair to *localDB*
+      (swap! *localDB-sldata* assoc slip sldata)))
+  sldata)
 
 ;; WARN: "bare" use of `:slip` to get data from within sldata
 (defn icard->sldata->localDB
@@ -457,10 +456,18 @@ inserted at the *front* of the map, *before* all existing sldatas"
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn get-sldata  ;; aka "lookup-sldata" (from localDB)
-  "given its slip, retrieve a sldata from the localDB"
+(defn localDB->sldata  ;; aka "lookup-icdata" (from localDB)
+  "given its slip, retrieve its sldata from  localDB-slip; if slip not
+found, returns nil"
   [slip]
-  (let [sldata   (get-in @*localDB* [*sldata-idx* slip])]
+    (@*localDB-sldata* slip))
+
+
+(defn get-sldata  ;; aka "lookup-sldata" (from localDB)
+  "given its slip, retrieve its sldata from  localDB-slip; if slip not
+found, returns an sldata containing 'ERROR'; *always* returns an sldata"
+  [slip]
+  (let [sldata   (localDB->sldata slip)]
     (if sldata
       sldata
       {:slip  (str "ERROR: Sldata '" slip "' is INVALID")
@@ -470,7 +477,7 @@ inserted at the *front* of the map, *before* all existing sldatas"
 (defn localDB->all-slips
   "return a seq of all the id values of the localDB sldata database"
   []
-    (keys (get-in @*localDB* [*sldata-idx*])))
+    (keys @*localDB-sldata*))
 
 ;; TODO needs a test in sldatas.clj
 (defn sldata-field
@@ -508,7 +515,7 @@ inserted at the *front* of the map, *before* all existing sldatas"
 (defn slip-localDB-size
   "number of icards in the application's internal icdata db"
   []
-  (count (keys (nth @*localDB* *sldata-idx*))))
+  (count (localDB->all-slips)))
 
 (defn move-to
   "move a slip's Piccolo infocard to a given location; returns: sldata"

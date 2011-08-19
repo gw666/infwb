@@ -21,7 +21,8 @@
 	coll-name "test"]
     (set-connector-db *icard-connection* db-name)
     (icard-db-startup db-name coll-name)
-    (clear-localDB)
+    (clear-localDB-icdata)
+    (clear-localDB-sldata)
     (println "cleared localDB...")
     (load-icard-seq-to-localDB (permDB->all-icards))
     (println "loaded all icards to icdata DB...")

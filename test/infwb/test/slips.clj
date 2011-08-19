@@ -26,13 +26,20 @@
 ;;
 ;; COMPILATION WILL FAIL if these variables aren't defined FIRST.
 ;;
+;; To ensure repeatable and correct results, you should run:
+;;
+;; (initialize)
+;; (clojure.test/run-tests 'infwb.test.icards)
+;; (clojure.test/run-tests 'infwb.test.slips)
+;;
 ;; When things don't seem to be going right, follow the procedure in
 ;; 'GW notes on Clojure', topic 'PROPOSED PROCEDURE for using InfWb'
 
 ;; not needed if (initialize) has been run
 (defn test-slips-setup []
   (println "doing setup; all icards being loaded into local db")
-  (icard-db-startup)
+  (icard-db-startup "brain" "test")
+  ;; copy all icard data to localDB-icdata
   (let [icard-seq (permDB->all-icards)]
     (doseq [card icard-seq]
       (permDB->localDB card))))
@@ -45,10 +52,12 @@
   []
   (reset-slips-db)
   (let [test-icard (nth (localDB->all-icards) 0)
+	;; get title of first icard, create slip based on it, add to sldata db
 	test-ttxt (icdata-field (localDB->icdata test-icard) :ttxt)
 	test-sldata (new-sldata test-icard)
 	_   (sldata->localDB test-sldata)]
 ;    (swank.core/break)
+    ;; Does sldata-field get the title from the icard correctly?
     (is (= test-ttxt (sldata-field test-sldata :ttxt)) ":ttxt field")
     (is (= 1 (count (localDB->all-slips)))) ))
 
@@ -62,6 +71,7 @@
 	ttxt (icdata-field icdata :ttxt)
 	btxt (icdata-field icdata :btxt)]
 ;    (swank.core/break)
+    ;; tests if sldata-field can access slip, icard, ttxt, btxt
     (is (= slip (sldata-field sldata :slip)))
     (is (= icard (sldata-field sldata :icard)))
     (is (= ttxt (sldata-field sldata :ttxt)))
@@ -70,7 +80,7 @@
 ;; This test works on the first sldata, which was created by (test-make-1-sldata)
 (deftest test-move-sldata
   "Moves an existing sldata, then checks to see whether move worked by
-examining the pobj's x and y values (using `sldata-field`)"
+examining the pobj's x and y values (using sldata-field fcn)"
   []
   (let [sldata-id (nth (localDB->all-slips) 0) ; get first sldata in localDB
 	new-x   62
@@ -98,6 +108,7 @@ examining the pobj's x and y values (using `sldata-field`)"
 	sldata2   (get-sldata slip2)]
     (is (= icard2 (sldata-field sldata2 :icard)))
     (is (= slip2 (sldata-field sldata2 :slip)))
+    ;; check for correct handling of non-existent slip
     (is (= (sldata-field (get-sldata "INVALID KEY") :icard)
 	   "ERROR: Sldata 'INVALID KEY' is INVALID"))
     ))
@@ -123,13 +134,9 @@ examining the pobj's x and y values (using `sldata-field`)"
 
 
 (defn test-ns-hook []
+  (println "### Did you recompile the test file?                ###")
   (println "### Did you define needed variables (e.g., layer1)? ###")
-  ;; (test-sldatas-setup)
-  ;; (test-write-1-sldata)
-  ;; (test-create-pobj)
-  ;; (test-add-pobj-to-localDB)
-  ;; (test-display-1-sldata)
-  ;; (test-display-all-sldatas)
+  (println "### Did you run (initialize) since last recompile?  ###")
   (println "running (test-make-1-sldata)")
   (test-make-1-sldata)
   (println "running (test-sldata-field)")

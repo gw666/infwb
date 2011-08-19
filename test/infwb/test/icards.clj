@@ -8,7 +8,12 @@
 ;; "~/tech/clojurestuff/cljprojects/infwb/src/four-notecards.XML". The file's
 ;; lowest key is "gw667_090815161114586", and there should be 4 records.
 ;;
-;; NB: The function (db-startup) is run at the start of testing.
+;;
+;; To ensure repeatable and correct results, you should run:
+;;
+;; (initialize)
+;; (clojure.test/run-tests 'infwb.test.icards)
+;; (clojure.test/run-tests 'infwb.test.slips)
 ;;
 ;; When things don't seem to be going right, follow the procedure in
 ;; 'GW notes on Clojure', topic 'PROPOSED PROCEDURE for using InfWb'
@@ -67,12 +72,13 @@
 	 (let [all-icards (permDB->all-icards)]
 	   (doseq [card all-icards]
 	     (permDB->localDB card)))
-	 (is (= 4 (icdata-localDB-size))) )
+	 (is (= 4 (count (localDB->all-icards)))) )
 
 (defn test-ns-hook
   "controls test sequence; NOTE: contains fixed Sedna db & collection names"
   []
-  (println "##### Did you recompile the test file? #####")
+  (println "### Did you recompile the test file?                ###")
+  (println "### Did you run (initialize) since last recompile?  ###")
 
   (let [db-name "brain"
 	coll-name "test"]
