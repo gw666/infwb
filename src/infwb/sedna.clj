@@ -25,6 +25,8 @@
 ;
 ; GLOBAL VARIABLES
 ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (def ^{:dynamic true} *icard-connection* (SednaXQDataSource.)) 
 (def ^{:dynamic true} *icard-coll-name*)
 (def ^{:dynamic true} *icard-db-name*)
@@ -239,7 +241,7 @@ icard that does not exist in the local database; else returns true"
 		(drop 2 data-vec) )))
 
 
-(defn permDB->all-icards
+(defn get-all-icards
   "from permanent database, get seq of all icards"
   []
   ;; assumes that position 1 contains the file's "all-pointers" record,
@@ -344,7 +346,7 @@ NOTE: does *not* add sldata to *localDB*"
 (defn load-all-infocards
   "loads all infocards in permanentDB to localDB"
   []
-  (load-icard-seq-to-localDB (permDB->all-icards)))
+  (load-icard-seq-to-localDB (get-all-icards)))
 
 
 
@@ -450,7 +452,7 @@ NOTE: does *not* add sldata to *localDB*"
     slip))
 
 (defn load-all-sldatas-to-localDB []
-  (let [all-icards (permDB->all-icards)]
+  (let [all-icards (get-all-icards)]
     (doseq [icard all-icards]
       (icard->sldata->localDB icard))))
 

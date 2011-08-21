@@ -2,6 +2,24 @@
   (:gen-class)
   (:use [infwb.sedna]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; GLOBAL VARIABLES
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def *icard-fields* #{:icard :ttxt :btxt :tags})
+(def *slip-fields*  #{:slip :icard :pobj})
+
+;; KEY: icard; VALUE: seq of slips that are clones of icard
+(def *icard->slips* (atom {}))
+
+;; KEY: slip; VALUE: {attribute-name attr-value, ...)
+(def *slip-attrs* (atom {}))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn make-invalid-icdata [icard]
   (new-icdata icard
 	      (str "ERROR: infocard '" icard "' not found") ; ttxt

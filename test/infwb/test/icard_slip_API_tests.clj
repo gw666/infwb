@@ -22,7 +22,7 @@
 (deftest test-XXX []
   (println "1 test-XXX")
   (clear-localDB)
-  (let [icard-seq (permDB->all-icards)
+  (let [icard-seq (get-all-icards)
 	]
     (dorun (map icard-title icard-seq))
     (is (= 4 (icdata-localDB-size)))

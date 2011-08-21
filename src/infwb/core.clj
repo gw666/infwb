@@ -19,12 +19,12 @@
   []
   (let [db-name "brain"
 	coll-name "test"]
-    (set-connector-db *icard-connection* db-name)
+    (SYSset-connection *icard-connection* db-name)
     (icard-db-startup db-name coll-name)
     (clear-localDB-icdata)
     (clear-localDB-sldata)
     (println "cleared localDB...")
-    (load-icard-seq-to-localDB (permDB->all-icards))
+    (load-icard-seq-to-localDB (get-all-icards))
     (println "loaded all icards to icdata DB...")
     (load-all-sldatas-to-localDB)
     (println "created one slip for each icard; done")))

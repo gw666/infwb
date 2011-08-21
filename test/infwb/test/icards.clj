@@ -34,7 +34,7 @@
 
 (deftest test-get-all-icards []
 	 (println "2 test-get-all-icards")
-	 (is (= 4 (count (permDB->all-icards)))) )
+	 (is (= 4 (count (get-all-icards)))) )
 
 (deftest test-write-1-icard-to-localDB []
   (println "3 test-write-1-icard")
@@ -52,7 +52,7 @@
 (deftest test-get-all-icards2 []
 	 (println "5 test-get-all-icards2")
 	 (is (= 4
-		(count (map permDB->icdata (permDB->all-icards))) )))
+		(count (map permDB->icdata (get-all-icards))) )))
 
 ;; vers below doesn't seem to work--too much for Clojure or Java to handle?
 ;;   Or maybe there is an issue of parallelism. Here's the err msg:
@@ -64,12 +64,12 @@
 ;;   actual: (not (= 4 0)) 
 ;; (deftest test-all-icards-to-appdb []
 ;; 	 (println "6 test-all-icards-to-appdb")
-;; 	 (map permDB->localDB (permDB->all-icards))
+;; 	 (map permDB->localDB (get-all-icards))
 ;; 	 (is (= 4 (icdata-appdb-size))) )
 
 (deftest test-all-icards-to-localDB []
 	 (println "6 test-all-icards-to-localDB")
-	 (let [all-icards (permDB->all-icards)]
+	 (let [all-icards (get-all-icards)]
 	   (doseq [card all-icards]
 	     (permDB->localDB card)))
 	 (is (= 4 (count (localDB->all-icards)))) )
