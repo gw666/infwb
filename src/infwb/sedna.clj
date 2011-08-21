@@ -72,7 +72,10 @@ then the seq contains only the original path given."
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn set-connector-db
+(defn SYSset-icard-conn []
+  (reset! *icard-connection* (SednaXQDataSource.)))
+
+(defn SYSset-connection
   "Used before any XQuery operation to specify the database to be used
 
 From Sedna's point of view, the database to be used is given by the
@@ -105,7 +108,7 @@ collection to be used"
 executed once; WARNING: deletes the database of icdatas and sldatas"
   [icard-db-name icard-coll-name]
   
-  (set-connector-db *icard-connection* icard-db-name)
+  (SYSset-connection *icard-connection* icard-db-name)
   (set-icard-db-name icard-db-name)
   (set-icard-coll-name icard-coll-name)
   )
@@ -132,9 +135,10 @@ executed once; WARNING: deletes the database of icdatas and sldatas"
 
 (declare get-result)
 
-;; for convenience, this ns has already defined the Sedna
+;; for convenience of fcn below, this ns has already defined the Sedna
 ;; connection named *icard-connection*
-(defn run-XQuery
+
+(defn SYSrun-query
   "runs specified XQuery query through the given connection,
 returning result(s) in a vector, within given database and collection
 
@@ -151,23 +155,23 @@ The appropriate collection name, if any, must be part of query-str"
     (.close conn)
     result))
 
-(defn run-infoml-query
+(defn run-infocard-query
   "Returns results of an InfoML query
 
-filter arg selects records; result arg extracts data from selected records
-(current infoml element is held in variable $card).  Hardwired to use
+filter arg selects records; return arg extracts data from selected records
+(current infoml element is held in variable $base).  Hardwired to use
 *icard-connection* and *icard-coll-name*"
-  [filter result]
+  [filter return]
 
   (let [infoml-query
 	(str
 	 "declare default element namespace 'http://infoml.org/infomlFile';\n"
-	 "for $card in collection('"
+	 "for $base in collection('"
 	 *icard-coll-name*
 	 "')/infomlFile/"
 	 filter "\n"
-	 "return " result)]
-    (run-XQuery infoml-query *icard-connection*)))
+	 "return " return)]
+    (SYSrun-query infoml-query *icard-connection*)))
 
 (defn get-result
   "gets the result of an XQuery"
@@ -227,8 +231,8 @@ icard that does not exist in the local database; else returns true"
 
   ;; query returns [icard title body tag1* tag2* ... tagN*]; * = if tag exists
   (let [data-vec
-	(run-infoml-query (str "infoml[@cardId = '" icard "']")
-			  "($card/data/title/string(), $card/data/content/string(), $card/selectors/tag/string())")]
+	(run-infocard-query (str "infoml[@cardId = '" icard "']")
+			  "($base/data/title/string(), $base/data/content/string(), $base/selectors/tag/string())")]
     (new-icdata icard
 		(get data-vec 0)
 		(get data-vec 1)
@@ -241,8 +245,8 @@ icard that does not exist in the local database; else returns true"
   ;; assumes that position 1 contains the file's "all-pointers" record,
   ;; which is not an end-user "actual" infocard; this assumption
   ;; may change in the future
-  (run-infoml-query "infoml[position() != 1]"
-		    "$card/@cardId/string()"))
+  (run-infocard-query "infoml[position() != 1]"
+		    "$base/@cardId/string()"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

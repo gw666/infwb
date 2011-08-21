@@ -35,17 +35,8 @@
 ;; When things don't seem to be going right, follow the procedure in
 ;; 'GW notes on Clojure', topic 'PROPOSED PROCEDURE for using InfWb'
 
-;; not needed if (initialize) has been run
-(defn test-slips-setup []
-  (println "doing setup; all icards being loaded into local db")
-  (icard-db-startup "brain" "test")
-  ;; copy all icard data to localDB-icdata
-  (let [icard-seq (permDB->all-icards)]
-    (doseq [card icard-seq]
-      (permDB->localDB card))))
-
-;; (test-slips-setup) should run before this fcn runs. This makes
-;; localDB slip db empty.
+;; (infwb.core/initialize) should run before this fcn runs. 
+;; This makes localDB slip db empty.
 ;; At end of this fcn, localDB sldata db has one entry based on first icard.
 (deftest test-make-1-sldata
   "Creates test suite's first sldata, based on first icard"
