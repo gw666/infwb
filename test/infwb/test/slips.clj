@@ -50,13 +50,13 @@
 ;    (swank.core/break)
     ;; Does sldata-field get the title from the icard correctly?
     (is (= test-ttxt (sldata-field test-sldata :ttxt)) ":ttxt field")
-    (is (= 1 (count (localDB->all-slips)))) ))
+    (is (= 1 (count (get-all-slips)))) ))
 
 ;; DEV: This must be modified whenever a field is added
 ;; This test works on the first sldata, which was created by (test-make-1-sldata)
 (deftest test-sldata-field []
   (let [icard (nth (localDB->all-icards) 0)
-	slip (nth (localDB->all-slips) 0)
+	slip (nth (get-all-slips) 0)
 	sldata (get-sldata slip)
 	icdata (localDB->icdata icard)
 	ttxt (icdata-field icdata :ttxt)
@@ -73,7 +73,7 @@
   "Moves an existing sldata, then checks to see whether move worked by
 examining the pobj's x and y values (using sldata-field fcn)"
   []
-  (let [sldata-id (nth (localDB->all-slips) 0) ; get first sldata in localDB
+  (let [sldata-id (nth (get-all-slips) 0) ; get first sldata in localDB
 	new-x   62
 	new-y  118
 	test-sldata (get-sldata sldata-id)]
@@ -83,7 +83,7 @@ examining the pobj's x and y values (using sldata-field fcn)"
 
 (deftest test-show-1-sldata []
   (println "\n### WARN: Be sure that layer1 is defined ###\n")
-  (let [sldata-id (nth (localDB->all-slips) 0) 
+  (let [sldata-id (nth (get-all-slips) 0) 
 	test-sldata (get-sldata sldata-id)
 	test-x   50
 	test-y  150]
@@ -117,7 +117,7 @@ examining the pobj's x and y values (using sldata-field fcn)"
 	slip   (icard->sldata->localDB icard)
 	sldata (get-sldata slip)
 	]
-    (is (= 3 (count (localDB->all-slips))))
+    (is (= 3 (count (get-all-slips))))
     (is (=  ["tag1" "tag2"] (sldata-field sldata :tags)))))
   )
 

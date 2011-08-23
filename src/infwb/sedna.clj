@@ -225,7 +225,7 @@ icard that does not exist in the permanent database; else returns true"
   "returns false if icdata is the result of asking for the data of a
 icard that does not exist in the local database; else returns true"
   [icdata]
-  (= icdata nil))
+  (not= icdata nil))
 
 (defn permDB->icdata
   "returns icdata record from permDB; check with valid-from-permDB?"
@@ -303,19 +303,6 @@ NOTE: does *not* add sldata to *localDB*"
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; (defn icdata->localDB
-;;   "Stores the icdata record in the localDB; returns icdata"
-;;   [icdata]
-;;   (let [icard (:icard icdata)
-;; 	icdata-idx   *icdata-idx*
-;; 	id-exists?  (get-in @*localDB* [icdata-idx icard])]
-;;     (if id-exists?   ;;if true, replaces existing; false adds new icdata
-;;       ; replaces << value associated with icard >> with (this) icdata
-;;       (swap! *localDB* assoc-in [icdata-idx icard] icdata)
-;;       ; adds << icard (key), icdata (value) >> pair to *localDB*
-;;       (swap! *localDB* update-in [icdata-idx] assoc icard icdata)))
-;;   icdata)
-
 (defn icdata->localDB
   "Stores the icdata record in the localDB; returns icdata"
   [icdata]
@@ -382,6 +369,9 @@ NOTE: does *not* add sldata to *localDB*"
   [slip]
   ;;the :icard field of the sldata contains the id of the corresp. icdata
   (localDB->icdata (:icard slip)))
+
+(defn icdata-localDB-size []
+  (count (localDB->all-icards)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -480,7 +470,7 @@ found, returns an sldata containing 'ERROR'; *always* returns an sldata"
        :icard (str "ERROR: Sldata '" slip "' is INVALID")
        :pobj  (atom nil)} )))
 
-(defn localDB->all-slips
+(defn get-all-slips
   "return a seq of all the id values of the localDB sldata database"
   []
     (keys @*localDB-sldata*))
@@ -521,7 +511,7 @@ found, returns an sldata containing 'ERROR'; *always* returns an sldata"
 (defn slip-localDB-size
   "number of icards in the application's internal icdata db"
   []
-  (count (localDB->all-slips)))
+  (count (get-all-slips)))
 
 (defn move-to
   "move a slip's Piccolo infocard to a given location; returns: sldata"

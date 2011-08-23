@@ -20,6 +20,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn SYSclear-all []
+  (reset! *localDB-icdata* {})
+  (reset! *localDB-sldata* {})
+  (reset! *icard->slips* {})
+  (reset! *slip-attrs* {}))
+
 (defn make-invalid-icdata [icard]
   (new-icdata icard
 	      (str "ERROR: infocard '" icard "' not found") ; ttxt
@@ -44,7 +50,7 @@ copied into localDB; returns special \"ERROR\" icdata if not in permDB"
       ; return value is the icdata that was returned by permDB
       (icdata->localDB (get-icdata-from-permDB icard)) )))
 
-(defn get-icard-data
+(defn iget
   "returns specified field of icard; handles all db issues transparently"
   [icard field-key]
   (field-key (get-icdata icard)))
