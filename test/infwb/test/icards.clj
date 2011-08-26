@@ -78,12 +78,11 @@
   "controls test sequence; NOTE: contains fixed Sedna db & collection names"
   []
   (println "### Did you recompile the test file?                ###")
-  (println "### Did you run (initialize) since last recompile?  ###")
 
   (let [db-name "brain"
 	coll-name "test"]
     
-    (icard-db-startup db-name coll-name)
+    (SYSsetup-InfWb db-name coll-name)
     (test-read-icard-from-permDB)
     (test-get-all-icards)
     (test-write-1-icard-to-localDB)

@@ -3,6 +3,21 @@
   (:use [infwb.sedna]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; IMPLEMENTATION DETAILS
+;;
+;; To start:
+;;
+;; 1. Compile sedna.clj
+;; 2. Compile this file (icard_slip_API.clj)
+;; 3. Execute (SYSsetup-InfWb "brain" "test")
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; GLOBAL VARIABLES
 ;

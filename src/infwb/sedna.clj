@@ -27,13 +27,14 @@
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def ^{:dynamic true} *icard-connection* (SednaXQDataSource.)) 
-(def ^{:dynamic true} *icard-coll-name*)
-(def ^{:dynamic true} *icard-db-name*)
+; ^{:dynamic true} after 'def' may suppress some error messages
+(def *icard-connection* (SednaXQDataSource.)) 
+(def *icard-coll-name*)
+(def *icard-db-name*)
 
 ;; in-memory databases for icdata (icard) and sldata (slip) data
-(def ^{:dynamic true} *localDB-icdata* (atom {}))
-(def ^{:dynamic true} *localDB-sldata* (atom {}))
+(def  *localDB-icdata* (atom {}))
+(def  *localDB-sldata* (atom {}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -72,16 +73,35 @@ then the seq contains only the original path given."
 ;
 ; HOUSEKEEPING
 ;
+; Compiling this file automatically init'zs the two *localDB-xxx* globals
+;
+; SYSsetup-InfWb: use to set db and coll'n used in InfWb current session 
+; 
+; SYSrun-query: needs a connection that specifies the db to be used (see
+;   SYSnew-connection, SYSset-connection). Using SYSrun-query with its 
+;   own connection does _not_ disrupt simultaneous use of icard-specific 
+;   queries (i.e., run-infocard-query). Sedna can have multiple dbs open
+;   at the same time.
+
+; NOTE: "Session db" is a newer term for "local db." Will renaming ever end?
+;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn SYSset-icard-conn []
+(defn SYSreset-icard-conn
+  "Clears the connection to the InfWb remote db for icards."
+  []
   (reset! *icard-connection* (SednaXQDataSource.)))
 
-(defn SYSset-connection
-  "Used before any XQuery operation to specify the database to be used
+(defn SYSnew-connection
+  "Creates a new remote-db connection. Usually fed to SYSset-connection
+to create a remote-db connection for something other than icard access."
+  []
+  ; implementation dependent--returns a new Sedna data source
+  (SednaXQDataSource.))
 
-From Sedna's point of view, the database to be used is given by the
-databaseName property of the SednaConnection named"
+(defn SYSset-connection
+  "Used before any XQuery operation to specify the connection and database
+to be used."
   [connection-name db-name]
   (doto connection-name
     (.setProperty "serverName"   "localhost")
@@ -105,9 +125,9 @@ collection to be used"
 (defn clear-localDB-sldata []
     (reset! *localDB-sldata* {}))
 
-(defn icard-db-startup
-  "does all database setup for current session of work; should be
-executed once; WARNING: deletes the database of icdatas and sldatas"
+(defn SYSsetup-InfWb
+  "Does all InfWb-specific setup for current session of work; should be
+executed once. WARNING: deletes the session db of icards and slips."
   [icard-db-name icard-coll-name]
   
   (SYSset-connection *icard-connection* icard-db-name)
@@ -124,8 +144,11 @@ executed once; WARNING: deletes the database of icdatas and sldatas"
   "Clears out the sldata-db in localDB (helpful for testing)"
   []
   (reset! *localDB-sldata* {}))
-  
 
+(defn SYSdb-of-conn
+  "Get name of db associated with this connection."
+  [connection]
+  (.getProperty connection "databaseName"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -135,19 +158,47 @@ executed once; WARNING: deletes the database of icdatas and sldatas"
 
 ;;insights taken from ~/tech/schemestuff/InfWb/main/sedna-utilities.ss
 
-(declare get-result)
+(defn get-result
+  "gets the result of an XQuery"
+  ([result-sequence]
+     (get-result result-sequence (vector)))
+  ([result-sequence result-vector]
+     (if (not  (.next result-sequence))
+       result-vector
+       (recur result-sequence (conj result-vector (.getItemAsString result-sequence (Properties.)))))))
+
 
 ;; for convenience of fcn below, this ns has already defined the Sedna
 ;; connection named *icard-connection*
 
-(defn SYSrun-query
-  "runs specified XQuery query through the given connection,
-returning result(s) in a vector, within given database and collection
+(defn SYSrun-command
+  "Runs specified *Sedna command* through the given connection,
+returning result(s) in a vector, then closes the connection.
 
 This function is IMPLEMENTATION-DEPENDENT. It assumes that the Sedna XML
 database (http://www.sedna.org/) is running.
 
-The appropriate collection name, if any, must be part of query-str"
+The connection specifies db to be queried."
+  
+  [cmd-str connection]
+  (let [conn (.getConnection connection "SYSTEM" "MANAGER")
+	xqe   (.createExpression conn)
+	rs   (.executeCommand xqe cmd-str)
+;	result (get-result rs)
+	]
+    (.close conn)
+;    result
+    ))
+
+(defn SYSrun-query
+  "Runs specified *XQuery query* through the given connection,
+returning result(s) in a vector, then closes the connection.
+
+This function is IMPLEMENTATION-DEPENDENT. It assumes that the Sedna XML
+database (http://www.sedna.org/) is running.
+
+The appropriate collection name, if any, must be part of query-str.
+The connection specifies db to be queried."
   
   [query-str connection]
   (let [conn (.getConnection connection "SYSTEM" "MANAGER")
@@ -157,6 +208,27 @@ The appropriate collection name, if any, must be part of query-str"
     (.close conn)
     result))
 
+(defn SYSnew-icard-collection
+  "Create a new, empty collection in the default icard db currently in
+use by Infocard Workbench."
+  [coll-name]
+  (let [cmd-str (str "CREATE COLLECTION '" coll-name "'")]
+    (println cmd-str)
+    (SYSrun-command cmd-str *icard-connection*)))
+
+(defn SYSload-file
+  ""
+  [file-path internal-name coll-name]
+  (let [query-str (str "LOAD \""
+		       file-path "\" \""
+		       internal-name
+		       "\" \"" coll-name "\"")]
+    (println query-str)
+    (SYSrun-command query-str *icard-connection*)))
+
+
+
+; NOTE: Don't trust Emacs paren matching here--fouled up by parens in quotes
 (defn run-infocard-query
   "Returns results of an InfoML query
 
@@ -175,14 +247,10 @@ filter arg selects records; return arg extracts data from selected records
 	 "return " return)]
     (SYSrun-query infoml-query *icard-connection*)))
 
-(defn get-result
-  "gets the result of an XQuery"
-  ([result-sequence]
-     (get-result result-sequence (vector)))
-  ([result-sequence result-vector]
-     (if (not  (.next result-sequence))
-       result-vector
-       (recur result-sequence (conj result-vector (.getItemAsString result-sequence (Properties.)))))))
+(defn SYSpeek-into-db
+  "Returns XML that displays the docs and collections inside the external InfWb db."
+  []
+  (SYSrun-query "doc('$documents')" *icard-connection*))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -197,7 +265,7 @@ filter arg selects records; return arg extracts data from selected records
 		   tags] ;;atom pointing to vector of tag strings
   )
 
-(def ^{:dynamic true} *icdata-fields* (list :icard :ttxt :btxt :tags))
+(def *icdata-fields* (list :icard :ttxt :btxt :tags))
 
 (declare icdata-field)
 

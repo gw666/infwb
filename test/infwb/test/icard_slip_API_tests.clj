@@ -38,7 +38,7 @@
   (let [db-name "brain"
 	coll-name "test"]
     
-    (icard-db-startup db-name coll-name)
+    (SYSsetup-InfWb db-name coll-name)
     (test-get-all-icards)
    ))
 
