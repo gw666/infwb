@@ -36,6 +36,18 @@
 (def  *localDB-icdata* (atom {}))
 (def  *localDB-sldata* (atom {}))
 
+;; session-specific mapping of one icard to seq of multiple slips
+(def *icard-to-slip-map* (atom {}))
+
+(def *icard-fields* #{:icard :ttxt :btxt :tags})
+(def *slip-fields*  #{:slip :icard :pobj})
+
+;; KEY: icard; VALUE: seq of slips that are clones of icard
+(def *icard->slips* (atom {}))
+
+;; KEY: slip; VALUE: {attribute-name attr-value, ...)
+(def *slip-attrs* (atom {}))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; MISCELLANEOUS ROUTINES
@@ -69,6 +81,18 @@ then the seq contains only the original path given."
       (when (.exists file)
         [path]))))
 
+
+(defn new-assoc
+  "In the atom-NAS, change the value associated with key. If key not found, 
+adds new key-value pair. Work for multiple levels of nesting.
+
+An atom-NAS is an atom that points to a NAS (nested associative structure).
+Examples are:       (atom {k1 v1, k2 v2})
+               and  (atom [{k1 v1, k2 v2} {k1 v3, k2 v4}])"
+  [atom-map vec-of-keys value]
+  (swap! atom-map assoc-in vec-of-keys value))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; HOUSEKEEPING
@@ -86,6 +110,12 @@ then the seq contains only the original path given."
 ; NOTE: "Session db" is a newer term for "local db." Will renaming ever end?
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn SYSclear-all []
+  (reset! *localDB-icdata* {})
+  (reset! *localDB-sldata* {})
+  (reset! *icard->slips* {})
+  (reset! *slip-attrs* {}))
 
 (defn SYSreset-icard-conn
   "Clears the connection to the InfWb remote db for icards."
@@ -209,10 +239,19 @@ The connection specifies db to be queried."
     result))
 
 (defn SYSnew-icard-collection
-  "Create a new, empty collection in the default icard db currently in
-use by Infocard Workbench."
+  "Create a new, empty collection in the icard db currently in use
+by Infocard Workbench."
   [coll-name]
   (let [cmd-str (str "CREATE COLLECTION '" coll-name "'")]
+    (println cmd-str)
+    (SYSrun-command cmd-str *icard-connection*)))
+
+(defn SYSdrop-document
+  "Drop (delete) named document from named collection within the icard db 
+currently in use by Infocard Workbench."
+  [doc-name coll-name]
+  (let [cmd-str (str "DROP DOCUMENT '" doc-name "' IN COLLECTION '"
+		     coll-name "'")]
     (println cmd-str)
     (SYSrun-command cmd-str *icard-connection*)))
 
@@ -295,11 +334,16 @@ icard that does not exist in the local database; else returns true"
   [icdata]
   (not= icdata nil))
 
+(defn register-icard
+  "Create 'empty' entry for icard in *icard-to-slip-map*."
+  [icard]
+  (new-assoc *icard-to-slip-map* [icard] []))
+
 (defn permDB->icdata
   "returns icdata record from permDB; check with valid-from-permDB?"
   [icard]
 
-  ;; query returns [icard title body tag1* tag2* ... tagN*]; * = if tag exists
+  ;; query rtns [icard title body tag1* tag2* ... tagN*]; * = if tags exist
   (let [data-vec
 	(run-infocard-query (str "infoml[@cardId = '" icard "']")
 			  "($base/data/title/string(), $base/data/content/string(), $base/selectors/tag/string())")]
@@ -308,6 +352,21 @@ icard that does not exist in the local database; else returns true"
 		(get data-vec 1)
 		(drop 2 data-vec) )))
 
+
+(defn make-invalid-icdata [icard]
+  (new-icdata icard
+	      (str "ERROR: infocard '" icard "' not found") ; ttxt
+	      ""   ;btxt
+	      ["permDB" "ERROR"]))   ;tags
+	      
+(defn get-icdata-from-permDB [icard]
+  (let [perm-value (permDB->icdata icard)]
+    (if (valid-from-permDB? perm-value)
+      (do
+	(register-icard icard)
+	perm-value)
+      (make-invalid-icdata icard))))
+; TODO TEST: if icard d n exist, return value not= value in localDB (?)
 
 (defn get-all-icards
   "from permanent database, get seq of all icards"
@@ -332,6 +391,12 @@ icard that does not exist in the local database; else returns true"
 
 (declare localDB->icdata)
 
+(defn register-slip-with-icard
+  "NEEDS TESTING"
+  [icard slip]
+  (swap! *icard-to-slip-map*
+	 update-in [icard] (fn [x] (conj x slip))))
+
 (defn new-sldata
   "create sldata from infocard, with its pobj at (x y), or default to (0 0)--
 NOTE: does *not* add sldata to *localDB*"
@@ -343,6 +408,8 @@ NOTE: does *not* add sldata to *localDB*"
 		y
 		(icdata-field icdata :ttxt)
 		(icdata-field icdata :btxt))]
+    ;; the value in rand-key is the "name" of the slip about to be created
+    (register-slip-with-icard icard rand-key)
     (sldata. rand-key icard (atom pobj))))
   ([icard]   (new-sldata icard 0 0 )))
 
@@ -454,6 +521,14 @@ NOTE: does *not* add sldata to *localDB*"
 ;; multiple times, and thus should be free of slipe effects. Returns
 ;; the value that was swapped in.
 
+;; Definition of '(apply f args* argseq)'
+
+;; Applies fn f to the argument list formed by prepending args to argseq.
+
+;; Ex: (def *strings* ["str1" "str2" "str3"])
+;;     (apply str *strings*)
+;;     ;returns:	"str1str2str3"
+
 ;; Explanations of two lines of code within sldata->localDB:
 
 ;; `(swap! *localDB* assoc-in [*sldata-idx* slip] sldata)` is equiv to
@@ -493,7 +568,7 @@ NOTE: does *not* add sldata to *localDB*"
   [sldata]
   (let [slip (:slip sldata)
 	id-exists?  (:slip @*localDB-sldata*)]
-    (if id-exists?   ;;if true, replaces existing; false adds new sldata
+    (if id-exists?   ;;if true, replaces existing; false, adds new sldata
       ; replaces << value associated with slip >> with (this) sldata
       (swap! *localDB-sldata* update-in [slip] (fn [x] sldata))
       ; adds << slip (key), sldata (value) >> pair to *localDB*

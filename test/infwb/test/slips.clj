@@ -14,9 +14,9 @@
 ;; Also, set needed top-level vars for Piccolo with the following:
 ;;
 ;;   (do
-;;     (def frame1 (PFrame.))
+;;     (def *piccolo-frame* (PFrame.))
 ;;     (def canvas1 (.getCanvas frame1))
-;;     (def layer1 (.getLayer canvas1))
+;;     (def *piccolo-frame* (.getLayer canvas1))
 ;;     (def dragger (PDragEventHandler.))    
 ;;     (.setVisible frame1 true)
 ;;     (.setMoveToFrontOnPress dragger true)
@@ -32,6 +32,9 @@
 ;; (clojure.test/run-tests 'infwb.test.icards)
 ;; (clojure.test/run-tests 'infwb.test.slips)
 ;;
+;; If these two tests are not run *exactly* together, you may need to
+;; run (initialize) again before the slips test runs correctly.
+
 ;; When things don't seem to be going right, follow the procedure in
 ;; 'GW notes on Clojure', topic 'PROPOSED PROCEDURE for using InfWb'
 
@@ -82,7 +85,7 @@ examining the pobj's x and y values (using sldata-field fcn)"
     (is (= new-y (round-to-int (sldata-field test-sldata :y))) "y") ))
 
 (deftest test-show-1-sldata []
-  (println "\n### WARN: Be sure that layer1 is defined ###\n")
+  (println "\n### WARN: Be sure that *piccolo-frame* is defined ###\n")
   (let [sldata-id (nth (get-all-slips) 0) 
 	test-sldata (get-sldata sldata-id)
 	test-x   50
@@ -90,7 +93,7 @@ examining the pobj's x and y values (using sldata-field fcn)"
     (println "test-show-1-sldata succeeds if you see sldata named '"
 	     (sldata-field test-sldata :ttxt) "' onscreen at ("
 	     test-x " " test-y ")\n")
-    (show test-sldata test-x test-y layer1) ))
+    (show test-sldata test-x test-y *piccolo-frame*) ))
 
 ;; this fcn creates a second sldata
 (deftest test-make-sldata-from-db []
@@ -126,7 +129,7 @@ examining the pobj's x and y values (using sldata-field fcn)"
 
 (defn test-ns-hook []
   (println "### Did you recompile the test file?                ###")
-  (println "### Did you define needed variables (e.g., layer1)? ###")
+  (println "### Did you define needed variables (e.g., *piccolo-frame*)? ###")
   (println "### Did you run (initialize) since last recompile?  ###")
   (println "running (test-make-1-sldata)")
   (test-make-1-sldata)
