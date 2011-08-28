@@ -28,7 +28,7 @@
 	invalid-title (icdata-field bad-retrieved-icard :ttxt)
 	]
     (is (not= nil icard-title))
-    (is (= nil invalid-title) ))
+    (is (= invalid-title "ERROR: infocard 'INVALID ICARD' not found") ))
   ;; this test leaves icards-db empty
   (reset-icards-db))
 
@@ -53,19 +53,6 @@
 	 (println "5 test-get-all-icards2")
 	 (is (= 4
 		(count (map permDB->icdata (get-all-icards))) )))
-
-;; vers below doesn't seem to work--too much for Clojure or Java to handle?
-;;   Or maybe there is an issue of parallelism. Here's the err msg:
-;;
-;; 6 test-all-icards-to-appdb
-
-;; FAIL in (test-all-icards-to-appdb) (core.clj:46)
-;; expected: (= 4 (icdata-db-size))
-;;   actual: (not (= 4 0)) 
-;; (deftest test-all-icards-to-appdb []
-;; 	 (println "6 test-all-icards-to-appdb")
-;; 	 (map permDB->localDB (get-all-icards))
-;; 	 (is (= 4 (icdata-appdb-size))) )
 
 (deftest test-all-icards-to-localDB []
 	 (println "6 test-all-icards-to-localDB")

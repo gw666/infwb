@@ -319,8 +319,8 @@ filter arg selects records; return arg extracts data from selected records
   (icdata. icard (atom ttxt) (atom btxt) (atom tags)))
 
 (defn valid-from-permDB?
-  "returns false if icdata is the result of asking for the data of a
-icard that does not exist in the permanent database; else returns true"
+  "Returns false if icdata is the result of asking for the data of a
+icard that does not exist in the permanent database; else returns true."
   [icdata]
   (let [result
 	(or @(:ttxt icdata) @(:btxt icdata) (> 0 (count @(:tags icdata))))]
@@ -340,7 +340,8 @@ icard that does not exist in the local database; else returns true"
   (new-assoc *icard-to-slip-map* [icard] []))
 
 (defn permDB->icdata
-  "returns icdata record from permDB; check with valid-from-permDB?"
+  "Returns icdata record from permDB. Use function valid-from-permDB? to
+check for icard validity."
   [icard]
 
   ;; query rtns [icard title body tag1* tag2* ... tagN*]; * = if tags exist
@@ -359,12 +360,13 @@ icard that does not exist in the local database; else returns true"
 	      ""   ;btxt
 	      ["permDB" "ERROR"]))   ;tags
 	      
-(defn get-icdata-from-permDB [icard]
+(defn get-icdata-from-permDB
+  "Retrieves an icard's icdata from permDB. If icard is not found in
+permDB, substitutes a default 'invalid' record."
+  [icard]
   (let [perm-value (permDB->icdata icard)]
-    (if (valid-from-permDB? perm-value)
-      (do
-	(register-icard icard)
-	perm-value)
+    (if (valid-from-permDB? perm-value)	
+	perm-value
       (make-invalid-icdata icard))))
 ; TODO TEST: if icard d n exist, return value not= value in localDB (?)
 
@@ -447,17 +449,14 @@ NOTE: does *not* add sldata to *localDB*"
       ; replaces << value associated with icard >> with (this) icdata
       (swap! *localDB-icdata* update-in [icard] (fn [x] icdata))
       ; adds << icard (key), icdata (value) >> pair to *localDB*
-      (swap! *localDB-icdata* assoc icard icdata)))
+      (swap! *localDB-icdata* assoc icard icdata))
+    (register-icard icard))
   icdata)
 
 (defn permDB->localDB
-  "copy icdata (if found) from (persistent) db to localDB"
+  "copy icdata from (persistent) permDB to localDB"
   [icard]
-  (let [icdata (permDB->icdata icard)]
-    (if (valid-from-permDB? icdata)
-      (icdata->localDB icdata)
-      (println "ERROR: card with id =" icard "not found")
-      )))
+  (icdata->localDB (get-icdata-from-permDB icard)))
 
 (defn load-icard-seq-to-localDB
   "populates *localDB* with infocards given by the sequence"
