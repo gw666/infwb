@@ -45,44 +45,44 @@
   "Creates test suite's first sldata, based on first icard"
   []
   (reset-slips-db)
-  (let [test-icard (nth (localDB->all-icards) 0)
+  (let [test-icard (nth (get-all-icards) 0)
 	;; get title of first icard, create slip based on it, add to sldata db
 	test-ttxt (icdata-field (localDB->icdata test-icard) :ttxt)
 	test-sldata (new-sldata test-icard)
 	_   (sldata->localDB test-sldata)]
 ;    (swank.core/break)
-    ;; Does sldata-field get the title from the icard correctly?
-    (is (= test-ttxt (sldata-field test-sldata :ttxt)) ":ttxt field")
+    ;; Does SYSsldata-field get the title from the icard correctly?
+    (is (= test-ttxt (SYSsldata-field test-sldata :ttxt)) ":ttxt field")
     (is (= 1 (count (get-all-slips)))) ))
 
 ;; DEV: This must be modified whenever a field is added
 ;; This test works on the first sldata, which was created by (test-make-1-sldata)
-(deftest test-sldata-field []
-  (let [icard (nth (localDB->all-icards) 0)
+(deftest test-SYSsldata-field []
+  (let [icard (nth (get-all-icards) 0)
 	slip (nth (get-all-slips) 0)
 	sldata (get-sldata slip)
 	icdata (localDB->icdata icard)
 	ttxt (icdata-field icdata :ttxt)
 	btxt (icdata-field icdata :btxt)]
 ;    (swank.core/break)
-    ;; tests if sldata-field can access slip, icard, ttxt, btxt
-    (is (= slip (sldata-field sldata :slip)))
-    (is (= icard (sldata-field sldata :icard)))
-    (is (= ttxt (sldata-field sldata :ttxt)))
-    (is (= btxt (sldata-field sldata :btxt))) ))
+    ;; tests if SYSsldata-field can access slip, icard, ttxt, btxt
+    (is (= slip (SYSsldata-field sldata :slip)))
+    (is (= icard (SYSsldata-field sldata :icard)))
+    (is (= ttxt (SYSsldata-field sldata :ttxt)))
+    (is (= btxt (SYSsldata-field sldata :btxt))) ))
   
 ;; This test works on the first sldata, which was created by (test-make-1-sldata)
 (deftest test-move-sldata
   "Moves an existing sldata, then checks to see whether move worked by
-examining the pobj's x and y values (using sldata-field fcn)"
+examining the pobj's x and y values (using SYSsldata-field fcn)"
   []
   (let [sldata-id (nth (get-all-slips) 0) ; get first sldata in localDB
 	new-x   62
 	new-y  118
 	test-sldata (get-sldata sldata-id)]
     (move-to test-sldata new-x new-y)
-    (is (= new-x (round-to-int (sldata-field test-sldata :x))) "x")
-    (is (= new-y (round-to-int (sldata-field test-sldata :y))) "y") ))
+    (is (= new-x (round-to-int (SYSsldata-field test-sldata :x))) "x")
+    (is (= new-y (round-to-int (SYSsldata-field test-sldata :y))) "y") ))
 
 (deftest test-show-1-sldata []
   (println "\n### WARN: Be sure that *piccolo-frame* is defined ###\n")
@@ -91,20 +91,20 @@ examining the pobj's x and y values (using sldata-field fcn)"
 	test-x   50
 	test-y  150]
     (println "test-show-1-sldata succeeds if you see sldata named '"
-	     (sldata-field test-sldata :ttxt) "' onscreen at ("
+	     (SYSsldata-field test-sldata :ttxt) "' onscreen at ("
 	     test-x " " test-y ")\n")
     (show test-sldata test-x test-y *piccolo-frame*) ))
 
 ;; this fcn creates a second sldata
 (deftest test-make-sldata-from-db []
-  (let [icard2 (nth (localDB->all-icards) 1)
+  (let [icard2 (nth (get-all-icards) 1)
 	slip2   (icard->sldata->localDB icard2)
 	sldata2   (get-sldata slip2)]
-    (is (= icard2 (sldata-field sldata2 :icard)))
-    (is (= slip2 (sldata-field sldata2 :slip)))
+    (is (= icard2 (SYSsldata-field sldata2 :icard)))
+    (is (= slip2 (SYSsldata-field sldata2 :slip)))
     ;; check for correct handling of non-existent slip
-    (is (= (sldata-field (get-sldata "INVALID KEY") :icard)
-	   "ERROR: Sldata 'INVALID KEY' is INVALID"))
+    (is (= (SYSsldata-field (get-sldata "INVALID KEY") :icard)
+	   "ERROR"))
     ))
 
 ;; tests icard creation, retrieving of tag data; NOTE: assumes that
@@ -121,7 +121,7 @@ examining the pobj's x and y values (using sldata-field fcn)"
 	sldata (get-sldata slip)
 	]
     (is (= 3 (count (get-all-slips))))
-    (is (=  ["tag1" "tag2"] (sldata-field sldata :tags)))))
+    (is (=  ["tag1" "tag2"] (SYSsldata-field sldata :tags)))))
   )
 
 	 
@@ -133,8 +133,8 @@ examining the pobj's x and y values (using sldata-field fcn)"
   (println "### Did you run (initialize) since last recompile?  ###")
   (println "running (test-make-1-sldata)")
   (test-make-1-sldata)
-  (println "running (test-sldata-field)")
-  (test-sldata-field)
+  (println "running (test-SYSsldata-field)")
+  (test-SYSsldata-field)
   (println "running (test-move-sldata)")
   (test-move-sldata)
   (println "running (test-show-1-sldata)")

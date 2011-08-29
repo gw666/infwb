@@ -268,7 +268,7 @@ currently in use by Infocard Workbench."
 
 
 ; NOTE: Don't trust Emacs paren matching here--fouled up by parens in quotes
-(defn run-infocard-query
+(defn run-infocard-query   ; API
   "Returns results of an InfoML query. API
 
 filter arg selects records; return arg extracts data from selected records
@@ -356,11 +356,11 @@ check for icard validity."
 
 (defn make-invalid-icdata [icard]
   (new-icdata icard
-	      (str "ERROR: infocard '" icard "' not found") ; ttxt
+	      (str "ERROR") ; ttxt
 	      ""   ;btxt
 	      ["permDB" "ERROR"]))   ;tags
 	      
-(defn get-icdata-from-permDB
+(defn get-icdata-from-permDB   ; API
   "Retrieves an icard's icdata from permDB. If icard is not found in
 permDB, substitutes a default 'invalid' record. API"
   [icard]
@@ -370,7 +370,7 @@ permDB, substitutes a default 'invalid' record. API"
       (make-invalid-icdata icard))))
 ; TODO TEST: if icard d n exist, return value not= value in localDB (?)
 
-(defn permDB->all-icards
+(defn permDB->all-icards   ; API
   "From permanent database, get seq of all icards. API"
   []
   ;; assumes that position 1 contains the file's "all-pointers" record,
@@ -493,10 +493,10 @@ NOTE: does *not* add sldata to *localDB*"
   [icard]
     (@*localDB-icdata* icard))
 
-(defn localDB->all-icards
-"return a seq of all the id values of the localDB icdata database"
+(defn get-all-icards
+  "Returns a seq of all the currently available icards. API"
   []
-    (keys @*localDB-icdata*))
+  (keys @*localDB-icdata*))
 
 (defn slip->icdata
   "given a slip, return its icdata from the localDB"
@@ -505,7 +505,7 @@ NOTE: does *not* add sldata to *localDB*"
   (localDB->icdata (:icard slip)))
 
 (defn icdata-localDB-size []
-  (count (localDB->all-icards)))
+  (count (get-all-icards)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -594,34 +594,40 @@ NOTE: does *not* add sldata to *localDB*"
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn localDB->sldata  ;; aka "lookup-icdata" (from localDB)
+(defn localDB->sldata
   "given its slip, retrieve its sldata from  localDB-slip; if slip not
 found, returns nil"
   [slip]
-    (@*localDB-sldata* slip))
+  (@*localDB-sldata* slip))
 
+(defn make-invalid-sldata [slip]
+  (sldata. slip   ;slip
+	   (str "ERROR")   ;icard
+	   (atom nil)))   ;pobj
 
-(defn get-sldata  ;; aka "lookup-sldata" (from localDB)
-  "given its slip, retrieve its sldata from  localDB-slip; if slip not
-found, returns an sldata containing 'ERROR'; *always* returns an sldata"
+(defn get-sldata   ; API
+  "Returns sldata for the given slip. API
+
+Returns a sldata w/ :icard = \"ERROR\" if slip does not exist.
+
+IMPORTANT: Unlike with slips, if a slip does not exist, it has no
+entry in *localDB-sldata*, even though this fcn returns an sldata."
+
   [slip]
   (let [sldata   (localDB->sldata slip)]
     (if sldata
       sldata
-      {:slip  (str "ERROR: Sldata '" slip "' is INVALID")
-       :icard (str "ERROR: Sldata '" slip "' is INVALID")
-       :pobj  (atom nil)} )))
+      (make-invalid-sldata slip))))
 
-(defn get-all-slips
-  "return a seq of all the id values of the localDB sldata database"
+(defn get-all-slips   ; API
+  "Returns a seq of all the currently available slips. API"
   []
     (keys @*localDB-sldata*))
 
-;; TODO needs a test in sldatas.clj
-(defn sldata-field
+;; TODO needs updating to use API-level access to icard data
+(defn SYSsldata-field
   "given sldata, get value of field named field-key (e.g.,:cid)"
   [sldata field-key]
-;  (swank.core/break)
 
   (cond   (contains? #{:slip :icard} field-key)
 	  ;; these fields are stored as themselves
@@ -632,20 +638,19 @@ found, returns an sldata containing 'ERROR'; *always* returns an sldata"
 	  @(field-key sldata)
 	
 	  (contains? #{:ttxt :btxt :tags} field-key)
-
 	  ;;executed for icdata fields
-	  (let [icdata (localDB->icdata (sldata-field sldata :icard))] 
+	  (let [icdata (localDB->icdata (SYSsldata-field sldata :icard))] 
 	    (icdata-field icdata field-key))
 	
 	  ;; icards are "moved" by changing their transform
 	  ;; getXOffset, getYOffset access the transform's values directly,
 	  ;; eliminating need to xform local X, Y (always 0 0) to globl coords
 	  (= :x field-key)
-	  (let [pobj (sldata-field sldata :pobj)]
+	  (let [pobj (SYSsldata-field sldata :pobj)]
 	    (.getXOffset pobj))
 
 	  (= :y field-key)
-	  (let [pobj (sldata-field sldata :pobj)]
+	  (let [pobj (SYSsldata-field sldata :pobj)]
 	    (.getYOffset pobj))
 	  
 	  ))
@@ -682,7 +687,7 @@ found, returns an sldata containing 'ERROR'; *always* returns an sldata"
   ; BUG: move-to moves the PClip but not its contents
   [sldata   x y   layer]
   (let [_   (move-to sldata (float x) (float y))
-	pobj   (sldata-field sldata :pobj)]
+	pobj   (SYSsldata-field sldata :pobj)]
     (.addChild layer pobj)))
 
 (defn show-seq

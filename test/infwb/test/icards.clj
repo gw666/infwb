@@ -27,9 +27,8 @@
 				  :ttxt)
 	invalid-title (icdata-field bad-retrieved-icard :ttxt)
 	]
-    (swank.core/break)
     (is (not= nil icard-title))
-    (is (= invalid-title "ERROR: infocard 'INVALID ICARD' not found") ))
+    (is (= invalid-title "ERROR") ))
   ;; this test leaves icards-db empty
   (reset-icards-db))
 
@@ -60,7 +59,7 @@
 	 (let [all-icards (permDB->all-icards)]
 	   (doseq [card all-icards]
 	     (permDB->localDB card)))
-	 (is (= 4 (count (localDB->all-icards)))) )
+	 (is (= 4 (count (get-all-icards)))) )
 
 (defn test-ns-hook
   "controls test sequence; NOTE: contains fixed Sedna db & collection names"
