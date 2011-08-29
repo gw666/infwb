@@ -24,7 +24,7 @@
     (clear-localDB-icdata)
     (clear-localDB-sldata)
     (println "cleared localDB...")
-    (let [card-seq (get-all-icards)
+    (let [card-seq (permDB->all-icards)
 	  num-cards (count card-seq)]
 ;      (swank.core/break)
       (load-icard-seq-to-localDB card-seq)

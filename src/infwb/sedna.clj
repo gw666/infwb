@@ -269,7 +269,7 @@ currently in use by Infocard Workbench."
 
 ; NOTE: Don't trust Emacs paren matching here--fouled up by parens in quotes
 (defn run-infocard-query
-  "Returns results of an InfoML query
+  "Returns results of an InfoML query. API
 
 filter arg selects records; return arg extracts data from selected records
 (current infoml element is held in variable $base).  Hardwired to use
@@ -362,7 +362,7 @@ check for icard validity."
 	      
 (defn get-icdata-from-permDB
   "Retrieves an icard's icdata from permDB. If icard is not found in
-permDB, substitutes a default 'invalid' record."
+permDB, substitutes a default 'invalid' record. API"
   [icard]
   (let [perm-value (permDB->icdata icard)]
     (if (valid-from-permDB? perm-value)	
@@ -370,8 +370,8 @@ permDB, substitutes a default 'invalid' record."
       (make-invalid-icdata icard))))
 ; TODO TEST: if icard d n exist, return value not= value in localDB (?)
 
-(defn get-all-icards
-  "from permanent database, get seq of all icards"
+(defn permDB->all-icards
+  "From permanent database, get seq of all icards. API"
   []
   ;; assumes that position 1 contains the file's "all-pointers" record,
   ;; which is not an end-user "actual" infocard; this assumption
@@ -467,7 +467,7 @@ NOTE: does *not* add sldata to *localDB*"
 (defn load-all-infocards
   "loads all infocards in permanentDB to localDB"
   []
-  (load-icard-seq-to-localDB (get-all-icards)))
+  (load-icard-seq-to-localDB (permDB->all-icards)))
 
 
 
@@ -584,7 +584,7 @@ NOTE: does *not* add sldata to *localDB*"
     slip))
 
 (defn load-all-sldatas-to-localDB []
-  (let [all-icards (get-all-icards)]
+  (let [all-icards (permDB->all-icards)]
     (doseq [icard all-icards]
       (icard->sldata->localDB icard))))
 

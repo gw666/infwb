@@ -22,23 +22,24 @@
   (println "1 test-read-icard-from-db")
   (reset-icards-db)
   (let [bad-icard   "INVALID ICARD"   ;implementation-dependent icard
-	bad-retrieved-icard   (permDB->icdata bad-icard)
-	icard-title (icdata-field (permDB->icdata "gw667_090815161114586")
+	bad-retrieved-icard   (get-icdata-from-permDB bad-icard)
+	icard-title (icdata-field (get-icdata-from-permDB "gw667_090815161114586")
 				  :ttxt)
 	invalid-title (icdata-field bad-retrieved-icard :ttxt)
 	]
+    (swank.core/break)
     (is (not= nil icard-title))
     (is (= invalid-title "ERROR: infocard 'INVALID ICARD' not found") ))
   ;; this test leaves icards-db empty
   (reset-icards-db))
 
-(deftest test-get-all-icards []
-	 (println "2 test-get-all-icards")
-	 (is (= 4 (count (get-all-icards)))) )
+(deftest test-permDB->all-icards []
+	 (println "2 test-permDB->all-icards")
+	 (is (= 4 (count (permDB->all-icards)))) )
 
 (deftest test-write-1-icard-to-localDB []
   (println "3 test-write-1-icard")
-  (let [icdata1 (permDB->icdata "gw667_090815161114586")
+  (let [icdata1 (get-icdata-from-permDB "gw667_090815161114586")
 	_ (icdata->localDB icdata1)]
     (is (= "the ability to think"
 	    (icdata-field (localDB->icdata "gw667_090815161114586") :ttxt) ))))
@@ -49,14 +50,14 @@
 	 (is (= "to label, categorize, and find precedents"
 		  (icdata-field (localDB->icdata "gw667_090815162059614") :ttxt) )))
 
-(deftest test-get-all-icards2 []
-	 (println "5 test-get-all-icards2")
+(deftest test-permDB->all-icards2 []
+	 (println "5 test-permDB->all-icards2")
 	 (is (= 4
-		(count (map permDB->icdata (get-all-icards))) )))
+		(count (map get-icdata-from-permDB (permDB->all-icards))) )))
 
 (deftest test-all-icards-to-localDB []
 	 (println "6 test-all-icards-to-localDB")
-	 (let [all-icards (get-all-icards)]
+	 (let [all-icards (permDB->all-icards)]
 	   (doseq [card all-icards]
 	     (permDB->localDB card)))
 	 (is (= 4 (count (localDB->all-icards)))) )
@@ -71,9 +72,9 @@
     
     (SYSsetup-InfWb db-name coll-name)
     (test-read-icard-from-permDB)
-    (test-get-all-icards)
+    (test-permDB->all-icards)
     (test-write-1-icard-to-localDB)
     (test-db-to-localDB)
-    (test-get-all-icards2)
+    (test-permDB->all-icards2)
     (test-all-icards-to-localDB)))
 
