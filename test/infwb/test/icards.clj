@@ -20,7 +20,7 @@
 
 (deftest test-read-icard-from-permDB []
   (println "1 test-read-icard-from-db")
-  (reset-icards-db)
+  (reset-icards)
   (let [bad-icard   "INVALID ICARD"   ;implementation-dependent icard
 	bad-retrieved-icard   (get-icdata-from-permDB bad-icard)
 	icard-title (icdata-field (get-icdata-from-permDB "gw667_090815161114586")
@@ -30,7 +30,7 @@
     (is (not= nil icard-title))
     (is (= invalid-title "ERROR") ))
   ;; this test leaves icards-db empty
-  (reset-icards-db))
+  (reset-icards))
 
 (deftest test-permDB->all-icards []
 	 (println "2 test-permDB->all-icards")

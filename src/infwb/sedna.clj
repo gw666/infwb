@@ -48,6 +48,7 @@
 ;; KEY: slip; VALUE: {attribute-name attr-value, ...)
 (def *slip-attrs* (atom {}))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; MISCELLANEOUS ROUTINES
@@ -111,11 +112,23 @@ Examples are:       (atom {k1 v1, k2 v2})
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn reset-icards []
+    (reset! *localDB-icdata* {}))
+
+(defn reset-slips []
+    (reset! *localDB-sldata* {}))
+
+(defn reset-slip-registry []
+    (reset! *icard-to-slip-map* {}))
+
+(defn reset-slip-attributes []
+    (reset! *slip-attrs* {}))
+
 (defn SYSclear-all []
-  (reset! *localDB-icdata* {})
-  (reset! *localDB-sldata* {})
-  (reset! *icard->slips* {})
-  (reset! *slip-attrs* {}))
+  (reset-icards)
+  (reset-slips)
+  (reset-slip-registry)
+  (reset-slip-attributes))
 
 (defn SYSreset-icard-conn
   "Clears the connection to the InfWb remote db for icards."
@@ -149,12 +162,6 @@ collection to be used"
   [name]
   (def *icard-coll-name*   name))
 
-(defn clear-localDB-icdata []
-    (reset! *localDB-icdata* {}))
-
-(defn clear-localDB-sldata []
-    (reset! *localDB-sldata* {}))
-
 (defn SYSsetup-InfWb
   "Does all InfWb-specific setup for current session of work; should be
 executed once. WARNING: deletes the session db of icards and slips."
@@ -163,17 +170,20 @@ executed once. WARNING: deletes the session db of icards and slips."
   (SYSset-connection *icard-connection* icard-db-name)
   (set-icard-db-name icard-db-name)
   (set-icard-coll-name icard-coll-name)
+  (SYSclear-all)
   )
 
-(defn reset-icards-db
-  "Clears out the icards-db in localDB (helpful for testing)"
-  []
-  (reset! *localDB-icdata* {}))
+;; DELETE if sys passes tests
+
+;; (defn reset-icards-db
+;;   "Clears out the icards-db in localDB (helpful for testing)"
+;;   []
+;;   (reset! *localDB-icdata* {}))
   
-(defn reset-slips-db
-  "Clears out the sldata-db in localDB (helpful for testing)"
-  []
-  (reset! *localDB-sldata* {}))
+;; (defn reset-slips-db
+;;   "Clears out the sldata-db in localDB (helpful for testing)"
+;;   []
+;;   (reset! *localDB-sldata* {}))
 
 (defn SYSdb-of-conn
   "Get name of db associated with this connection."
@@ -391,19 +401,20 @@ permDB, substitutes a default 'invalid' record. API"
 		   pobj] ;;atom to Piccolo object that implements sldata
   )
 
-(declare localDB->icdata)
-
 (defn register-slip-with-icard
-  "NEEDS TESTING"
+  "Registers slip as a clone of icard."
+  ; NEEDS TESTING
   [icard slip]
   (swap! *icard-to-slip-map*
 	 update-in [icard] (fn [x] (conj x slip))))
+
+(declare get-icdata)
 
 (defn new-sldata
   "create sldata from infocard, with its pobj at (x y), or default to (0 0)--
 NOTE: does *not* add sldata to *localDB*"
   ([icard x y]
-  (let [icdata (localDB->icdata icard)
+  (let [icdata (get-icdata icard)
 	rand-key   (rand-kayko 3)
 	pobj   (make-pinfocard
 		x
@@ -464,7 +475,7 @@ NOTE: does *not* add sldata to *localDB*"
       (doseq [icard icard-seq]
 	(permDB->localDB icard)))
 
-(defn load-all-infocards
+(defn load-all-icards
   "loads all infocards in permanentDB to localDB"
   []
   (load-icard-seq-to-localDB (permDB->all-icards)))
@@ -493,9 +504,30 @@ NOTE: does *not* add sldata to *localDB*"
   [icard]
     (@*localDB-icdata* icard))
 
+(defn get-icdata   ; API
+  "Returns icdata for the given icard; uses localDB as cache. API
+
+icdata fetched from localDB if present; if not, fetched from permDB and
+copied into localDB; returns icdata w/ :ttxt = \"ERROR\" if not in permDB."
+  [icard]
+  (let [local-value (localDB->icdata icard)]
+    (if (valid-from-localDB? local-value)
+      local-value
+      ; return value is the icdata that was returned by permDB
+      (icdata->localDB (get-icdata-from-permDB icard)) )))
+
+(defn iget   ; API
+  "Returns specified field of icard; handles all db issues transparently.
+API"
+  [icard field-key]
+  (field-key (get-icdata icard)))
+
 (defn get-all-icards
   "Returns a seq of all the currently available icards. API"
   []
+  ; If the local cache is empty, load all icards from permDB
+  (if (= @*localDB-icdata* {})
+    (load-all-icards))
   (keys @*localDB-icdata*))
 
 (defn slip->icdata
@@ -655,11 +687,23 @@ entry in *localDB-sldata*, even though this fcn returns an sldata."
 	  
 	  ))
 
-(defn slip-localDB-size
-  "number of icards in the application's internal icdata db"
-  []
-  (count (get-all-slips)))
+(defn sget   ; API
+  "Returns specified field of slip; handles all db issues transparently.
+Also uses field keys of underlying icard to return their value. Also uses
+field keys :x and :y to get position of slip. API"
+  [slip field-key]
+  (let [sldata (get-sldata slip)]
+    (SYSsldata-field sldata field-key) ))
 
+(defn clone   ; API
+  "Returns a new slip that is the clone of the icard. API"
+  [icard]
+  ; NOTE: changes to clone and clone-show should be synchronized
+  (let [sldata   (new-sldata icard)
+	_        (sldata->localDB sldata)
+	slip     (SYSsldata-field sldata :slip)]
+    slip))
+    
 (defn move-to
   "move a slip's Piccolo infocard to a given location; returns: sldata"
   [sldata   x   y]
@@ -703,3 +747,52 @@ for each next slip to be displayed"
     (map show sldata-seq x-coords y-coords layer-seq))
 ;    )
   )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; API-LEVEL SLIP DISPLAY
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn clone-show   ; API
+  "Clones icard and displays it in the selected layer. API"
+  ([icard layer x y]
+; NOTE: changes to clone and clone-show should be synchronized
+      (let [sldata   (new-sldata icard)
+	    _        (sldata->localDB sldata)
+	    slip     (SYSsldata-field sldata :slip)]
+	(show sldata x y layer)
+	slip))
+    
+  ([icard layer]
+; NOTE: changes to clone and clone-show should be synchronized
+     (clone-show icard layer 0 0)))
+
+(defn display-all
+  ""
+  [coll-name layer-name]
+  (let [db-name   "brain"
+	_         (SYSsetup-InfWb db-name coll-name)
+	icards    (get-all-icards)
+	]
+    (doseq [icard icards]
+      (clone-show icard layer-name 0 0))))
+
+(SYSclear-all)
+
+(comment
+
+## InfWb 0.1 Workflow Cheat Sheet  110829
+
+	(SYSclear-all)
+	(SYSload-file "<filename>" "<db name for file>" "<collection>")
+	(display-all "collection" *piccolo-layer*)
+
+Other useful commands:
+
+	(SYSpeek-into-db)   ; see what documents and collections exist
+
+	(SYSdrop-document "<db name for file>" "<collection>")
+)

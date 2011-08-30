@@ -19,18 +19,18 @@
   []
   (let [db-name "brain"
 	coll-name "test"]
-    (SYSset-connection *icard-connection* db-name)
+    (SYSclear-all)
+    (println "cleared global vars...")
     (SYSsetup-InfWb db-name coll-name)
-    (clear-localDB-icdata)
-    (clear-localDB-sldata)
     (println "cleared localDB...")
     (let [card-seq (permDB->all-icards)
 	  num-cards (count card-seq)]
 ;      (swank.core/break)
       (load-icard-seq-to-localDB card-seq)
       (println "loaded" num-cards "icards to icdata DB...")
-      (load-all-sldatas-to-localDB)
-      (println "created one slip for each icard; done"))))
+;      (load-all-sldatas-to-localDB)
+;      (println "created one slip for each icard; done")
+      )))
 
 (defn new-notecard-handler
   "displays new-notecard window"

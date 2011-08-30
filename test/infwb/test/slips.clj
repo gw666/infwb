@@ -44,7 +44,7 @@
 (deftest test-make-1-sldata
   "Creates test suite's first sldata, based on first icard"
   []
-  (reset-slips-db)
+  (reset-slips)
   (let [test-icard (nth (get-all-icards) 0)
 	;; get title of first icard, create slip based on it, add to sldata db
 	test-ttxt (icdata-field (localDB->icdata test-icard) :ttxt)
@@ -93,7 +93,7 @@ examining the pobj's x and y values (using SYSsldata-field fcn)"
     (println "test-show-1-sldata succeeds if you see sldata named '"
 	     (SYSsldata-field test-sldata :ttxt) "' onscreen at ("
 	     test-x " " test-y ")\n")
-    (show test-sldata test-x test-y *piccolo-frame*) ))
+    (show test-sldata test-x test-y *piccolo-layer*) ))
 
 ;; this fcn creates a second sldata
 (deftest test-make-sldata-from-db []
@@ -129,7 +129,7 @@ examining the pobj's x and y values (using SYSsldata-field fcn)"
 
 (defn test-ns-hook []
   (println "### Did you recompile the test file?                ###")
-  (println "### Did you define needed variables (e.g., *piccolo-frame*)? ###")
+  (println "### Did you define needed variables (e.g., *piccolo-layer*)? ###")
   (println "### Did you run (initialize) since last recompile?  ###")
   (println "running (test-make-1-sldata)")
   (test-make-1-sldata)
