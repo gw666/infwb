@@ -7,7 +7,9 @@
 	   (net.cfoster.sedna.xqj   SednaXQDataSource)
 	   (java.util   Properties)
 	   (java.awt.geom AffineTransform))
-  (:use [infwb   slip-display]))
+  (:use [infwb   core slip-display])
+  (:require [clojure.string :as str])
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -259,19 +261,22 @@ by Infocard Workbench."
 (defn SYSdrop-document
   "Drop (delete) named document from named collection within the icard db 
 currently in use by Infocard Workbench."
-  [doc-name coll-name]
+  [doc-name]
   (let [cmd-str (str "DROP DOCUMENT '" doc-name "' IN COLLECTION '"
-		     coll-name "'")]
+		     *current-collection* "'")]
     (println cmd-str)
     (SYSrun-command cmd-str *icard-connection*)))
 
 (defn SYSload-file
   ""
-  [file-path internal-name coll-name]
-  (let [query-str (str "LOAD \""
+  [base-name]
+  (let [infocard-dir "/Users/gw/Dropbox/infocards-v1_0/"
+	file-name (str base-name ".xml")
+	file-path (str infocard-dir file-name)
+	query-str (str "LOAD \""
 		       file-path "\" \""
-		       internal-name
-		       "\" \"" coll-name "\"")]
+		       base-name
+		       "\" \"" *current-collection* "\"")]
     (println query-str)
     (SYSrun-command query-str *icard-connection*)))
 
@@ -782,17 +787,15 @@ for each next slip to be displayed"
 
 (SYSclear-all)
 
-(comment
+;; InfWb 0.1 Workflow Cheat Sheet  110829
 
-## InfWb 0.1 Workflow Cheat Sheet  110829
+;; 	(SYSclear-all)
+;; 	(SYSload-file "<filename>" "<db name for file>" "<collection>")
+;; 	(display-all "collection" *piccolo-layer*)
 
-	(SYSclear-all)
-	(SYSload-file "<filename>" "<db name for file>" "<collection>")
-	(display-all "collection" *piccolo-layer*)
+;; Other useful commands:
 
-Other useful commands:
+;; 	(SYSpeek-into-db)   ; see what documents and collections exist
 
-	(SYSpeek-into-db)   ; see what documents and collections exist
+;; 	(SYSdrop-document "<db name for file>" "<collection>")
 
-	(SYSdrop-document "<db name for file>" "<collection>")
-)

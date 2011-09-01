@@ -12,6 +12,7 @@
 
   (:use seesaw.core)
   (:use [infwb   infoml-utilities notecard sedna slip-display])
+  (:require [clojure.string :as str])
   )
 
 (defn initialize
