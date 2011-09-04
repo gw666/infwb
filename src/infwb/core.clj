@@ -12,6 +12,7 @@
 
   (:use seesaw.core)
   (:use [infwb   infoml-utilities notecard sedna slip-display])
+  (:use [clojure.set :only (difference)])
   (:require [clojure.string :as str])
   )
 
@@ -19,7 +20,7 @@
   "runs InfWb init code; loads all icards, creates slip for each icard"
   []
   (let [db-name "brain"
-	coll-name "test"]
+	coll-name "daily"]
     (SYSclear-all)
     (println "cleared global vars...")
     (SYSsetup-InfWb db-name coll-name)

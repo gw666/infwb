@@ -2,6 +2,7 @@
   (:use [infwb.slip-display] :reload)
   (:use [infwb.sedna] :reload)
   (:use [infwb.core] :reload)
+  (:use [clojure.set :only (difference)])
   (:use [clojure.test]))
 
 ;; Required manual setup: Sedna must have a database named "brain".

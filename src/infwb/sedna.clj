@@ -7,7 +7,7 @@
 	   (net.cfoster.sedna.xqj   SednaXQDataSource)
 	   (java.util   Properties)
 	   (java.awt.geom AffineTransform))
-  (:use [infwb   core slip-display])
+  (:use [infwb   slip-display])
   (:require [clojure.string :as str])
   )
 
@@ -132,11 +132,13 @@ Examples are:       (atom {k1 v1, k2 v2})
   (reset-slip-registry)
   (reset-slip-attributes))
 
+; not used by any other fcns--110901
 (defn SYSreset-icard-conn
   "Clears the connection to the InfWb remote db for icards."
   []
   (reset! *icard-connection* (SednaXQDataSource.)))
 
+; not used by any other fcns--110901
 (defn SYSnew-connection
   "Creates a new remote-db connection. Usually fed to SYSset-connection
 to create a remote-db connection for something other than icard access."
@@ -174,18 +176,6 @@ executed once. WARNING: deletes the session db of icards and slips."
   (set-icard-coll-name icard-coll-name)
   (SYSclear-all)
   )
-
-;; DELETE if sys passes tests
-
-;; (defn reset-icards-db
-;;   "Clears out the icards-db in localDB (helpful for testing)"
-;;   []
-;;   (reset! *localDB-icdata* {}))
-  
-;; (defn reset-slips-db
-;;   "Clears out the sldata-db in localDB (helpful for testing)"
-;;   []
-;;   (reset! *localDB-sldata* {}))
 
 (defn SYSdb-of-conn
   "Get name of db associated with this connection."
@@ -258,28 +248,36 @@ by Infocard Workbench."
     (println cmd-str)
     (SYSrun-command cmd-str *icard-connection*)))
 
-(defn SYSdrop-document
-  "Drop (delete) named document from named collection within the icard db 
+(defn SYSdrop
+  "Drop (delete) named document from current collection within the icard db 
 currently in use by Infocard Workbench."
-  [doc-name]
-  (let [cmd-str (str "DROP DOCUMENT '" doc-name "' IN COLLECTION '"
-		     *current-collection* "'")]
+  [base-name]
+  (let [cmd-str (str "DROP DOCUMENT '" base-name "' IN COLLECTION '"
+		     *icard-coll-name* "'")]
     (println cmd-str)
     (SYSrun-command cmd-str *icard-connection*)))
 
-(defn SYSload-file
-  ""
+(defn SYSload
+  "Load the document pointed to by base-name into the current collection
+within the icard db currently in use by Infocard Workbench.
+
+The document is the directory given by infocard-dir (binding)"
   [base-name]
-  (let [infocard-dir "/Users/gw/Dropbox/infocards-v1_0/"
+  (let [infocard-dir "/Users/gw/Dropbox/infocards/"
 	file-name (str base-name ".xml")
 	file-path (str infocard-dir file-name)
-	query-str (str "LOAD \""
-		       file-path "\" \""
+	query-str (str "LOAD '"
+		       file-path "' '"
 		       base-name
-		       "\" \"" *current-collection* "\"")]
+		       "' '" *icard-coll-name* "'")]
     (println query-str)
     (SYSrun-command query-str *icard-connection*)))
 
+(defn SYSreload
+  ""
+  [base-name]
+  (SYSdrop base-name)
+  (SYSload base-name))
 
 
 ; NOTE: Don't trust Emacs paren matching here--fouled up by parens in quotes
@@ -481,9 +479,29 @@ NOTE: does *not* add sldata to *localDB*"
 	(permDB->localDB icard)))
 
 (defn load-all-icards
-  "loads all infocards in permanentDB to localDB"
+  "Loads all infocards in permanentDB to localDB."
   []
   (load-icard-seq-to-localDB (permDB->all-icards)))
+
+(declare get-all-icards)
+
+(defn get-icards-in-localDB
+  "Returns all the icards stored locally."
+  []
+  (keys @*localDB-icdata*))
+
+(defn load-new-icards
+  "Loads into localDB icards that are in permDB but not localDB; returns
+seq of these newly-loaded icards."
+  []
+  (let [old (get-icards-in-localDB)
+	new (permDB->all-icards)
+	diff-seq (seq (clojure.set/difference (set new) (set old)))]
+    
+    (if (not (empty? diff-seq))
+      (load-icard-seq-to-localDB diff-seq))
+    
+    diff-seq))
 
 
 
@@ -527,7 +545,7 @@ API"
   [icard field-key]
   (field-key (get-icdata icard)))
 
-(defn get-all-icards
+(defn get-all-icards   ; API
   "Returns a seq of all the currently available icards. API"
   []
   ; If the local cache is empty, load all icards from permDB
@@ -776,26 +794,52 @@ for each next slip to be displayed"
      (clone-show icard layer 0 0)))
 
 (defn display-all
-  ""
-  [coll-name layer-name]
+  "Resets the environment, gets all icards from the remote db, and creates
+and displays a slip for each icard."
+  [layer-name]
   (let [db-name   "brain"
-	_         (SYSsetup-InfWb db-name coll-name)
+	_         (SYSsetup-InfWb db-name *icard-coll-name*)
 	icards    (get-all-icards)
 	]
     (doseq [icard icards]
       (clone-show icard layer-name 0 0))))
 
+(defn display-new
+  "For all new icards, creates and displays a slip for each. Used only
+after user has added new icards to the remote database."
+  [layer-name]
+  (let [new-icards (load-new-icards)]
+    (if (not (empty? new-icards))
+      (doseq [icard new-icards]
+	(clone-show icard layer-name 0 0))
+      (println "Warning: no new icards to show"))))
+
+(defn clear-layer
+  "Removes all slips (and any other Piccolo objects) from the layer."
+  [layer-name]
+  (.removeAllChildren layer-name))
+
+
 (SYSclear-all)
 
-;; InfWb 0.1 Workflow Cheat Sheet  110829
+;; InfWb 0.1 Workflow Cheat Sheet  110901
 
 ;; 	(SYSclear-all)
-;; 	(SYSload-file "<filename>" "<db name for file>" "<collection>")
-;; 	(display-all "collection" *piccolo-layer*)
+;; 	(SYSload "filename-without-.xml")
+;;      (SYSreload "filename-without-.xml")
+;; 	(display-all *piccolo-layer*)
+;; 	(display-new *piccolo-layer*)
 
 ;; Other useful commands:
 
 ;; 	(SYSpeek-into-db)   ; see what documents and collections exist
 
-;; 	(SYSdrop-document "<db name for file>" "<collection>")
+;;      (SYSnew-icard-collection "collection-name")
 
+;; 	(SYSdrop "filename-without-.xml")
+
+;;      *icard-to-slip-map*
+
+;;      (SYSsetup-InfWb "brain" "daily")
+
+;;      (SYSset-connection *icard-connection* "brain")

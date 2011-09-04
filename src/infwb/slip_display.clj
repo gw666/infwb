@@ -58,9 +58,9 @@
 			 *width* *height*)
     (.setPaint cbox backgd-color)
     (.setStrokePaint line divider-color)
-    (.addChild cbox title)
-    (.addChild cbox line)
-    (.addChild cbox body)
+    (.addChild cbox title)   ; = child 0
+    (.addChild cbox line)    ; = child 1
+    (.addChild cbox body)    ; = child 2
     (.setChildrenPickable cbox false)
     cbox))
 
