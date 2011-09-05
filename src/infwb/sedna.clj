@@ -710,13 +710,15 @@ entry in *localDB-sldata*, even though this fcn returns an sldata."
 	  
 	  ))
 
-(defn sget   ; API
+(defn sget				; API
   "Returns specified field of slip; handles all db issues transparently.
 Also uses field keys of underlying icard to return their value. Also uses
 field keys :x and :y to get position of slip. API"
   [slip field-key]
-  (let [sldata (get-sldata slip)]
-    (SYSsldata-field sldata field-key) ))
+  (if (= *localDB-sldata* {})
+    (println "YIKES! The local slip DB has been nuked--sorry!")
+    (let [sldata (get-sldata slip)]
+      (SYSsldata-field sldata field-key) )))
 
 (defn clone   ; API
   "Returns a new slip that is the clone of the icard. API"
@@ -749,34 +751,33 @@ field keys :x and :y to get position of slip. API"
 ;; operating on, it is probably doing so on a sldata. Omitting mention of 
 ;; a sldata in a function name is a way of keeping code succinct.
 
-(defn show
-  "display a sldata at a given location in a given layer"
+(defn show   ;API
+  "Displays a slip at a given location in a given layer. API"
   ; BUG: move-to moves the PClip but not its contents
-  [sldata   x y   layer]
-  (let [_   (move-to sldata (float x) (float y))
+  [slip   x y   layer]
+  (let [sldata (get-sldata slip)
+	_   (move-to sldata (float x) (float y))
 	pobj   (SYSsldata-field sldata :pobj)]
     (.addChild layer pobj)))
 
-(defn show-seq
-  "display seq of slips, starting at (x y), using dx, dy as offset
-for each next slip to be displayed"
-  [sldata-seq   x y   dx dy   layer]
+(defn show-seq   ;API
+  "Display seq of slips, starting at (x y), using dx, dy as offset
+for each next slip to be displayed. API"
+  [slip-seq   x y   dx dy   layer]
   (println "Reached show-seq, x y = " x " " y)
   (let [x-coords   (iterate #(+ % dx) x)
 	y-coords   (iterate #(+ % dy) y)
         layer-seq  (repeat layer)]
 ;    (dorun
 ;    (swank.core/break)
-    (map show sldata-seq x-coords y-coords layer-seq))
+    (map show slip-seq x-coords y-coords layer-seq))
 ;    )
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; API-LEVEL SLIP DISPLAY
-
-
-
+;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn clone-show   ; API
@@ -786,7 +787,7 @@ for each next slip to be displayed"
       (let [sldata   (new-sldata icard)
 	    _        (sldata->localDB sldata)
 	    slip     (SYSsldata-field sldata :slip)]
-	(show sldata x y layer)
+	(show slip x y layer)
 	slip))
     
   ([icard layer]
@@ -820,7 +821,24 @@ after user has added new icards to the remote database."
   (.removeAllChildren layer-name))
 
 
-(SYSclear-all)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; 
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn slip-state   ;API
+  "Returns a vector of the slip's icard, x-position, y-position. API"
+  [slip]
+  (let [icard   (sget slip :icard)
+	pobj    (sget slip :pobj)
+	gl-pt   (.getOffset pobj)
+	x       (.x gl-pt)
+	y       (.y gl-pt)
+	]
+    (vector icard x y)
+    ))
+
 
 ;; InfWb 0.1 Workflow Cheat Sheet  110901
 
@@ -829,6 +847,8 @@ after user has added new icards to the remote database."
 ;;      (SYSreload "filename-without-.xml")
 ;; 	(display-all *piccolo-layer*)
 ;; 	(display-new *piccolo-layer*)
+
+;;      (clear-layer *piccolo-layer*)
 
 ;; Other useful commands:
 

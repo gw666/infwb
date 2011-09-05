@@ -12,8 +12,9 @@
    (edu.umd.cs.piccolo.util   PBounds)
    (edu.umd.cs.piccolox   PFrame)
    (edu.umd.cs.piccolox.nodes   PClip)
-   (java.awt.geom   Dimension2D Point2D)
-   (java.awt   BasicStroke Color Font GraphicsEnvironment Rectangle)))
+;   (java.awt.geom   Dimension2D Point2D)
+   (java.awt   BasicStroke Color Font GraphicsEnvironment Point Rectangle)))
+;   (java.awt   BasicStroke Color Font GraphicsEnvironment Rectangle)))
 
 (def ^{:doc "width of a slip"
        :dynamic true} *width*   270)  ;;width of a slip
