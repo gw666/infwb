@@ -846,17 +846,53 @@ after user has added new icards to the remote database."
     (vector icard x y)
     ))
 
-(defn pobj-state   ;API
-  "Returns a vector of the pobj's x-position, y-position. API"
+(defn slip-snapshot
+  ""
+  []
+  (let [slips   (get-all-slips)
+	empty   (vector)]
+    (loop [slip-list slips, result empty]
+      (if (empty? slip-list)
+	result
+	(recur (rest slip-list) (conj result
+				  (sget (first slip-list) :pobj)))))))
+      
+(defn pobj->icard-map
+  "Returns map: key = pobj, value = icard of slip that uses the pobj."
+  []
+  (let [slips   (get-all-slips)]
+    (loop [slip-list slips, result {}]
+      (if (empty? slip-list)
+	result
+	(recur (rest slip-list) (assoc result
+				  (sget (first slip-list) :pobj)
+				  (sget (first slip-list) :icard)))))))
+
+(defn pobj-state
+  "Returns a vector of the pobj's icard, x-position, y-position."
   [pobj]
-  (let [gl-pt (.getOffset pobj)
-	x (.x gl-pt)
-	y (.y gl-pt)
+  (let [pimap   (pobj->icard-map)
+	gl-pt   (.getOffset pobj)
+	x       (.x gl-pt)
+	y       (.y gl-pt)
+	icard   (pimap pobj)
 	]
-    (vector pobj x y)
+    (vector   icard x y)
     ))
 
-(defn pobj-snapshot   ;API
+;; (defn pobj-snapshot
+;;   ""
+;;   [layer]
+;;   (let [num-children (. layer getChildrenCount)
+;; ;	test         (vector 10 11 12 13 14)
+;; 	empty       (vector)]
+;;     (loop [i 0, result empty]
+;;       (if (< i num-children)
+;; 	(recur (inc i) (conj result
+;; 			     (pobj-state (. layer getChild i))))
+;; 	result))))
+
+(defn desktop-snapshot
   ""
   [layer]
   (let [num-children (. layer getChildrenCount)
@@ -868,17 +904,6 @@ after user has added new icards to the remote database."
 			     (pobj-state (. layer getChild i))))
 	result))))
 
-(defn slip-snapshot
-  ""
-  []
-  (let [slips   (get-all-slips)
-	empty   (vector)]
-    (loop [i 0, result empty]
-      (if (empty? slips)
-	result
-	(recur (rest slips) (conj result
-				  (sget (first slips) :pobj)))))))
-      
 
 
 
