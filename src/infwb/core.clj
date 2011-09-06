@@ -19,8 +19,8 @@
 (defn initialize
   "runs init code; loads all icards, displays all slips"
   []
-  (db-startup)
-  (load-icard-seq-to-localDB (db->all-icards))
+  (SYSclear-all)   ; was db-startup
+  (load-icard-seq-to-localDB (permDB->all-icards))
   (load-all-sldatas-to-localDB))
 
 (defn new-notecard-handler
