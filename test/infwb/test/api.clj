@@ -9,9 +9,12 @@
 ;;   "four-notecards.xml".
 ;;
 ;;
-;; To ensure repeatable and correct results, you should run:
+;; To ensure repeatable and correct results, you should:
 ;;
-;;    ??  (SYSsetup-InfWb "brain" "api")
+;;    * run the (do ... ) Piccolo setup snippet
+;;    * compile this file, sedna.clj, and core.clj
+;;    * execute (clojure.test/run-tests 'infwb.test.api)
+;;
 
 
 (deftest display-three-icards []

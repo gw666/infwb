@@ -29,26 +29,32 @@
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; ^{:dynamic true} after 'def' may suppress some error messages
-(def *icard-connection* (SednaXQDataSource.))
-(def *icard-coll-name*)
-(def *icard-db-name*)
+;; 110906: Removed "bare" definitions of often-changing global vars
+;; so as to permit recompilation of this file without clobbering
+;; existing data while debugging.
+;;
+;; NOTE: This will require def'ing these vars before compiling this file.
 
-;; in-memory databases for icdata (icard) and sldata (slip) data
-(def  *localDB-icdata* (atom {}))
-(def  *localDB-sldata* (atom {}))
+;; ; ^{:dynamic true} after 'def' may suppress some error messages
+;; (def *icard-connection* (SednaXQDataSource.))
+;; (def *icard-coll-name*)
+;; (def *icard-db-name*)
 
-;; session-specific mapping of one icard to seq of multiple slips
-(def *icard-to-slip-map* (atom {}))
+;; ;; in-memory databases for icdata (icard) and sldata (slip) data
+;; (def  *localDB-icdata* (atom {}))
+;; (def  *localDB-sldata* (atom {}))
+
+;; ;; session-specific mapping of one icard to seq of multiple slips
+;; (def *icard-to-slip-map* (atom {}))
+
+;; ;; KEY: icard; VALUE: seq of slips that are clones of icard
+;; (def *icard->slips* (atom {}))
+
+;; ;; KEY: slip; VALUE: {attribute-name attr-value, ...)
+;; (def *slip-attrs* (atom {}))
 
 (def *icard-fields* #{:icard :ttxt :btxt :tags})
 (def *slip-fields*  #{:slip :icard :pobj})
-
-;; KEY: icard; VALUE: seq of slips that are clones of icard
-(def *icard->slips* (atom {}))
-
-;; KEY: slip; VALUE: {attribute-name attr-value, ...)
-(def *slip-attrs* (atom {}))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -115,16 +121,16 @@ Examples are:       (atom {k1 v1, k2 v2})
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn reset-icards []
-    (reset! *localDB-icdata* {}))
+    (def *localDB-icdata* {}))
 
 (defn reset-slips []
-    (reset! *localDB-sldata* {}))
+    (def *localDB-sldata* {}))
 
 (defn reset-slip-registry []
-    (reset! *icard-to-slip-map* {}))
+    (def *icard-to-slip-map* {}))
 
 (defn reset-slip-attributes []
-    (reset! *slip-attrs* {}))
+    (def *slip-attrs* {}))
 
 (defn SYSclear-all []
   (reset-icards)
@@ -132,11 +138,10 @@ Examples are:       (atom {k1 v1, k2 v2})
   (reset-slip-registry)
   (reset-slip-attributes))
 
-; not used by any other fcns--110901
 (defn SYSreset-icard-conn
   "Clears the connection to the InfWb remote db for icards."
   []
-  (reset! *icard-connection* (SednaXQDataSource.)))
+  (def *icard-connection* (SednaXQDataSource.)))
 
 ; not used by any other fcns--110901
 (defn SYSnew-connection
@@ -170,7 +175,8 @@ collection to be used"
   "Does all InfWb-specific setup for current session of work; should be
 executed once. WARNING: deletes the session db of icards and slips."
   [icard-db-name icard-coll-name]
-  
+
+  (SYSreset-icard-conn)
   (SYSset-connection *icard-connection* icard-db-name)
   (set-icard-db-name icard-db-name)
   (set-icard-coll-name icard-coll-name)
