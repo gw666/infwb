@@ -2,10 +2,10 @@
 
 (ns infwb.sedna
   (:gen-class)
-  (:import (javax.xml.xquery   XQConnection XQDataSource
-			       XQResultSequence)
-	   (net.cfoster.sedna.xqj   SednaXQDataSource)
-	   (java.util   Properties)
+  (:import (javax.xml.xquery XQConnection XQDataSource
+			     XQResultSequence)
+	   (net.cfoster.sedna.xqj SednaXQDataSource)
+	   (java.util Properties)
 	   (java.awt.geom AffineTransform))
   (:use [infwb   slip-display])
   (:require [clojure.string :as str])
@@ -30,7 +30,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; ^{:dynamic true} after 'def' may suppress some error messages
-(def *icard-connection* (SednaXQDataSource.)) 
+(def *icard-connection* (SednaXQDataSource.))
 (def *icard-coll-name*)
 (def *icard-db-name*)
 
@@ -61,8 +61,8 @@
   "creates a random key of 2*len characters"
   [len]
   (let [consons (repeatedly len #(rand-nth "bdfghjklmnpqrstvwxyz"))
-	vowels (repeatedly len #(rand-nth "aeiou"))
-	]
+vowels (repeatedly len #(rand-nth "aeiou"))
+]
     (apply str (interleave consons vowels))))
 
   (defn abs[n]
@@ -70,12 +70,12 @@
 
   (defn round-to-int [n]
     (let [sign (if (neg? n) -1 1)
-	  rounded-abs (int (+ (abs n) 0.5))]
+rounded-abs (int (+ (abs n) 0.5))]
       (* sign rounded-abs)))
 
 (defn ls
-  "Performs roughly the same task as the UNIX `ls`.  That is, returns a seq
-of the filenames at a given directory.  If a path to a file is supplied,
+  "Performs roughly the same task as the UNIX `ls`. That is, returns a seq
+of the filenames at a given directory. If a path to a file is supplied,
 then the seq contains only the original path given."
   [path]
   (let [file (java.io.File. path)]
@@ -313,7 +313,7 @@ filter arg selects records; return arg extracts data from selected records
 
 (defrecord icdata [icard ;;string; id of infocard
 		   ttxt	 ;;atom pointing to string; title text
-		   btxt  ;;atom pointing to string; body text
+		   btxt	 ;;atom pointing to string; body text
 		   tags] ;;atom pointing to vector of tag strings
   )
 
@@ -427,7 +427,7 @@ NOTE: does *not* add sldata to *localDB*"
     ;; the value in rand-key is the "name" of the slip about to be created
     (register-slip-with-icard icard rand-key)
     (sldata. rand-key icard (atom pobj))))
-  ([icard]   (new-sldata icard 0 0 )))
+  ([icard] (new-sldata icard 0 0 )))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -443,13 +443,13 @@ NOTE: does *not* add sldata to *localDB*"
 ; in an infoml (XML) element.
 
 ; A slip is a visual representation of an icard. There can be multiple
-; slips for a given icard. The data defining a slip is in a sldata 
+; slips for a given icard. The data defining a slip is in a sldata
 ; (SLip DATA) record.
 ;
 ; Currently, an infocard, or icard, is defined by the icard field of
 ; the icdata record that represents the actual infocard.
 ;
-; Similarly, a slip is defined by the slip field of the icdata record 
+; Similarly, a slip is defined by the slip field of the icdata record
 ; that represents the actual infocard.
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -564,7 +564,7 @@ API"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-; LOCALDB: populating it with sldatas    
+; LOCALDB: populating it with sldatas
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -593,7 +593,7 @@ API"
 ;; within the map for sldatas.
 
 ;; The above swap...assoc-in line takes the value `sldata` and uses it
-;; to *replace* the value associated with KEY. 
+;; to *replace* the value associated with KEY.
 
 ;; -----
 ;; `(swap! *localDB* update-in [*sldata-idx*] assoc slip sldata)` is equiv to
@@ -634,7 +634,7 @@ API"
   "Given id (= icard), creates sldata, adds sldata to *localDB*; returns slip of new sldata"
   [icard]
   (let [sldata (new-sldata icard)
-	slip (:slip sldata)]
+slip (:slip sldata)]
     (sldata->localDB sldata)
     slip))
 
@@ -650,7 +650,7 @@ API"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn localDB->sldata
-  "given its slip, retrieve its sldata from  localDB-slip; if slip not
+  "given its slip, retrieve its sldata from localDB-slip; if slip not
 found, returns nil"
   [slip]
   (@*localDB-sldata* slip))
@@ -710,7 +710,7 @@ entry in *localDB-sldata*, even though this fcn returns an sldata."
 	  
 	  ))
 
-(defn sget				; API
+(defn sget   ; API
   "Returns specified field of slip; handles all db issues transparently.
 Also uses field keys of underlying icard to return their value. Also uses
 field keys :x and :y to get position of slip. API"
@@ -747,8 +747,8 @@ field keys :x and :y to get position of slip. API"
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; InfWb is largely about sldatas. If a function does not say what it is 
-;; operating on, it is probably doing so on a sldata. Omitting mention of 
+;; InfWb is largely about sldatas. If a function does not say what it is
+;; operating on, it is probably doing so on a sldata. Omitting mention of
 ;; a sldata in a function name is a way of keeping code succinct.
 
 (defn show   ;API
@@ -824,6 +824,7 @@ after user has added new icards to the remote database."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; 
+
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -838,6 +839,41 @@ after user has added new icards to the remote database."
 	]
     (vector icard x y)
     ))
+
+(defn pobj-state   ;API
+  "Returns a vector of the pobj's x-position, y-position. API"
+  [pobj]
+  (let [gl-pt (.getOffset pobj)
+	x (.x gl-pt)
+	y (.y gl-pt)
+	]
+    (vector pobj x y)
+    ))
+
+(defn pobj-snapshot   ;API
+  ""
+  [layer]
+  (let [num-children (. layer getChildrenCount)
+;	test         (vector 10 11 12 13 14)
+	empty       (vector)]
+    (loop [i 0, result empty]
+      (if (< i num-children)
+	(recur (inc i) (conj result
+			     (pobj-state (. layer getChild i))))
+	result))))
+
+(defn slip-snapshot
+  ""
+  []
+  (let [slips   (get-all-slips)
+	empty   (vector)]
+    (loop [i 0, result empty]
+      (if (empty? slips)
+	result
+	(recur (rest slips) (conj result
+				  (sget (first slips) :pobj)))))))
+      
+
 
 
 ;; InfWb 0.1 Workflow Cheat Sheet  110901
@@ -863,3 +899,4 @@ after user has added new icards to the remote database."
 ;;      (SYSsetup-InfWb "brain" "daily")
 
 ;;      (SYSset-connection *icard-connection* "brain")
+
