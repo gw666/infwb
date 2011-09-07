@@ -47,9 +47,6 @@
 ;; ;; session-specific mapping of one icard to seq of multiple slips
 ;; (def *icard-to-slip-map* (atom {}))
 
-;; ;; KEY: icard; VALUE: seq of slips that are clones of icard
-;; (def *icard->slips* (atom {}))
-
 ;; ;; KEY: slip; VALUE: {attribute-name attr-value, ...)
 ;; (def *slip-attrs* (atom {}))
 
@@ -121,16 +118,16 @@ Examples are:       (atom {k1 v1, k2 v2})
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn reset-icards []
-    (def *localDB-icdata* {}))
+    (def *localDB-icdata* (atom {})))
 
 (defn reset-slips []
-    (def *localDB-sldata* {}))
+    (def *localDB-sldata* (atom {})))
 
 (defn reset-slip-registry []
-    (def *icard-to-slip-map* {}))
+    (def *icard-to-slip-map* (atom {})))
 
 (defn reset-slip-attributes []
-    (def *slip-attrs* {}))
+    (def *slip-attrs* (atom {})))
 
 (defn SYSclear-all []
   (reset-icards)
@@ -280,7 +277,7 @@ The document is the directory given by infocard-dir (binding)"
     (SYSrun-command query-str *icard-connection*)))
 
 (defn SYSreload
-  ""
+  "Reloads to the remote DB a file that has had records added to it."
   [base-name]
   (SYSdrop base-name)
   (SYSload base-name))
@@ -845,9 +842,9 @@ after user has added new icards to the remote database."
 	]
     (vector icard x y)
     ))
-
+; not used by any other functions 110906
 (defn slip-snapshot
-  ""
+  "returns a vector of pobjs, one for each slip onscreen"
   []
   (let [slips   (get-all-slips)
 	empty   (vector)]
@@ -880,32 +877,40 @@ after user has added new icards to the remote database."
     (vector   icard x y)
     ))
 
-;; (defn pobj-snapshot
-;;   ""
-;;   [layer]
-;;   (let [num-children (. layer getChildrenCount)
-;; ;	test         (vector 10 11 12 13 14)
-;; 	empty       (vector)]
-;;     (loop [i 0, result empty]
-;;       (if (< i num-children)
-;; 	(recur (inc i) (conj result
-;; 			     (pobj-state (. layer getChild i))))
-;; 	result))))
-
 (defn desktop-snapshot
-  ""
-  [layer]
+  "Returns a vector of items. Each item names an icard and its x and y
+location. Items are listed in order needed to recreate desktop (first item =
+bottom, last = top)."
+  [base-name layer]
   (let [num-children (. layer getChildrenCount)
-;	test         (vector 10 11 12 13 14)
-	empty       (vector)]
-    (loop [i 0, result empty]
+	desktop-dir  "/Users/gw/Dropbox/infwb-stuff/desk-snapshots/"
+	file-path    (str desktop-dir base-name ".txt")]
+    (loop [i 0, result (vector)]
       (if (< i num-children)
 	(recur (inc i) (conj result
 			     (pobj-state (. layer getChild i))))
-	result))))
+	(spit file-path result)))))
 
+(defn get-desktop
+  ""
+  [base-name]
+  (let [desktop-dir  "/Users/gw/Dropbox/infwb-stuff/desk-snapshots/"
+	file-path    (str desktop-dir base-name ".txt")]
+    (read-string (slurp file-path))))
+ 
+(defn restore-one-slip
+  ""
+  [vector layer]
+  (let [[icard x y]   vector]
+	(iget icard :ttxt)
+	(clone-show icard layer x y)))
 
-
+(defn restore-desktop
+  ""
+  [base-name layer]
+  (let [restore-vector (get-desktop base-name)]
+    (doseq [vector restore-vector]
+      (restore-one-slip vector layer))))
 
 ;; InfWb 0.1 Workflow Cheat Sheet  110901
 
