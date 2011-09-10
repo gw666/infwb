@@ -3,14 +3,15 @@
   (:use [infwb.core] :reload)
   (:use [clojure.test]))
 
-;; Required manual setup: Sedna must have a db named "brain".
-;; The 'brain' collection must have a copy of the file
-;; "~/tech/clojurestuff/cljprojects/infwb/src/four-notecards.XML". The file's
+;; Required manual setup: Sedna must have a db named "brain" and a 
+;; collection named 'test'.
+;; Collection 'test' must be empty. The file 'four-notecards.xml's
 ;; lowest key is "gw667_090815161114586", and there should be 4 records.
 ;;
 ;;
 ;; To ensure repeatable and correct results, you should run:
 ;;
+;; (SYSsetup-InfWb "brain" "test")
 ;; (clojure.test/run-tests 'infwb.test.icards)
 ;; (clojure.test/run-tests 'infwb.test.slips)
 ;;

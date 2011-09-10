@@ -28,20 +28,39 @@
 
 (deftest add-new-icards []
   (SYSload "four-notecards")
-  (display-new infwb.core/*piccolo-layer*)
+  (display-new *piccolo-layer*)
   (is (= 4 (count (get-icards-in-localDB))))
+  (is (= 4 (count @*icard-to-slip-map*)))
+  (is (= 4 (count @*slip-attrs*)))
   (println "### Test is successful if desktop shows four icards.")
   (SYSdrop "four-notecards")
   )
 
-(deftest yyy []
-  )
+(deftest check-slip-globals []
+  (SYSclear-all)
+  (clear-layer *piccolo-layer*)
+  (SYSload "four-notecards")
+  (display-all *piccolo-layer*)
+  (let [icard1 "gw667_090815164115403"
+	icard4 "gw667_090815161114586"]
+    (clone-show icard1 *piccolo-layer*)
+    (clone-show icard4 *piccolo-layer*)
+    (clone-show icard4 *piccolo-layer*)
+    
+    (let [slips-from-icard1 (@*icard-to-slip-map* icard1)
+	  slips-from-icard4 (@*icard-to-slip-map* icard4)]
+      (is (= 4 (count (get-icards-in-localDB))))
+      (is (= 4 (count @*icard-to-slip-map*)))
+      (is (= 7 (count @*slip-attrs*)))
+      (is (= 2 (count slips-from-icard1)))
+      (is (= 3 (count slips-from-icard4)))))
+    (SYSdrop "four-notecards"))
 
 
 (defn test-ns-hook
   "controls test sequence; NOTE: contains fixed Sedna db & collection names"
   []
-  (println "### Did you recompile the test file?                ###")
+  (println "### Did you recompile the test file? ###")
 
   (let [db-name "brain"
 	coll-name "api"
@@ -50,5 +69,6 @@
     (SYSsetup-InfWb db-name coll-name)
     (display-three-icards)
     (add-new-icards)
+    (check-slip-globals)
   ))
 

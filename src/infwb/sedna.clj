@@ -129,7 +129,9 @@ Examples are:       (atom {k1 v1, k2 v2})
 (defn reset-slip-attributes []
     (def *slip-attrs* (atom {})))
 
-(defn SYSclear-all []
+(defn SYSclear-all
+  "Clears all icard, slip, slip-registry, and slip-attribute data."
+  []
   (reset-icards)
   (reset-slips)
   (reset-slip-registry)
@@ -202,10 +204,6 @@ executed once. WARNING: deletes the session db of icards and slips."
        result-vector
        (recur result-sequence (conj result-vector (.getItemAsString result-sequence (Properties.)))))))
 
-
-;; for convenience of fcn below, this ns has already defined the Sedna
-;; connection named *icard-connection*
-
 (defn SYSrun-command
   "Runs specified *Sedna command* through the given connection,
 returning result(s) in a vector, then closes the connection.
@@ -277,7 +275,7 @@ The document is the directory given by infocard-dir (binding)"
     (SYSrun-command query-str *icard-connection*)))
 
 (defn SYSreload
-  "Reloads to the remote DB a file that has had records added to it."
+  "Reloads a file in the permanent DB that has been changed."
   [base-name]
   (SYSdrop base-name)
   (SYSload base-name))
@@ -409,16 +407,23 @@ permDB, substitutes a default 'invalid' record. API"
 
 (defn register-slip-with-icard
   "Registers slip as a clone of icard."
+  ; this is the fcn that adds slip to the icard entry of *icard-to-slip-map*
   ; NEEDS TESTING
   [icard slip]
   (swap! *icard-to-slip-map*
 	 update-in [icard] (fn [x] (conj x slip))))
 
-(declare get-icdata)
+(defn new-slip-attrs-entry
+  "Adds new entry to *slip-attrs* with key = slip, value = (atom {})."
+  [slip]
+  (swap! *slip-attrs* assoc slip (atom {})))
+
+(declare get-icdata sldata->localDB)
 
 (defn new-sldata
-  "create sldata from infocard, with its pobj at (x y), or default to (0 0)--
-NOTE: does *not* add sldata to *localDB*"
+  "Create sldata from infocard, with its pobj at (x y), or default to (0 0);
+also saves new sldata in *localDB-sldata*. This is the fcn that *must* be
+executed when a new slip is created."
   ([icard x y]
   (let [icdata (get-icdata icard)
 	rand-key   (rand-kayko 3)
@@ -429,8 +434,11 @@ NOTE: does *not* add sldata to *localDB*"
 		(icdata-field icdata :btxt))]
     ;; the value in rand-key is the "name" of the slip about to be created
     (register-slip-with-icard icard rand-key)
-    (sldata. rand-key icard (atom pobj))))
-  ([icard] (new-sldata icard 0 0 )))
+    (new-slip-attrs-entry rand-key)
+    (let [new-sldata   (sldata. rand-key icard (atom pobj))]
+      (sldata->localDB new-sldata)
+      new-sldata) ))   ;return new sldata
+  ([icard] (new-sldata icard 0 0)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -458,8 +466,10 @@ NOTE: does *not* add sldata to *localDB*"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn icdata->localDB
-  "Stores the icdata record in the localDB; returns icdata"
+  "Stores the icdata record in the localDB; returns icdata. This is the
+fcn that *must* be executed when a new icard is created."
   [icdata]
+  
   (let [icard (:icard icdata)
 	id-exists?  (:icard @*localDB-icdata*)]
     (if id-exists?   ;;if true, replaces existing; false adds new icdata
@@ -525,8 +535,9 @@ seq of these newly-loaded icards."
     ;; else branch--all others stored w/atoms, must be dereferenced
     @(field-key icdata)))
 
-(defn localDB->icdata  ;; aka "lookup-icdata" (from localDB)
-  "given its id (the 'icard' variable), retrieve an icdata from the localDB"
+(defn localDB->icdata
+  "Returns icdata value of icard iff icard is present in *localDB-icdata*;
+else returns nil."
   [icard]
     (@*localDB-icdata* icard))
 
@@ -634,17 +645,21 @@ API"
 
 ;; WARN: "bare" use of `:slip` to get data from within sldata
 (defn icard->sldata->localDB
-  "Given id (= icard), creates sldata, adds sldata to *localDB*; returns slip of new sldata"
+  "Given icard, creates sldata, adds sldata to *localDB-icdata*; returns
+slip of new sldata. Does *not* check to see if icard is already in
+*localDB-icdata*."
   [icard]
   (let [sldata (new-sldata icard)
-slip (:slip sldata)]
-    (sldata->localDB sldata)
+	slip (:slip sldata)]
     slip))
 
 (defn load-all-sldatas-to-localDB []
   (let [all-icards (permDB->all-icards)]
     (doseq [icard all-icards]
-      (icard->sldata->localDB icard))))
+      ;; icard is not added to *localDB-icdata* if it is already there
+      ;; (i.e., (localDB->icdata icard) = nil, which evals as false
+      (if (localDB->icdata icard)
+	(icard->sldata->localDB icard)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -728,7 +743,6 @@ field keys :x and :y to get position of slip. API"
   [icard]
   ; NOTE: changes to clone and clone-show should be synchronized
   (let [sldata   (new-sldata icard)
-	_        (sldata->localDB sldata)
 	slip     (SYSsldata-field sldata :slip)]
     slip))
     
@@ -754,7 +768,7 @@ field keys :x and :y to get position of slip. API"
 ;; operating on, it is probably doing so on a sldata. Omitting mention of
 ;; a sldata in a function name is a way of keeping code succinct.
 
-(defn show   ;API
+(defn show   ; API
   "Displays a slip at a given location in a given layer. API"
   ; BUG: move-to moves the PClip but not its contents
   [slip   x y   layer]
@@ -763,7 +777,7 @@ field keys :x and :y to get position of slip. API"
 	pobj   (SYSsldata-field sldata :pobj)]
     (.addChild layer pobj)))
 
-(defn show-seq   ;API
+(defn show-seq   ; API
   "Display seq of slips, starting at (x y), using dx, dy as offset
 for each next slip to be displayed. API"
   [slip-seq   x y   dx dy   layer]
@@ -784,11 +798,11 @@ for each next slip to be displayed. API"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn clone-show   ; API
-  "Clones icard and displays it in the selected layer. API"
+  "Clones icard and displays it in the selected layer. Returns the
+slip that was created. API"
   ([icard layer x y]
 ; NOTE: changes to clone and clone-show should be synchronized
       (let [sldata   (new-sldata icard)
-	    _        (sldata->localDB sldata)
 	    slip     (SYSsldata-field sldata :slip)]
 	(show slip x y layer)
 	slip))
@@ -797,9 +811,9 @@ for each next slip to be displayed. API"
 ; NOTE: changes to clone and clone-show should be synchronized
      (clone-show icard layer 0 0)))
 
-(defn display-all
+(defn display-all   ; API
   "Resets the environment, gets all icards from the remote db, and creates
-and displays a slip for each icard."
+and displays a slip for each icard. API"
   [layer-name]
   (let [db-name   "brain"
 	_         (SYSsetup-InfWb db-name *icard-coll-name*)
@@ -808,9 +822,9 @@ and displays a slip for each icard."
     (doseq [icard icards]
       (clone-show icard layer-name 0 0))))
 
-(defn display-new
+(defn display-new   ; API
   "For all new icards, creates and displays a slip for each. Used only
-after user has added new icards to the remote database."
+after user has added new icards to the remote database. API"
   [layer-name]
   (let [new-icards (load-new-icards)]
     (if (not (empty? new-icards))
@@ -818,8 +832,8 @@ after user has added new icards to the remote database."
 	(clone-show icard layer-name 0 0))
       (println "Warning: no new icards to show"))))
 
-(defn clear-layer
-  "Removes all slips (and any other Piccolo objects) from the layer."
+(defn clear-layer   ; API
+  "Removes all slips (and other Piccolo objects) from the layer. API"
   [layer-name]
   (.removeAllChildren layer-name))
 
@@ -831,8 +845,8 @@ after user has added new icards to the remote database."
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn slip-state   ;API
-  "Returns a vector of the slip's icard, x-position, y-position. API"
+(defn slip-state
+  "Returns a vector of the slip's icard, x-position, y-position."
   [slip]
   (let [icard   (sget slip :icard)
 	pobj    (sget slip :pobj)
@@ -842,17 +856,17 @@ after user has added new icards to the remote database."
 	]
     (vector icard x y)
     ))
-; not used by any other functions 110906
-(defn slip-snapshot
-  "returns a vector of pobjs, one for each slip onscreen"
-  []
-  (let [slips   (get-all-slips)
-	empty   (vector)]
-    (loop [slip-list slips, result empty]
-      (if (empty? slip-list)
-	result
-	(recur (rest slip-list) (conj result
-				  (sget (first slip-list) :pobj)))))))
+;; ; not used by any other functions 110906
+;; (defn slip-snapshot
+;;   "returns a vector of pobjs, one for each slip onscreen"
+;;   []
+;;   (let [slips   (get-all-slips)
+;; 	empty   (vector)]
+;;     (loop [slip-list slips, result empty]
+;;       (if (empty? slip-list)
+;; 	result
+;; 	(recur (rest slip-list) (conj result
+;; 				  (sget (first slip-list) :pobj)))))))
       
 (defn pobj->icard-map
   "Returns map: key = pobj, value = icard of slip that uses the pobj."
@@ -877,7 +891,7 @@ after user has added new icards to the remote database."
     (vector   icard x y)
     ))
 
-(defn desktop-snapshot
+(defn save-desktop
   "Returns a vector of items. Each item names an icard and its x and y
 location. Items are listed in order needed to recreate desktop (first item =
 bottom, last = top)."
@@ -891,24 +905,33 @@ bottom, last = top)."
 			     (pobj-state (. layer getChild i))))
 	(spit file-path result)))))
 
-(defn get-desktop
-  ""
+(defn get-desktop-data
+  "Returns the contents of the saved-desktop file given by base-name."
   [base-name]
   (let [desktop-dir  "/Users/gw/Dropbox/infwb-stuff/desk-snapshots/"
 	file-path    (str desktop-dir base-name ".txt")]
     (read-string (slurp file-path))))
  
 (defn restore-one-slip
-  ""
+  "Takes an [icard x y] vector, then creates a slip for the icard and
+displays it at (x y) on the InfWb desktop."
   [vector layer]
   (let [[icard x y]   vector]
 	(iget icard :ttxt)
 	(clone-show icard layer x y)))
 
-(defn restore-desktop
-  ""
+(defn restore-desktop   ; API
+  "For the icards described in the saved-desktop file given by base-name,
+displays slips representing these icards to recreate the saved InfWb
+desktop exactly.
+
+Does *not* clear the desktop of its previous contents.
+
+This function exactly recreates the desktop and the internal relation-
+ships of the InfWb system at the moment the desktop was saved. (Slip names
+are not preserved, but icard-slip relationships are equivalent.) API"
   [base-name layer]
-  (let [restore-vector (get-desktop base-name)]
+  (let [restore-vector (get-desktop-data base-name)]
     (doseq [vector restore-vector]
       (restore-one-slip vector layer))))
 

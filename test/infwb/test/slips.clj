@@ -8,7 +8,7 @@
 ;; Required manual setup: Sedna must have a database named "brain".
 ;; Database must have a copy of the file
 ;; "~/tech/clojurestuff/cljprojects/infwb/src/four-notecards.XML". The file's
-;; lowest key is "gw667_090815161114586", and there should be 67 records.
+;; lowest key is "gw667_090815161114586", and there should be 4 records.
 ;;
 ;; NB: The function (db-startup) is run at the start of testing.
 ;;
@@ -49,8 +49,7 @@
   (let [test-icard (nth (get-all-icards) 0)
 	;; get title of first icard, create slip based on it, add to sldata db
 	test-ttxt (icdata-field (localDB->icdata test-icard) :ttxt)
-	test-sldata (new-sldata test-icard)
-	_   (sldata->localDB test-sldata)]
+	test-sldata (new-sldata test-icard)]
 ;    (swank.core/break)
     ;; Does SYSsldata-field get the title from the icard correctly?
     (is (= test-ttxt (SYSsldata-field test-sldata :ttxt)) ":ttxt field")
@@ -89,12 +88,13 @@ examining the pobj's x and y values (using SYSsldata-field fcn)"
   (println "\n### WARN: Be sure that *piccolo-frame* is defined ###\n")
   (let [sldata-id (nth (get-all-slips) 0) 
 	test-sldata (get-sldata sldata-id)
+	test-slip (:slip test-sldata)
 	test-x   50
 	test-y  150]
     (println "test-show-1-sldata succeeds if you see sldata named '"
 	     (SYSsldata-field test-sldata :ttxt) "' onscreen at ("
 	     test-x " " test-y ")\n")
-    (show test-sldata test-x test-y *piccolo-layer*) ))
+    (show test-slip test-x test-y *piccolo-layer*) ))
 
 ;; this fcn creates a second sldata
 (deftest test-make-sldata-from-db []
