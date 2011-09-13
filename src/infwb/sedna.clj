@@ -53,7 +53,14 @@
 (def *icard-fields* #{:icard :ttxt :btxt :tags})
 (def *slip-fields*  #{:slip :icard :pobj})
 
-
+;;
+;; ### EXTREMELY IMPORTANT ###
+;;
+;; *slip-width*, *slip-height*, *slip-line-height* are defined in
+;; slip_display.clj
+;;
+;; slip_display.clj MUST BE COMILED for everything to work
+;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; MISCELLANEOUS ROUTINES
@@ -771,22 +778,20 @@ field keys :x and :y to get position of slip. API"
 (defn show   ; API
   "Displays a slip at a given location in a given layer. API"
   ; BUG: move-to moves the PClip but not its contents
-  [slip   x y   layer]
+  [slip   x y   layer-name]
   (let [sldata (get-sldata slip)
 	_   (move-to sldata (float x) (float y))
 	pobj   (SYSsldata-field sldata :pobj)]
-    (.addChild layer pobj)))
+    (.addChild layer-name pobj)))
 
+; not used by anything--110910
 (defn show-seq   ; API
   "Display seq of slips, starting at (x y), using dx, dy as offset
 for each next slip to be displayed. API"
-  [slip-seq   x y   dx dy   layer]
-  (println "Reached show-seq, x y = " x " " y)
+  [slip-seq   x y   dx dy   layer-name]
   (let [x-coords   (iterate #(+ % dx) x)
 	y-coords   (iterate #(+ % dy) y)
-        layer-seq  (repeat layer)]
-;    (dorun
-;    (swank.core/break)
+        layer-seq  (repeat layer-name)]
     (map show slip-seq x-coords y-coords layer-seq))
 ;    )
   )
@@ -800,18 +805,55 @@ for each next slip to be displayed. API"
 (defn clone-show   ; API
   "Clones icard and displays it in the selected layer. Returns the
 slip that was created. API"
-  ([icard layer x y]
+  ([icard layer-name x y]
 ; NOTE: changes to clone and clone-show should be synchronized
       (let [sldata   (new-sldata icard)
 	    slip     (SYSsldata-field sldata :slip)]
-	(show slip x y layer)
+	(show slip x y layer-name)
 	slip))
     
-  ([icard layer]
+  ([icard layer-name]
 ; NOTE: changes to clone and clone-show should be synchronized
-     (clone-show icard layer 0 0)))
+     (clone-show icard layer-name 0 0)))
 
-(defn display-all   ; API
+(defn clone-show-seq
+  ""
+  [icard-seq   x y   dx dy   layer-name]
+  (let [x-seq   (iterate #(+ % dx) x)
+	y-seq   (iterate #(+ % dy) y)
+        layer-seq  (repeat layer-name)]
+    (map clone-show icard-seq layer-seq x-seq y-seq))
+
+  )
+
+(defn clone-show-col
+  ""
+  [icard-seq x y layer-name]
+  (let [dy (+ *slip-line-height* 2)]
+    (clone-show-seq icard-seq x y   0 dy layer-name)))
+
+(defn display-all			; API
+  "Resets the environment, gets all icards from the remote db, and creates
+and displays a slip for each icard. Displays columns of overlapping slips
+with all slip titles visible. API"
+  [layer-name]
+  (let [db-name   "brain"
+	_         (SYSsetup-InfWb db-name *icard-coll-name*)
+	icards    (get-all-icards)
+	max-in-col   10
+	icard-groups (partition max-in-col icards)
+	x           10
+	y           20
+	x-offset    5	      ; space between two adj columns of slips
+	x-seq       (iterate #(+ % *slip-width* x-offset) x)
+	y-seq       (repeat y)
+	layer-seq   (repeat layer-name)
+	]
+    (swank.core/break)
+    (if (< 0 (count icards))
+      (map clone-show-col icard-groups x-seq y-seq layer-seq))))
+
+(defn display-all-at-0-0   ; API
   "Resets the environment, gets all icards from the remote db, and creates
 and displays a slip for each icard. API"
   [layer-name]
@@ -891,18 +933,18 @@ after user has added new icards to the remote database. API"
     (vector   icard x y)
     ))
 
-(defn save-desktop
+(defn save-desktop   ; API
   "Returns a vector of items. Each item names an icard and its x and y
 location. Items are listed in order needed to recreate desktop (first item =
-bottom, last = top)."
-  [base-name layer]
-  (let [num-children (. layer getChildrenCount)
+bottom, last = top). API"
+  [base-name layer-name]
+  (let [num-children (. layer-name getChildrenCount)
 	desktop-dir  "/Users/gw/Dropbox/infwb-stuff/desk-snapshots/"
 	file-path    (str desktop-dir base-name ".txt")]
     (loop [i 0, result (vector)]
       (if (< i num-children)
 	(recur (inc i) (conj result
-			     (pobj-state (. layer getChild i))))
+			     (pobj-state (. layer-name getChild i))))
 	(spit file-path result)))))
 
 (defn get-desktop-data
@@ -915,10 +957,10 @@ bottom, last = top)."
 (defn restore-one-slip
   "Takes an [icard x y] vector, then creates a slip for the icard and
 displays it at (x y) on the InfWb desktop."
-  [vector layer]
+  [vector layer-name]
   (let [[icard x y]   vector]
 	(iget icard :ttxt)
-	(clone-show icard layer x y)))
+	(clone-show icard layer-name x y)))
 
 (defn restore-desktop   ; API
   "For the icards described in the saved-desktop file given by base-name,
@@ -930,10 +972,10 @@ Does *not* clear the desktop of its previous contents.
 This function exactly recreates the desktop and the internal relation-
 ships of the InfWb system at the moment the desktop was saved. (Slip names
 are not preserved, but icard-slip relationships are equivalent.) API"
-  [base-name layer]
+  [base-name layer-name]
   (let [restore-vector (get-desktop-data base-name)]
     (doseq [vector restore-vector]
-      (restore-one-slip vector layer))))
+      (restore-one-slip vector layer-name))))
 
 ;; InfWb 0.1 Workflow Cheat Sheet  110901
 

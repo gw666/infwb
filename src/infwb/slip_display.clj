@@ -17,10 +17,13 @@
 ;   (java.awt   BasicStroke Color Font GraphicsEnvironment Rectangle)))
 
 (def ^{:doc "width of a slip"
-       :dynamic true} *width*   270)  ;;width of a slip
+       :dynamic true} *slip-width*   180)  ;;width of a slip--was 270
 
 (def ^{:doc "height of a slip"
-       :dynamic true} *height*   175)  ;;height of a slip
+       :dynamic true} *slip-height*   118)  ;;height of a slip--was 175
+
+(def ^{:doc "height of one line of slip text"
+       :dynamic true} *slip-line-height*   21)  ;;height of a slip--was 175
 
 (defn wrap
   "Return wrapped PText; inputs: text, width to wrap to"
@@ -41,22 +44,21 @@
 
   (let [cbox (PClip.)
 	title (PText. title-text)
-	indent-x 5
+	indent-x 5 
 	indent-y 4
-	body (wrap body-text (- *width* (quot indent-x 2)))
-	line-height 21
-	divider-height 22
-	end-x (+ box-x *width*)
+	body (wrap body-text (- *slip-width* (quot (inc indent-x) 2)))
+	divider-height (inc *slip-line-height*)
+	end-x (+ box-x *slip-width*)
 	line (PPath/createLine box-x (+ box-y divider-height)
 			       end-x (+ box-y divider-height))
 	backgd-color (Color. 245 245 245)
 	divider-color (Color. 255 100 100)]
     
     (.translate title (+ box-x indent-x) (+ box-y indent-y))
-    (.translate body (+ box-x indent-x) (+ box-y indent-y line-height))
+    (.translate body (+ box-x indent-x) (+ box-y indent-y *slip-line-height*))
     (.setPathToRectangle cbox
 			 box-x box-y
-			 *width* *height*)
+			 *slip-width* *slip-height*)
     (.setPaint cbox backgd-color)
     (.setStrokePaint line divider-color)
     (.addChild cbox title)   ; = child 0
