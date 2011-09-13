@@ -56,6 +56,15 @@
 ;; *slip-width*, *slip-height*, *slip-line-height* are defined in
 ;; slip_display.clj
 ;;
+;;
+;; ### EXTREMELY IMPORTANT ###
+;;
+;; *slip-width*, *slip-height*, *slip-line-height* are defined in
+;; slip_display.clj
+;;
+;; slip_display.clj MUST BE COMILED for everything to work
+;;
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; MISCELLANEOUS ROUTINES

@@ -44,7 +44,7 @@
 
   (let [cbox (PClip.)
 	title (PText. title-text)
-	indent-x 5
+	indent-x 5 
 	indent-y 4
 	body (wrap body-text (- *slip-width* (quot (inc indent-x) 2)))
 	divider-height (inc *slip-line-height*)
