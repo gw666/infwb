@@ -11,7 +11,7 @@
    (javax.swing   JFrame))
 
   (:use seesaw.core)
-  (:use [infwb   infoml-utilities notecard sedna slip-display])
+  (:use [infwb   sedna infoml-utilities notecard slip-display])
   (:use [clojure.set :only (difference)])
   (:require [clojure.string :as str])
   )
@@ -65,7 +65,7 @@
   )
 
 (defn -main
-  "NOTE: currently assumes 'initialize' has already been called"
+  ""
   []
 
   (native!)
@@ -73,31 +73,28 @@
 ; during debugging, do this manually, once only
 ;  (initialize)  
 
-  (let [canvas1      (PCanvas.)
-	frame1       (make-app canvas1)
-	layer1       (.getLayer canvas1)
+  (let [canvas       (PCanvas.)
+	frame        (make-app canvas)
+	layer        (.getLayer canvas)
 	dragger      (PDragEventHandler.)
+	db-name      "brain"
+	coll-name    "daily"
 
-	;; IMPORTANT: uncomment these when using infocards!
-	
-	;; slips         (appdb->all-slips)
-	;; sldatas        (map get-sldata slips)
-	;; [sldatas1 sldatas-temp]    (split-at 20 sldatas)
-	;; [sldatas2 sldatas3]        (split-at 23 sldatas-temp)
 	]
 
-    (println frame1)
-    (.setSize frame1 500 700)
-    (.setVisible frame1 true)
+    (SYSsetup-InfWb db-name coll-name)
+    (.setSize frame 500 700)
+    (.setVisible frame true)
     (.setMoveToFrontOnPress dragger true)
-    (.setPanEventHandler canvas1 nil)
-    (.addInputEventListener canvas1 dragger)
+    (.setPanEventHandler canvas nil)
+    (.addInputEventListener canvas dragger)
+    (display-all layer)
    ; (swank.core/break)
 ;    (dorun (show-seq sldatas1    40 20    0 25  layer1))
 ;    (dorun (show-seq sldatas2   370 20    0 25  layer1))
 ;    (dorun (show-seq sldatas3   700 20    0 25  layer1))
 					;    (swank.core/break)
-    layer1
+    layer
     ))
 
 (comment
