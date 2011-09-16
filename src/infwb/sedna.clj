@@ -8,7 +8,7 @@
 	   (java.util Properties)
 	   (java.awt.geom AffineTransform))
   (:use [infwb   slip-display])
-  (:require [clojure.string :as str])
+  (:require [clojure.contrib.string :as st])
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -757,15 +757,30 @@ field keys :x and :y to get position of slip. API"
 	slip     (SYSsldata-field sldata :slip)]
     slip))
     
+;; (defn move-to
+;;   "move a slip's Piccolo infocard to a given location; returns: sldata"
+;;   [slip   x   y]
+;;   (let [sldata (get-sldata slip)
+;; 	pobj   @(:pobj sldata)
+;; 	dx     (double x)
+;; 	dy     (double y)
+;; 	at1    (AffineTransform. 1. 0. 0. 1. dx dy)]
+;; ;    (swank.core/break)
+;;     (.setTransform pobj at1))
+;;   sldata)
+  
 (defn move-to
   "move a slip's Piccolo infocard to a given location; returns: sldata"
-  [sldata   x   y]
-  (let [pobj   @(:pobj sldata)
+  [slip   x   y]
+  (let [sldata (get-sldata slip)
+	pobj   @(:pobj sldata)
 	dx     (double x)
 	dy     (double y)
 	at1    (AffineTransform. 1. 0. 0. 1. dx dy)]
 ;    (swank.core/break)
-    (.setTransform pobj at1))
+;    (. pobj setTransform at1)
+    (. pobj setOffset dx dy)
+    )
   sldata)
   
 
@@ -781,10 +796,9 @@ field keys :x and :y to get position of slip. API"
 
 (defn show   ; API
   "Displays a slip at a given location in a given layer. API"
-  ; BUG: move-to moves the PClip but not its contents
   [slip   x y   layer-name]
   (let [sldata (get-sldata slip)
-	_   (move-to sldata (float x) (float y))
+	_   (move-to slip (float x) (float y))
 	pobj   (SYSsldata-field sldata :pobj)]
     (.addChild layer-name pobj)))
 
@@ -853,6 +867,7 @@ with all slip titles visible. API"
 	y-seq       (repeat y)
 	layer-seq   (repeat layer-name)
 	]
+
     (if (< 0 (count icards))
       (map clone-show-col icard-groups x-seq y-seq layer-seq))))
 

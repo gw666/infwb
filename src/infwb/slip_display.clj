@@ -12,18 +12,25 @@
    (edu.umd.cs.piccolo.util   PBounds)
    (edu.umd.cs.piccolox   PFrame)
    (edu.umd.cs.piccolox.nodes   PClip)
-;   (java.awt.geom   Dimension2D Point2D)
-   (java.awt   BasicStroke Color Font GraphicsEnvironment Point Rectangle)))
-;   (java.awt   BasicStroke Color Font GraphicsEnvironment Rectangle)))
+   (java.awt   BasicStroke Color Font GraphicsEnvironment Point Rectangle))
+  (:require [clojure.contrib.string :as st])
+  )
 
 (def ^{:doc "width of a slip"
        :dynamic true} *slip-width*   180)  ;;width of a slip--was 270
 
 (def ^{:doc "height of a slip"
-       :dynamic true} *slip-height*   118)  ;;height of a slip--was 175
+       :dynamic true} *slip-height*   115)  ;;height of a slip--was 175
 
 (def ^{:doc "height of one line of slip text"
        :dynamic true} *slip-line-height*   21)  ;;height of a slip--was 175
+
+(def *title-width-in-chars*   28)
+(def *ellipsis-width*   3)
+(def *title-char-length*   (- *title-width-in-chars* *ellipsis-width*))
+(def *body-height-in-rows*   5)
+(def *body-char-length*   (* (+ *title-width-in-chars* *ellipsis-width*)
+			    *body-height-in-rows*))
 
 (defn wrap
   "Return wrapped PText; inputs: text, width to wrap to"
@@ -42,13 +49,20 @@
   "Create generic infocard object (ready to be added to a Piccolo layer)"
   [box-x box-y title-text body-text]
 
-  (let [cbox (PClip.)
-	title (PText. title-text)
+  (let [cbox (PPath.)
 	indent-x 5 
 	indent-y 4
-	body (wrap body-text (- *slip-width* (quot (inc indent-x) 2)))
+	adjust-in-pixels 10
+	adjust-in-chars  12
+	body-length   (- *body-char-length* adjust-in-chars)
+	t-t   (str (st/take *title-char-length* title-text) "...")
+	b-t   (str (st/take  body-length body-text) "...")
+	title (PText. t-t)
+	body (wrap b-t (- *slip-width*
+			  (quot (inc indent-x) 2)
+			  adjust-in-pixels))
 	divider-height (inc *slip-line-height*)
-	end-x (+ box-x *slip-width*)
+	end-x (+ box-x *slip-width*) 
 	line (PPath/createLine box-x (+ box-y divider-height)
 			       end-x (+ box-y divider-height))
 	backgd-color (Color. 245 245 245)
@@ -66,6 +80,3 @@
     (.addChild cbox body)    ; = child 2
     (.setChildrenPickable cbox false)
     cbox))
-
-
-
