@@ -52,11 +52,15 @@
   (let [cbox (PPath.)
 	indent-x 5 
 	indent-y 4
-	fudge-factor 10
+	adjust-in-pixels 10
+	adjust-in-chars  12
+	body-length   (- *body-char-length* adjust-in-chars)
 	t-t   (str (st/take *title-char-length* title-text) "...")
-	b-t   (str (st/take *body-char-length* body-text) "...")
+	b-t   (str (st/take  body-length body-text) "...")
 	title (PText. t-t)
-	body (wrap b-t (- *slip-width* (quot (inc indent-x) 2) fudge-factor))
+	body (wrap b-t (- *slip-width*
+			  (quot (inc indent-x) 2)
+			  adjust-in-pixels))
 	divider-height (inc *slip-line-height*)
 	end-x (+ box-x *slip-width*) 
 	line (PPath/createLine box-x (+ box-y divider-height)

@@ -64,20 +64,24 @@
 ;  (initialize)  
 
   (let [canvas       (new PCanvas)
+	pan-handler  (. canvas getPanEventHandler)
+	evt-handler  (. canvas getZoomEventHandler)
 	frame        (make-app canvas)
 	layer        (. canvas getLayer) ; objects are placed here
 	dragger      (new PDragEventHandler)
 	db-name      "brain"
 	coll-name    "daily"
-
 	]
+
+    (. canvas removeInputEventListener pan-handler)
+    (. canvas removeInputEventListener evt-handler)
 
     (SYSsetup-InfWb db-name coll-name)
     (. frame setSize 500 700)
     (. frame setVisible true)
 ;    (. dragger setMoveToFrontOnPress true)
     (.setPanEventHandler canvas nil)
-    (. canvas addInputEventListener dragger)
+;    (. canvas addInputEventListener dragger)
     (println (display-all layer))
 ;    (swank.core/break)
     (install-selection-event-handler canvas layer)
