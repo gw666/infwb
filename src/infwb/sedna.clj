@@ -8,7 +8,7 @@
 	   (java.util Properties)
 	   (java.awt.geom AffineTransform))
   (:use [infwb   slip-display])
-  (:require [clojure.string :as str])
+  (:require [clojure.contrib.string :as st])
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -849,7 +849,7 @@ with all slip titles visible. API"
 	y-seq       (repeat y)
 	layer-seq   (repeat layer-name)
 	]
-    (swank.core/break)
+;    (swank.core/break)
     (if (< 0 (count icards))
       (map clone-show-col icard-groups x-seq y-seq layer-seq))))
 
