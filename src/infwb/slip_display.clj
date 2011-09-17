@@ -25,6 +25,8 @@
 (def ^{:doc "height of one line of slip text"
        :dynamic true} *slip-line-height*   21)  ;;height of a slip--was 175
 
+(def *tooltip-width*   (* 1.4 *slip-width*))
+
 (def *title-width-in-chars*   28)
 (def *ellipsis-width*   3)
 (def *title-char-length*   (- *title-width-in-chars* *ellipsis-width*))
@@ -49,7 +51,7 @@
   "Create generic infocard object (ready to be added to a Piccolo layer)"
   [box-x box-y title-text body-text]
 
-  (let [cbox (PPath.)
+  (let [pobj (PPath.)
 	indent-x 5 
 	indent-y 4
 	adjust-in-pixels 10
@@ -67,16 +69,19 @@
 			       end-x (+ box-y divider-height))
 	backgd-color (Color. 245 245 245)
 	divider-color (Color. 255 100 100)]
-    
+
     (.translate title (+ box-x indent-x) (+ box-y indent-y))
     (.translate body (+ box-x indent-x) (+ box-y indent-y *slip-line-height*))
-    (.setPathToRectangle cbox
+    (.setPathToRectangle pobj
 			 box-x box-y
 			 *slip-width* *slip-height*)
-    (.setPaint cbox backgd-color)
+    (.setPaint pobj backgd-color)
     (.setStrokePaint line divider-color)
-    (.addChild cbox title)   ; = child 0
-    (.addChild cbox line)    ; = child 1
-    (.addChild cbox body)    ; = child 2
-    (.setChildrenPickable cbox false)
-    cbox))
+    (.addChild pobj title)		; = child 0
+    (.addChild pobj line)		; = child 1
+    (.addChild pobj body)		; = child 2
+    (.setChildrenPickable pobj false)
+
+    (. pobj addAttribute "title" title-text)
+    (. pobj addAttribute "body" body-text)
+    pobj))

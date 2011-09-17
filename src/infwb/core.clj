@@ -4,9 +4,10 @@
   (:gen-class)
   (:import
    (edu.umd.cs.piccolo         PCanvas PNode PLayer)
-   (edu.umd.cs.piccolo.event   PDragEventHandler)
+   (edu.umd.cs.piccolo.nodes   PText)
+   (edu.umd.cs.piccolo.event   PBasicInputEventHandler PDragEventHandler)
    (edu.umd.cs.piccolox.event  PSelectionEventHandler)
-   (edu.umd.cs.piccolox   PFrame)
+   (edu.umd.cs.piccolox        PFrame)
 
    (java.awt.geom   AffineTransform)
    (javax.swing   JFrame))
@@ -43,16 +44,44 @@
 	 :content canvas
 	 :menubar (menubar :items
 		  [(menu :text "Actions" :items [new-notecard-action])])
-	 :on-close :hide)
-  )
+	 :on-close :hide))
 
 (defn install-selection-event-handler
   ""
-  [canvas-name layer-name]
-  (let [pseh   (new PSelectionEventHandler layer-name layer-name)]
-    (. canvas-name addInputEventListener pseh)
-    (.. canvas-name (getRoot) (getDefaultInputManager)
-	(setKeyboardFocus pseh))))
+  [canvas layer]
+  (let [custom-handler   (new PSelectionEventHandler layer layer)]
+    (. canvas addInputEventListener custom-handler)
+    (.. canvas (getRoot) (getDefaultInputManager)
+	(setKeyboardFocus custom-handler))))
+
+(defn update-tooltip
+  ""
+  [event camera tooltip-node]
+  
+  (let [node   (. event getPickedNode)
+	tts   (. node getAttribute "title")
+	tooltip-string    (if (= tts "") "EMPTY" tts)
+	point   (. event getCanvasPosition)
+	x   (+ 8 (. point getX))
+	y   (+ 8 (. point getY))]
+    
+;    (swank.core/break)
+    (.. event (getPath) (canvasToLocal point camera))
+    (. tooltip-node setText tooltip-string)
+    (. tooltip-node setOffset x y)))
+
+(defn install-tooltip-handler
+  ""
+  [camera tooltip-node]
+  (let [custom-handler   ; its value is on next line
+	(proxy [PBasicInputEventHandler] []
+	  (mouseMoved [event]
+		      (proxy-super mouseMoved event)
+		      (update-tooltip event camera tooltip-node))
+	  (mouseDragged [event]
+			(proxy-super mouseDragged event)
+		      (update-tooltip event camera tooltip-node))) ]
+    (. camera addInputEventListener custom-handler)))
 
 (defn -main
   ""
@@ -64,11 +93,13 @@
 ;  (initialize)  
 
   (let [canvas       (new PCanvas)
+	camera       (. canvas getCamera)
+	tooltip-node (new PText)
 	pan-handler  (. canvas getPanEventHandler)
 	evt-handler  (. canvas getZoomEventHandler)
 	frame        (make-app canvas)
-	layer        (. canvas getLayer) ; objects are placed here
-	dragger      (new PDragEventHandler)
+	layer        (. canvas getLayer) ; desktop objs are children of this
+;	dragger      (new PDragEventHandler)
 	db-name      "brain"
 	coll-name    "daily"
 	]
@@ -79,12 +110,18 @@
     (SYSsetup-InfWb db-name coll-name)
     (. frame setSize 500 700)
     (. frame setVisible true)
-;    (. dragger setMoveToFrontOnPress true)
-    (.setPanEventHandler canvas nil)
-;    (. canvas addInputEventListener dragger)
+;    (.setPanEventHandler canvas nil)
     (println (display-all layer))
 ;    (swank.core/break)
+    (install-tooltip-handler camera tooltip-node)
     (install-selection-event-handler canvas layer)
-    layer   ; returns the value of the layer in which objects are placed
+
+    ; prepare tooltip (now empty) for use
+    (. tooltip-node setPickable false)
+    (. camera addChild tooltip-node)
+
+    (list canvas camera layer)
+    
+;    layer   ; returns layer in which objects are placed
     ))
 
