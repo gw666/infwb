@@ -59,15 +59,19 @@
   [event camera tooltip-node]
   
   (let [node   (. event getPickedNode)
-	tts   (. node getAttribute "title")
-	tooltip-string    (if (= tts "") "EMPTY" tts)
+	tooltip-string    (str (. node getAttribute "title")
+			       "\n\n"
+			       (. node getAttribute "body"))
 	point   (. event getCanvasPosition)
-	x   (+ 8 (. point getX))
-	y   (+ 8 (. point getY))]
+	x   (+ 20 (. point getX))
+	y   (+ 10 (. point getY))]
     
 ;    (swank.core/break)
-    (.. event (getPath) (canvasToLocal point camera))
+; NOTE: If something stops working, try uncommenting next line
+;    (.. event (getPath) (canvasToLocal point camera))
+    (. tooltip-node setConstrainWidthToTextWidth false)
     (. tooltip-node setText tooltip-string)
+    (. tooltip-node setBounds 0 0 *tooltip-width* 100)
     (. tooltip-node setOffset x y)))
 
 (defn install-tooltip-handler

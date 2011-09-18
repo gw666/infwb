@@ -25,7 +25,7 @@
 (def ^{:doc "height of one line of slip text"
        :dynamic true} *slip-line-height*   21)  ;;height of a slip--was 175
 
-(def *tooltip-width*   (* 1.4 *slip-width*))
+(def *tooltip-width*   (* 1.8 *slip-width*))
 
 (def *title-width-in-chars*   28)
 (def *ellipsis-width*   3)
