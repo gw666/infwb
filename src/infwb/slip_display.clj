@@ -1,5 +1,3 @@
-; was infocard.clj
-
 (ns infwb.slip-display
   (:gen-class)
   (:import

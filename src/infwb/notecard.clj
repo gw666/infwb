@@ -10,20 +10,9 @@
 (defn vanish [e]
   (.dispose (to-frame e)))
 
-(defn show-notecard
-  "TEMPORARY fcn to create and show a minimal notecard"
-  [e]
-  (let [pobj   (make-pinfocard 50 100 "New notecard" "It worked!")
-	frame  (to-frame e)
-	canvas (.getContentPane frame)
-	layer  (.getLayer canvas)
-	]
-    (.addChild layer pobj)
-    (vanish e)
-    ))
-
-(defn notecard-frame
-  "creates a panel for entering data for a new notecard; returns a border-panel"[]
+(defn notecard-dialog
+  "creates a panel for entering data for a new notecard"
+  []
   (let [title-field    (text   :text "")
 	content-field  (scrollable
 			(text   :text ""
@@ -54,13 +43,18 @@
 			  (horizontal-panel
 			   :items [cancel-button notecard-button])
 			  ])]
-    (frame :id :notecard
-		  :title "New Notecard"
-		  :minimum-size [400 :by 500]
-		  :content   content-panel
-		  :visible?   true
-		  :on-close   :hide)
-	   ))
+    (dialog :id :notecard
+	    :title "New Notecard"
+	    :option-type   :ok-cancel
+	    :type   :plain
+;	    :minimum-size [400 :by 500]
+	    :content   content-panel
+	    :success-fn   (fn [pane]
+			    (text title-field))
+	    :visible?   true
+	    :on-close   :hide
+	    )
+    ))
 
 ;; (defn app []
 ;;   (frame :title "MigLayout Example" :resizable? true :content (frame-content)))
