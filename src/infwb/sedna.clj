@@ -62,7 +62,7 @@
 ;; *slip-width*, *slip-height*, *slip-line-height* are defined in
 ;; slip_display.clj
 ;;
-;; slip_display.clj MUST BE COMILED for everything to work
+;; slip_display.clj MUST BE COMPILED for everything to work
 ;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -867,7 +867,7 @@ with all slip titles visible. API"
 	y-seq       (repeat y)
 	layer-seq   (repeat layer-name)
 	]
-
+    (swank.core/break)
     (if (< 0 (count icards))
       (map clone-show-col icard-groups x-seq y-seq layer-seq))))
 
@@ -882,7 +882,7 @@ and displays a slip for each icard. API"
     (doseq [icard icards]
       (clone-show icard layer-name 0 0))))
 
-(defn display-new   ; API
+(defn display-new			; API
   "For all new icards, creates and displays a slip for each. Used only
 after user has added new icards to the remote database. API"
   [layer-name]
@@ -890,7 +890,8 @@ after user has added new icards to the remote database. API"
     (if (not (empty? new-icards))
       (doseq [icard new-icards]
 	(clone-show icard layer-name 0 0))
-      (println "Warning: no new icards to show"))))
+;	(println icard))
+	(println "Warning: no new icards to show"))))
 
 (defn clear-layer   ; API
   "Removes all slips (and other Piccolo objects) from the layer. API"

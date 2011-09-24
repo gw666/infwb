@@ -47,12 +47,12 @@
 	    :title "New Notecard"
 	    :option-type   :ok-cancel
 	    :type   :plain
-;	    :minimum-size [400 :by 500]
+	    :minimum-size [400 :by 500]
 	    :content   content-panel
 	    :success-fn   (fn [pane]
 			    (text title-field))
 	    :visible?   true
-	    :on-close   :hide
+;	    :on-close   :hide
 	    )
     ))
 

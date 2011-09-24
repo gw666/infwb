@@ -27,22 +27,14 @@
 (defn make-app
   "Creates, displays top-level Infocard Workbench application"
   [canvas]
-  (let [mylayer   (. canvas getLayer)
-;	open-h   (fn [e] (display-all mylayer))
-	open-h   (fn [e]
-		   (let [root (to-root e)
-			 otherlayer (. (. root getContentPane)
-				       getLayer)]
-;		     (println (= mylayer otherlayer))
-		     (. otherlayer addChild
-			(new PText
-			     (if (= mylayer otherlayer)
-			       "true" "false")))))
+  (let [open-h   (fn [e]
+		   (let [mylayer   (. canvas getLayer)]
+		     (shortname-handler mylayer)))
 	open-a   (action :handler open-h  :name "Open"  :key "menu O")
-	bar    (menubar :items [(menu :text "File" :items [open-a])])
-    	myframe (frame :title "Infocard Workbench" 
+	mybar    (menubar :items [(menu :text "File" :items [open-a])])
+    	myframe  (frame :title "Infocard Workbench" 
 		       :content canvas
-		       :menubar bar)]
+		       :menubar mybar)]
     myframe))
 
 (defn install-selection-event-handler
