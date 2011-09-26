@@ -802,7 +802,6 @@ field keys :x and :y to get position of slip. API"
 	pobj   (SYSsldata-field sldata :pobj)]
     (.addChild layer-name pobj)))
 
-; not used by anything--110910
 (defn show-seq   ; API
   "Display seq of slips, starting at (x y), using dx, dy as offset
 for each next slip to be displayed. API"
@@ -834,21 +833,35 @@ slip that was created. API"
 ; NOTE: changes to clone and clone-show should be synchronized
      (clone-show icard layer-name 0 0)))
 
-(defn clone-show-seq
-  ""
+(defn clone-show-col   ; API
+  "Clones a seq of icards, displays them in one column of overlapping
+slips. API"
   [icard-seq   x y   dx dy   layer-name]
   (let [x-seq   (iterate #(+ % dx) x)
 	y-seq   (iterate #(+ % dy) y)
         layer-seq  (repeat layer-name)]
-    (map clone-show icard-seq layer-seq x-seq y-seq))
+    (map clone-show icard-seq layer-seq x-seq y-seq)))
 
-  )
-
-(defn clone-show-col
+(defn slip-show-col
   ""
-  [icard-seq x y layer-name]
+  [slip-seq x y layer-name]
   (let [dy (+ *slip-line-height* 2)]
-    (clone-show-seq icard-seq x y   0 dy layer-name)))
+    (show-seq slip-seq x y   0 dy layer-name)))
+
+(defn display-seq	; API
+  "Displays columns of overlapping slips with all slip titles visible. API"
+  [slip-seq layer-name]
+  (let [max-in-col   10
+	slip-groups (partition max-in-col slip-seq)
+	x           10
+	y           20
+	x-offset    5	      ; space between two adj columns of slips
+	x-seq       (iterate #(+ % *slip-width* x-offset) x)
+	y-seq       (repeat y)
+	layer-seq   (repeat layer-name)
+	]
+    (if (< 0 (count icards))
+      (map slip-show-col slip-groups x-seq y-seq layer-seq))))
 
 (defn display-all			; API
   "Resets the environment, gets all icards from the remote db, and creates
@@ -867,7 +880,6 @@ with all slip titles visible. API"
 	y-seq       (repeat y)
 	layer-seq   (repeat layer-name)
 	]
-    (swank.core/break)
     (if (< 0 (count icards))
       (map clone-show-col icard-groups x-seq y-seq layer-seq))))
 

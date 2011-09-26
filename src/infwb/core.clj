@@ -55,6 +55,7 @@
 	layer        (. canvas getLayer) ; objects are placed here
 	pan-handler  (. canvas getPanEventHandler)
 	evt-handler  (. canvas getZoomEventHandler)
+	dragger      (PDragEventHandler.)
 	frame        (make-app canvas)
 	db-name      "brain"
 	coll-name    "daily"
@@ -66,7 +67,7 @@
     (SYSsetup-InfWb db-name coll-name)
     (. frame setSize 500 700)
     (. frame setVisible true)
-;    (. dragger setMoveToFrontOnPress true)
+    (. dragger setMoveToFrontOnPress true)
     (.setPanEventHandler canvas nil)
 ;    (. canvas addInputEventListener dragger)
 ;    (println (display-all layer))
