@@ -27,14 +27,23 @@
 (defn make-app
   "Creates, displays top-level Infocard Workbench application"
   [canvas]
-  (let [open-h   (fn [e]
+  (let [
+; ----- File>Open: shortname-dialog and -handler -----
+	open-h   (fn [e]
 		   (let [mylayer   (. canvas getLayer)]
 		     (shortname-handler mylayer)))
 	open-a   (action :handler open-h  :name "Open"  :key "menu O")
-	mybar    (menubar :items [(menu :text "File" :items [open-a])])
+; ----- File>Reload: reload-dialog and -handler   
+	reload-h   (fn [e]
+		   (let [mylayer   (. canvas getLayer)]
+		     (reload-handler mylayer)))
+	reload-a   (action :handler open-h  :name "Reload"  :key "menu R")
+; ---------------------------------------------	
+	mybar    (menubar :items [(menu :text "File"
+					:items [open-a reload-a])])
     	myframe  (frame :title "Infocard Workbench" 
-		       :content canvas
-		       :menubar mybar)]
+			:content canvas
+			:menubar mybar)]
     myframe))
 
 (defn install-selection-event-handler
@@ -65,6 +74,8 @@
     (. canvas removeInputEventListener evt-handler)
 
     (SYSsetup-InfWb db-name coll-name)
+    (SYSsetup-misc-dialogs)
+    
     (. frame setSize 500 700)
     (. frame setVisible true)
     (. dragger setMoveToFrontOnPress true)
