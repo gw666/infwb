@@ -5,7 +5,7 @@
   (:import
    (edu.umd.cs.piccolo         PCanvas PNode PLayer)
    (edu.umd.cs.piccolo.nodes   PText)
-   (edu.umd.cs.piccolo.event   PBasicInputEventHandler PDragEventHandler)
+   (edu.umd.cs.piccolo.event   PDragEventHandler)
    (edu.umd.cs.piccolox.event  PSelectionEventHandler)
    (edu.umd.cs.piccolox        PFrame)
 
@@ -13,38 +13,41 @@
    (javax.swing   JFrame))
 
   (:use seesaw.core)
-  (:use [infwb   sedna infoml-utilities notecard slip-display])
+;  (:use [infwb   sedna
+;	 slip-display infoml-utilities  notecard] :reload-all)
+  (:require [infwb.misc-dialogs :as md] :reload-all)
+  (:require [infwb.sedna :as db] :reload-all)
   (:use [clojure.set :only (difference)])
-  (:require [clojure.string :as str])
+;  (:require [clojure.string :as str])
   )
 
-(defn new-notecard-handler
-  "displays new-notecard window"
-  [e]
-  (let [notecard-frame
-	(frame :title "New Notecard"
-;;	       :visible true
-	       :resizable? true
-	       :minimum-size [600 :by 700]
-	       :content (notecard-panel)
-	       :on-close :hide)]
-    (show! notecard-frame)
-    ))
-
-(def ^{:doc "creates New Notecard menu item, links it to new-notecard-handler"}
-  new-notecard-action
-  (action :name "New Notecard"
-	  :key  "menu N"
-	  :handler new-notecard-handler))
+;; (def ^{:doc "creates New Notecard menu item, links it to new-notecard-handler"}
+;;   new-notecard-action
+;;   (action :name "New Notecard"
+;; 	  :key  "menu N"
+;; 	  :handler notecard-dialog))
 
 (defn make-app
   "Creates, displays top-level Infocard Workbench application"
   [canvas]
-  (frame :title "Infocard Workbench", 
-	 :content canvas
-	 :menubar (menubar :items
-		  [(menu :text "Actions" :items [new-notecard-action])])
-	 :on-close :hide))
+  (let [
+; ----- File>Open: shortname-dialog and -handler -----
+	open-h   (fn [e]
+		   (let [mylayer   (. canvas getLayer)]
+		     (md/shortname-handler mylayer)))
+	open-a   (action :handler open-h  :name "Open"  :key "menu O")
+; ----- File>Reload: reload-dialog and -handler   
+	reload-h   (fn [e]
+		   (let [mylayer   (. canvas getLayer)]
+		     (md/reload-handler mylayer)))
+	reload-a   (action :handler reload-h  :name "Reload"  :key "menu R")
+; ---------------------------------------------	
+	mybar    (menubar :items [(menu :text "File"
+					:items [open-a reload-a])])
+    	myframe  (frame :title "Infocard Workbench" 
+			:content canvas
+			:menubar mybar)]
+    myframe))
 
 (defn install-selection-event-handler
   ""
@@ -93,17 +96,12 @@
 
   (native!)
 
-; during debugging, do this manually, once only
-;  (initialize)  
-
   (let [canvas       (new PCanvas)
-	camera       (. canvas getCamera)
-	tooltip-node (new PText)
+	layer        (. canvas getLayer) ; objects are placed here
 	pan-handler  (. canvas getPanEventHandler)
 	evt-handler  (. canvas getZoomEventHandler)
+;	dragger      (PDragEventHandler.)
 	frame        (make-app canvas)
-	layer        (. canvas getLayer) ; desktop objs are children of this
-;	dragger      (new PDragEventHandler)
 	db-name      "brain"
 	coll-name    "daily"
 	]
@@ -112,12 +110,14 @@
     (. canvas removeInputEventListener evt-handler)
 
     (SYSsetup-InfWb db-name coll-name)
+    (md/SYSsetup-misc-dialogs)
+    
     (. frame setSize 500 700)
     (. frame setVisible true)
-;    (.setPanEventHandler canvas nil)
-    (println (display-all layer))
-;    (swank.core/break)
-    (install-tooltip-handler camera tooltip-node)
+;    (. dragger setMoveToFrontOnPress true)
+    (.setPanEventHandler canvas nil)
+;    (. canvas addInputEventListener dragger)
+;    (println (display-all layer))
     (install-selection-event-handler canvas layer)
 
     ; prepare tooltip (now empty) for use

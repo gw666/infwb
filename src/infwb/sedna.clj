@@ -7,8 +7,8 @@
 	   (net.cfoster.sedna.xqj SednaXQDataSource)
 	   (java.util Properties)
 	   (java.awt.geom AffineTransform))
-  (:use [infwb   slip-display])
-  (:require [clojure.contrib.string :as st])
+  (:require [infwb.slip-display :as slip])
+;  (:require [clojure.contrib.string :as st])
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -62,7 +62,7 @@
 ;; *slip-width*, *slip-height*, *slip-line-height* are defined in
 ;; slip_display.clj
 ;;
-;; slip_display.clj MUST BE COMILED for everything to work
+;; slip_display.clj MUST BE COMPILED for everything to work
 ;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -438,7 +438,7 @@ executed when a new slip is created."
   ([icard x y]
   (let [icdata (get-icdata icard)
 	rand-key   (rand-kayko 3)
-	pobj   (make-pinfocard
+	pobj   (slip/make-pinfocard
 		x
 		y
 		(icdata-field icdata :ttxt)
@@ -498,7 +498,7 @@ fcn that *must* be executed when a new icard is created."
 
 (defn load-icard-seq-to-localDB
   "populates *localDB* with infocards given by the sequence"
-  [icard-seq]
+ [icard-seq]
       (doseq [icard icard-seq]
 	(permDB->localDB icard)))
 
@@ -656,7 +656,7 @@ API"
 
 ;; WARN: "bare" use of `:slip` to get data from within sldata
 (defn icard->sldata->localDB
-  "Given icard, creates sldata, adds sldata to *localDB-icdata*; returns
+  "Given icard, creates sldata, adds sldata to *localDB-sldata*; returns
 slip of new sldata. Does *not* check to see if icard is already in
 *localDB-icdata*."
   [icard]
@@ -668,7 +668,7 @@ slip of new sldata. Does *not* check to see if icard is already in
   (let [all-icards (permDB->all-icards)]
     (doseq [icard all-icards]
       ;; icard is not added to *localDB-icdata* if it is already there
-      ;; (i.e., (localDB->icdata icard) = nil, which evals as false
+      ;; (i.e., (localDB->icdata icard) = nil, which evals as false)
       (if (localDB->icdata icard)
 	(icard->sldata->localDB icard)))))
 
@@ -802,7 +802,6 @@ field keys :x and :y to get position of slip. API"
 	pobj   (SYSsldata-field sldata :pobj)]
     (.addChild layer-name pobj)))
 
-; not used by anything--110910
 (defn show-seq   ; API
   "Display seq of slips, starting at (x y), using dx, dy as offset
 for each next slip to be displayed. API"
@@ -834,22 +833,37 @@ slip that was created. API"
 ; NOTE: changes to clone and clone-show should be synchronized
      (clone-show icard layer-name 0 0)))
 
-(defn clone-show-seq
-  ""
+(defn clone-show-col   ; API
+  "Clones a seq of icards, displays them in one column of overlapping
+slips. API"
   [icard-seq   x y   dx dy   layer-name]
   (let [x-seq   (iterate #(+ % dx) x)
 	y-seq   (iterate #(+ % dy) y)
         layer-seq  (repeat layer-name)]
-    (map clone-show icard-seq layer-seq x-seq y-seq))
+    (map clone-show icard-seq layer-seq x-seq y-seq)))
 
-  )
-
-(defn clone-show-col
+(defn slip-show-col
   ""
-  [icard-seq x y layer-name]
-  (let [dy (+ *slip-line-height* 2)]
-    (clone-show-seq icard-seq x y   0 dy layer-name)))
+  [slip-seq x y layer-name]
+  (let [dy (+ slip/*slip-line-height* 2)]
+    (doall (show-seq slip-seq x y   0 dy layer-name))))
 
+(defn display-seq	; API
+  "Displays columns of overlapping slips with all slip titles visible. API"
+  [slip-seq layer-name]
+  (let [max-in-col   10
+	slip-groups (partition-all max-in-col slip-seq)
+	x           10
+	y           20
+	x-offset    5	      ; space between two adj columns of slips
+	x-seq       (iterate #(+ % slip/*slip-width* x-offset) x)
+	y-seq       (repeat y)
+	layer-seq   (repeat layer-name)
+	]
+    (if (seq? slip-seq)   ;i.e., if not empty
+      (map slip-show-col slip-groups x-seq y-seq layer-seq))))
+
+; OLD--not used; may not work; as of 110925
 (defn display-all			; API
   "Resets the environment, gets all icards from the remote db, and creates
 and displays a slip for each icard. Displays columns of overlapping slips
@@ -859,38 +873,36 @@ with all slip titles visible. API"
 	_         (SYSsetup-InfWb db-name *icard-coll-name*)
 	icards    (get-all-icards)
 	max-in-col   10
-	icard-groups (partition max-in-col icards)
+	icard-groups (partition-all max-in-col icards)
 	x           10
 	y           20
 	x-offset    5	      ; space between two adj columns of slips
-	x-seq       (iterate #(+ % *slip-width* x-offset) x)
+	x-seq       (iterate #(+ % slip/*slip-width* x-offset) x)
 	y-seq       (repeat y)
 	layer-seq   (repeat layer-name)
 	]
-
     (if (< 0 (count icards))
       (map clone-show-col icard-groups x-seq y-seq layer-seq))))
 
-(defn display-all-at-0-0   ; API
-  "Resets the environment, gets all icards from the remote db, and creates
-and displays a slip for each icard. API"
-  [layer-name]
-  (let [db-name   "brain"
-	_         (SYSsetup-InfWb db-name *icard-coll-name*)
-	icards    (get-all-icards)
-	]
-    (doseq [icard icards]
-      (clone-show icard layer-name 0 0))))
+(defn icards->new-slips   ; API
+  "Creates slips from icards, returns: list of slips. Does NOT display
+slips. API"
+  [icard-seq]
+  (loop [slips nil, icards icard-seq]
+    (if (empty? icards)
+      slips
+      (recur (cons (clone (first icards)) slips) (rest icards)))))
 
-(defn display-new   ; API
-  "For all new icards, creates and displays a slip for each. Used only
-after user has added new icards to the remote database. API"
+     
+(defn display-new			; API
+  "For all icards in remote DB that do *not* have slips already on deskotp,
+creates and displays a slip for each. API"
   [layer-name]
   (let [new-icards (load-new-icards)]
-    (if (not (empty? new-icards))
-      (doseq [icard new-icards]
-	(clone-show icard layer-name 0 0))
-      (println "Warning: no new icards to show"))))
+    (if (seq? new-icards)		; i.e., if not empty
+      (let [new-slips (icards->new-slips new-icards)]
+	(doall (display-seq new-slips layer-name)))
+    (println "Warning: no new icards to show"))))
 
 (defn clear-layer   ; API
   "Removes all slips (and other Piccolo objects) from the layer. API"
@@ -900,8 +912,7 @@ after user has added new icards to the remote database. API"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-; 
-
+; FCNS RETURNING DATA ABOUT SLIPS AND POBJs
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -950,6 +961,12 @@ after user has added new icards to the remote database. API"
 	]
     (vector   icard x y)
     ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; SAVE AND RESTORE DESKTOP CONTENTS
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn save-desktop   ; API
   "Returns a vector of items. Each item names an icard and its x and y
