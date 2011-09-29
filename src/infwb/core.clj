@@ -13,9 +13,12 @@
    (javax.swing   JFrame))
 
   (:use seesaw.core)
-  (:use [infwb   sedna infoml-utilities notecard misc-dialogs slip-display])
+;  (:use [infwb   sedna
+;	 slip-display infoml-utilities  notecard] :reload-all)
+  (:require [infwb.misc-dialogs :as md] :reload-all)
+  (:require [infwb.sedna :as db] :reload-all)
   (:use [clojure.set :only (difference)])
-  (:require [clojure.string :as str])
+;  (:require [clojure.string :as str])
   )
 
 ;; (def ^{:doc "creates New Notecard menu item, links it to new-notecard-handler"}
@@ -31,13 +34,13 @@
 ; ----- File>Open: shortname-dialog and -handler -----
 	open-h   (fn [e]
 		   (let [mylayer   (. canvas getLayer)]
-		     (shortname-handler mylayer)))
+		     (md/shortname-handler mylayer)))
 	open-a   (action :handler open-h  :name "Open"  :key "menu O")
 ; ----- File>Reload: reload-dialog and -handler   
 	reload-h   (fn [e]
 		   (let [mylayer   (. canvas getLayer)]
-		     (reload-handler mylayer)))
-	reload-a   (action :handler open-h  :name "Reload"  :key "menu R")
+		     (md/reload-handler mylayer)))
+	reload-a   (action :handler reload-h  :name "Reload"  :key "menu R")
 ; ---------------------------------------------	
 	mybar    (menubar :items [(menu :text "File"
 					:items [open-a reload-a])])
@@ -64,7 +67,7 @@
 	layer        (. canvas getLayer) ; objects are placed here
 	pan-handler  (. canvas getPanEventHandler)
 	evt-handler  (. canvas getZoomEventHandler)
-	dragger      (PDragEventHandler.)
+;	dragger      (PDragEventHandler.)
 	frame        (make-app canvas)
 	db-name      "brain"
 	coll-name    "daily"
@@ -74,11 +77,11 @@
     (. canvas removeInputEventListener evt-handler)
 
     (SYSsetup-InfWb db-name coll-name)
-    (SYSsetup-misc-dialogs)
+    (md/SYSsetup-misc-dialogs)
     
     (. frame setSize 500 700)
     (. frame setVisible true)
-    (. dragger setMoveToFrontOnPress true)
+;    (. dragger setMoveToFrontOnPress true)
     (.setPanEventHandler canvas nil)
 ;    (. canvas addInputEventListener dragger)
 ;    (println (display-all layer))

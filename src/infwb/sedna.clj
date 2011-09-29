@@ -7,8 +7,8 @@
 	   (net.cfoster.sedna.xqj SednaXQDataSource)
 	   (java.util Properties)
 	   (java.awt.geom AffineTransform))
-  (:use [infwb   slip-display])
-  (:require [clojure.contrib.string :as st])
+  (:require [infwb.slip-display :as slip])
+;  (:require [clojure.contrib.string :as st])
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -438,7 +438,7 @@ executed when a new slip is created."
   ([icard x y]
   (let [icdata (get-icdata icard)
 	rand-key   (rand-kayko 3)
-	pobj   (make-pinfocard
+	pobj   (slip/make-pinfocard
 		x
 		y
 		(icdata-field icdata :ttxt)
@@ -498,7 +498,7 @@ fcn that *must* be executed when a new icard is created."
 
 (defn load-icard-seq-to-localDB
   "populates *localDB* with infocards given by the sequence"
-  [icard-seq]
+ [icard-seq]
       (doseq [icard icard-seq]
 	(permDB->localDB icard)))
 
@@ -845,8 +845,8 @@ slips. API"
 (defn slip-show-col
   ""
   [slip-seq x y layer-name]
-  (let [dy (+ *slip-line-height* 2)]
-    (show-seq slip-seq x y   0 dy layer-name)))
+  (let [dy (+ slip/*slip-line-height* 2)]
+    (doall (show-seq slip-seq x y   0 dy layer-name))))
 
 (defn display-seq	; API
   "Displays columns of overlapping slips with all slip titles visible. API"
@@ -856,7 +856,7 @@ slips. API"
 	x           10
 	y           20
 	x-offset    5	      ; space between two adj columns of slips
-	x-seq       (iterate #(+ % *slip-width* x-offset) x)
+	x-seq       (iterate #(+ % slip/*slip-width* x-offset) x)
 	y-seq       (repeat y)
 	layer-seq   (repeat layer-name)
 	]
@@ -877,23 +877,12 @@ with all slip titles visible. API"
 	x           10
 	y           20
 	x-offset    5	      ; space between two adj columns of slips
-	x-seq       (iterate #(+ % *slip-width* x-offset) x)
+	x-seq       (iterate #(+ % slip/*slip-width* x-offset) x)
 	y-seq       (repeat y)
 	layer-seq   (repeat layer-name)
 	]
     (if (< 0 (count icards))
       (map clone-show-col icard-groups x-seq y-seq layer-seq))))
-
-;; (defn display-new			; API
-;;   "For all icards in remote DB that do *not* have slips already on deskotp,
-;; creates and displays a slip for each. API"
-;;   [layer-name]
-;;   (let [new-icards (load-new-icards)]
-;;     (if (not (empty? new-icards))
-;;       (doseq [icard new-icards]
-;; 	(clone-show icard layer-name 0 0))
-;; ;	(println icard))
-;; 	(println "Warning: no new icards to show"))))
 
 (defn icards->new-slips   ; API
   "Creates slips from icards, returns: list of slips. Does NOT display
