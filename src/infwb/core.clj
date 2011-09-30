@@ -36,19 +36,46 @@
 		   (let [mylayer   (. canvas getLayer)]
 		     (md/shortname-handler mylayer)))
 	open-a   (action :handler open-h  :name "Open"  :key "menu O")
+	
 ; ----- File>Reload: reload-dialog and -handler   
 	reload-h   (fn [e]
 		   (let [mylayer   (. canvas getLayer)]
 		     (md/reload-handler mylayer)))
 	reload-a   (action :handler reload-h  :name "Reload"  :key "menu R")
+	
+; ----- Actions>Save Snapshot	
+	savesnap-h   (fn [e]
+		   (let [mylayer   (. canvas getLayer)]
+		     (md/savesnap-handler mylayer)))
+	savesnap-a   (action :handler savesnap-h
+			     :name "Save Snapshot"  :key "menu S")
+	
+; ----- Actions>Restore Snapshot: reload-dialog and -handler   
+	restoresnap-h   (fn [e]
+		   (let [mylayer   (. canvas getLayer)]
+		     (md/restoresnap-handler mylayer)))
+	restoresnap-a   (action :handler restoresnap-h
+				:name "Restore Snapshot"  :key "menu L")
+
+; ----- Actions>Clear Desktop       
+	clear-h   (fn [e]
+		   (let [mylayer   (. canvas getLayer)]
+		     (db/clear-layer mylayer)
+		     (db/SYSsetup-InfWb (db/get-icard-db-name)
+					(db/get-icard-coll-name))))
+	clear-a   (action :handler clear-h
+				:name "Erase All")
+	
 ; ---------------------------------------------	
 	mybar    (menubar :items [(menu :text "File"
-					:items [open-a reload-a])])
+					:items [open-a reload-a])
+				  (menu :text "Actions"
+					:items [savesnap-a restoresnap-a
+						clear-a])])
     	myframe  (frame :title "Infocard Workbench" 
 			:content canvas
 			:menubar mybar)]
     myframe))
-
 (defn install-selection-event-handler
   ""
   [canvas-name layer-name]

@@ -181,6 +181,12 @@ collection to be used"
   [name]
   (def *icard-coll-name*   name))
 
+(defn get-icard-db-name []
+  *icard-db-name*)
+
+(defn get-icard-coll-name []
+  *icard-coll-name*)
+
 (defn SYSsetup-InfWb
   "Does all InfWb-specific setup for current session of work; should be
 executed once. WARNING: deletes the session db of icards and slips."
@@ -974,7 +980,7 @@ location. Items are listed in order needed to recreate desktop (first item =
 bottom, last = top). API"
   [base-name layer-name]
   (let [num-children (. layer-name getChildrenCount)
-	desktop-dir  "/Users/gw/Dropbox/infwb-stuff/desk-snapshots/"
+	desktop-dir  "./snapshots/"
 	file-path    (str desktop-dir base-name ".txt")]
     (loop [i 0, result (vector)]
       (if (< i num-children)
@@ -985,7 +991,7 @@ bottom, last = top). API"
 (defn get-desktop-data
   "Returns the contents of the saved-desktop file given by base-name."
   [base-name]
-  (let [desktop-dir  "/Users/gw/Dropbox/infwb-stuff/desk-snapshots/"
+  (let [desktop-dir  "./snapshots/"
 	file-path    (str desktop-dir base-name ".txt")]
     (read-string (slurp file-path))))
  
