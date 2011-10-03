@@ -60,9 +60,7 @@
 ; ----- Actions>Clear Desktop       
 	clear-h   (fn [e]
 		   (let [mylayer   (. canvas getLayer)]
-		     (db/clear-layer mylayer)
-		     (db/SYSsetup-InfWb (db/get-icard-db-name)
-					(db/get-icard-coll-name))))
+		     (db/clear-layer mylayer)))
 	clear-a   (action :handler clear-h
 				:name "Erase All")
 	
@@ -103,7 +101,7 @@
     (. canvas removeInputEventListener pan-handler)
     (. canvas removeInputEventListener evt-handler)
 
-    (SYSsetup-InfWb db-name coll-name)
+    (db/SYSsetup-InfWb db-name coll-name)
     (md/SYSsetup-misc-dialogs)
     
     (. frame setSize 500 700)

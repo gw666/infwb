@@ -1,5 +1,4 @@
 ;; see http://www.cfoster.net/articles/xqj-tutorial/simple-xquery.xml
-
 (ns infwb.sedna
   (:gen-class)
   (:import (javax.xml.xquery XQConnection XQDataSource
@@ -138,7 +137,13 @@ Examples are:       (atom {k1 v1, k2 v2})
     (def *icard-to-slip-map* (atom {})))
 
 (defn reset-slip-attributes []
-    (def *slip-attrs* (atom {})))
+  (def *slip-attrs* (atom {})))
+
+;; (defn get-slip-from-icard
+;;   ""
+;;   (let [STARTHERE :DELETETHIS
+;; 	]
+;;     ))
 
 (defn SYSclear-all
   "Clears all icard, slip, slip-registry, and slip-attribute data."
@@ -258,6 +263,12 @@ The connection specifies db to be queried."
     (.close conn)
     result))
 
+(defn docquery []
+  (let [query "declare default element namespace 'http://infoml.org/infomlFile';
+for $base in doc('t', 'brain') as document-node()/infomlFile/infoml[@cardId = 'gw667_110929221638791']
+return ($base/data/title/string(), $base/data/content/string(), $base/selectors/tag/string())" ]
+    (SYSrun-query query *icard-connection*)))
+
 (defn SYSnew-icard-collection
   "Create a new, empty collection in the icard db currently in use
 by Infocard Workbench."
@@ -288,7 +299,7 @@ The document is the directory given by infocard-dir (binding)"
 		       file-path "' '"
 		       base-name
 		       "' '" *icard-coll-name* "'")]
-    (println query-str)
+;    (println query-str)
     (SYSrun-command query-str *icard-connection*)))
 
 (defn SYSreload
@@ -298,12 +309,11 @@ The document is the directory given by infocard-dir (binding)"
   (SYSload base-name))
 
 
-; NOTE: Don't trust Emacs paren matching here--fouled up by parens in quotes
-(defn run-infocard-query   ; API
+(defn run-infocard-query		; API
   "Returns results of an InfoML query. API
 
-filter arg selects records; return arg extracts data from selected records
-(current infoml element is held in variable $base).  Hardwired to use
+filter arg selects records; return arg extracts data from selected records;
+current infoml element is held in variable $base.  Hardwired to use
 *icard-connection* and *icard-coll-name*"
   [filter return]
 
@@ -315,6 +325,7 @@ filter arg selects records; return arg extracts data from selected records
 	 "')/infomlFile/"
 	 filter "\n"
 	 "return " return)]
+    (println infoml-query)
     (SYSrun-query infoml-query *icard-connection*)))
 
 (defn SYSpeek-into-db
@@ -440,7 +451,8 @@ permDB, substitutes a default 'invalid' record. API"
 (defn new-sldata
   "Create sldata from infocard, with its pobj at (x y), or default to (0 0);
 also saves new sldata in *localDB-sldata*. This is the fcn that *must* be
-executed when a new slip is created."
+executed when a new slip is created. Does *not* check to see if icard
+already has a slip. Returns: new sl-data record."
   ([icard x y]
   (let [icdata (get-icdata icard)
 	rand-key   (rand-kayko 3)
@@ -513,8 +525,6 @@ fcn that *must* be executed when a new icard is created."
   []
   (load-icard-seq-to-localDB (permDB->all-icards)))
 
-(declare get-all-icards)
-
 (defn get-icards-in-localDB
   "Returns all the icards stored locally."
   []
@@ -576,13 +586,24 @@ API"
   [icard field-key]
   (field-key (get-icdata icard)))
 
+;; (defn get-all-icards   ; API
+;;   "Returns a seq of all the currently available icards (i.e., already
+;; loaded in localDB); use permDB->all-icards to get all icards that
+;; are in the remote DB. API"
+;;   []
+;;   ; If the local cache is empty, load all icards from permDB
+;;   (if (= @*localDB-icdata* {})
+;;     (load-all-icards))
+;;   (keys @*localDB-icdata*))
+
+; needs tests
 (defn get-all-icards   ; API
-  "Returns a seq of all the currently available icards. API"
+  ". API"
   []
   ; If the local cache is empty, load all icards from permDB
-  (if (= @*localDB-icdata* {})
+  (if (not= (count get-icards-in-localDB) (count (permDB->all-icards)))
     (load-all-icards))
-  (keys @*localDB-icdata*))
+  (get-icards-in-localDB))
 
 (defn slip->icdata
   "given a slip, return its icdata from the localDB"
@@ -710,7 +731,8 @@ entry in *localDB-sldata*, even though this fcn returns an sldata."
       (make-invalid-sldata slip))))
 
 (defn get-all-slips   ; API
-  "Returns a seq of all the currently available slips. API"
+  "Returns a seq of all the currently available slips (i.e., all slips
+in localDB). API"
   []
     (keys @*localDB-sldata*))
 
@@ -869,32 +891,34 @@ slips. API"
     (if (seq? slip-seq)   ;i.e., if not empty
       (map slip-show-col slip-groups x-seq y-seq layer-seq))))
 
-; OLD--not used; may not work; as of 110925
 (defn display-all			; API
-  "Resets the environment, gets all icards from the remote db, and creates
-and displays a slip for each icard. Displays columns of overlapping slips
+  "Displays a slip for each icard. Displays columns of overlapping slips
 with all slip titles visible. API"
   [layer-name]
-  (let [db-name   "brain"
-	_         (SYSsetup-InfWb db-name *icard-coll-name*)
-	icards    (get-all-icards)
-	max-in-col   10
-	icard-groups (partition-all max-in-col icards)
-	x           10
-	y           20
-	x-offset    5	      ; space between two adj columns of slips
-	x-seq       (iterate #(+ % slip/*slip-width* x-offset) x)
-	y-seq       (repeat y)
-	layer-seq   (repeat layer-name)
-	]
-    (if (< 0 (count icards))
-      (map clone-show-col icard-groups x-seq y-seq layer-seq))))
+  (let [all-icards (get-all-icards)
+	all-slips :REPLACETHIS]
+    
+    (doall (display-seq all-slips layer-name))
+    ))
+
+;; needs tests
+;; (defn icards->slips   ; API
+;;   "Returns a list of slips corresponding to the icards in icard-seq. Existing
+;; slips are used, and new ones are created when necessary. API"
+;;   [icard-seq]
+;;   (loop [slips nil,   icards icard-seq]
+;;     (let [icard (first icard)
+;; 	  remaining-icards (rest icards)
+;; 	  ]
+;;       ###
+;;       )))
+
 
 (defn icards->new-slips   ; API
-  "Creates slips from icards, returns: list of slips. Does NOT display
+  "Creates new slips from icards, returns: list of slips. Does NOT display
 slips. API"
   [icard-seq]
-  (loop [slips nil, icards icard-seq]
+  (loop [slips nil,   icards icard-seq]
     (if (empty? icards)
       slips
       (recur (cons (clone (first icards)) slips) (rest icards)))))
