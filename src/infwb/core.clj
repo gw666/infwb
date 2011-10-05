@@ -37,11 +37,11 @@
 		     (md/shortname-handler mylayer)))
 	open-a   (action :handler open-h  :name "Open"  :key "menu O")
 	
-; ----- File>Reload: reload-dialog and -handler   
+; ----- File>Show New Infocards: reload-dialog and -handler   
 	reload-h   (fn [e]
 		   (let [mylayer   (. canvas getLayer)]
 		     (md/reload-handler mylayer)))
-	reload-a   (action :handler reload-h  :name "Reload"  :key "menu R")
+	reload-a   (action :handler reload-h  :name "Show New Infocards"  :key "menu N")
 	
 ; ----- Actions>Save Snapshot	
 	savesnap-h   (fn [e]
@@ -64,12 +64,17 @@
 	clear-a   (action :handler clear-h
 				:name "Erase All")
 	
+; ----- Actions>Import Infocard File       
+	import-h   (fn [e]
+		     (md/import-handler))
+	import-a   (action :handler import-h  :name "Import Infocard File"  :key "menu I")
+	
 ; ---------------------------------------------	
 	mybar    (menubar :items [(menu :text "File"
 					:items [open-a reload-a])
 				  (menu :text "Actions"
 					:items [savesnap-a restoresnap-a
-						clear-a])])
+						clear-a import-a])])
     	myframe  (frame :title "Infocard Workbench" 
 			:content canvas
 			:menubar mybar)]

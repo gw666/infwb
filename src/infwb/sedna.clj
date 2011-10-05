@@ -20,6 +20,25 @@
 ;;   global variables *icard-db-name* and *icard-coll-name*
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; 111002: Further work has revealed new needs. Here are some new
+;; assumptions going forward. They may 1) change the meaning of some
+;; existing functions; 2) make some functions go into disuse;
+;; 3) cause the renaming of functions that otherwise stay the same;
+;; 4) who knows what else.
+;;
+;; New assumptions:
+;;
+;; 1) Infocards exist within the remote DB but can't be accessed.
+;; 2) Icards are a subset of infocards; they are created when an
+;;    infocard is *loaded* into InfWb. In other words, icards must be
+;;    created/loaded before they can be used.
+;; 3) When an icard is created, a slip is always created--immediately,
+;;    but such slips are not (normally) visible.
+;; 4) When infocards are added to a file and the file is *reloaded*,
+;;    the resulting slips are immediately made visible.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -256,6 +275,7 @@ The appropriate collection name, if any, must be part of query-str.
 The connection specifies db to be queried."
   
   [query-str connection]
+  (println query-str)
   (let [conn (.getConnection connection "SYSTEM" "MANAGER")
 	xqe   (.createExpression conn)
 	rs   (.executeQuery xqe query-str)
@@ -263,11 +283,42 @@ The connection specifies db to be queried."
     (.close conn)
     result))
 
-(defn docquery []
-  (let [query "declare default element namespace 'http://infoml.org/infomlFile';
-for $base in doc('t', 'brain') as document-node()/infomlFile/infoml[@cardId = 'gw667_110929221638791']
-return ($base/data/title/string(), $base/data/content/string(), $base/selectors/tag/string())" ]
-    (SYSrun-query query *icard-connection*)))
+(defn get-file-icards   ; NEW API   111002
+  "Returns a vector of all the icards in the file (already loaded into
+the remote DB) referred to as shortname. API"
+  [shortname coll-name]
+  (let [query (str "declare default element namespace 'http://infoml.org/infomlFile'; for $base in doc('"
+		   shortname
+		   "', '"
+		   coll-name
+		   "')/infomlFile/infoml[position() != 1] return $base/@cardId/string()") ]
+    (SYSrun-query query *icard-connection*))) ; line 294 at time of error
+;;
+;; ERROR in above function; stack trace below
+;;
+;; shortname-hdlr: filename is  t
+;; net.cfoster.sedna.xqj.bin.bX: SEDNA Message: ERROR SE4611
+;; There is no transaction to roll back.
+;;         at net.cfoster.sedna.xqj.bin.aV.e(Unknown Source)
+;;         at net.cfoster.sedna.xqj.bin.aV.a(Unknown Source)
+;;         at net.cfoster.sedna.xqj.bin.bW.a(Unknown Source)
+;;         at net.cfoster.sedna.xqj.bin.bW.executeQuery(Unknown Source)
+;;         at sun.reflect.GeneratedMethodAccessor15.invoke(Unknown Source)
+;;         at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:25)
+;;         at java.lang.reflect.Method.invoke(Method.java:597)
+;;         at clojure.lang.Reflector.invokeMatchingMethod(Reflector.java:90)
+;;         at clojure.lang.Reflector.invokeInstanceMethod(Reflector.java:28)
+;;         at infwb.sedna$SYSrun_query.invoke(sedna.clj:280)
+;;         at infwb.sedna$get_file_icards.invoke(sedna.clj:294)
+;;         at infwb.misc_dialogs$shortname_handler.invoke(misc_dialogs.clj:70)
+;;         at infwb.core$make_app$open_h__3512.invoke(core.clj:37)
+;;         at seesaw.action$action$fn__386.invoke(action.clj:74)
+;;         at seesaw.action.proxy$javax.swing.AbstractAction$0.actionPerformed(Unknown Source)
+;;         at javax.swing.AbstractButton.fireActionPerformed(AbstractButton.java:2028)
+;;         at javax.swing.AbstractButton$Handler.actionPerformed(AbstractButton.java:2351)
+;;         at javax.swing.DefaultButtonModel.fireActionPerformed(DefaultButtonModel.java:387)
+;;         at javax.swing.DefaultButtonModel.setPressed(DefaultButtonModel.java:242)
+;;         at javax.swing.AbstractButton.doClick(AbstractButton.java:389)
 
 (defn SYSnew-icard-collection
   "Create a new, empty collection in the icard db currently in use
@@ -325,7 +376,6 @@ current infoml element is held in variable $base.  Hardwired to use
 	 "')/infomlFile/"
 	 filter "\n"
 	 "return " return)]
-    (println infoml-query)
     (SYSrun-query infoml-query *icard-connection*)))
 
 (defn SYSpeek-into-db
@@ -389,10 +439,19 @@ check for icard validity."
   ;; query rtns [icard title body tag1* tag2* ... tagN*]; * = if tags exist
   (let [data-vec
 	(run-infocard-query (str "infoml[@cardId = '" icard "']")
-			  "($base/data/title/string(), $base/data/content/string(), $base/selectors/tag/string())")]
+			    "($base/data/title/string(), $base/data/content/string(), $base/selectors/tag/string())")
+	raw-ttxt   (get data-vec 0)
+	ttxt       (if (empty? raw-ttxt)
+		     ""
+		     raw-ttxt)
+	raw-btxt   (get data-vec 1)
+	btxt       (if (empty? raw-btxt)
+		     ""
+		     raw-btxt)
+	]
     (new-icdata icard
-		(get data-vec 0)
-		(get data-vec 1)
+		ttxt
+		btxt
 		(drop 2 data-vec) )))
 
 
@@ -448,7 +507,7 @@ permDB, substitutes a default 'invalid' record. API"
 
 (declare get-icdata sldata->localDB)
 
-(defn new-sldata
+(defn new-sldata   ; NEW API   111002
   "Create sldata from infocard, with its pobj at (x y), or default to (0 0);
 also saves new sldata in *localDB-sldata*. This is the fcn that *must* be
 executed when a new slip is created. Does *not* check to see if icard
@@ -509,7 +568,7 @@ fcn that *must* be executed when a new icard is created."
     (register-icard icard))
   icdata)
 
-(defn permDB->localDB
+(defn permDB->localDB   ; NEW API   111002
   "copy icdata from (persistent) permDB to localDB"
   [icard]
   (icdata->localDB (get-icdata-from-permDB icard)))
@@ -530,9 +589,9 @@ fcn that *must* be executed when a new icard is created."
   []
   (keys @*localDB-icdata*))
 
-(defn load-new-icards
+(defn load-new-icards   ; API
   "Loads into localDB icards that are in permDB but not localDB; returns
-seq of these newly-loaded icards."
+seq of these newly-loaded icards. API"
   []
   (let [old (get-icards-in-localDB)
 	new (permDB->all-icards)
@@ -598,7 +657,7 @@ API"
 
 ; needs tests
 (defn get-all-icards   ; API
-  ". API"
+  "NEEDS DEFINITION. API"
   []
   ; If the local cache is empty, load all icards from permDB
   (if (not= (count get-icards-in-localDB) (count (permDB->all-icards)))
@@ -777,26 +836,14 @@ field keys :x and :y to get position of slip. API"
     (let [sldata (get-sldata slip)]
       (SYSsldata-field sldata field-key) )))
 
-(defn clone   ; API
+(defn clone   ; NEW API   111002
   "Returns a new slip that is the clone of the icard. API"
   [icard]
   ; NOTE: changes to clone and clone-show should be synchronized
   (let [sldata   (new-sldata icard)
 	slip     (SYSsldata-field sldata :slip)]
     slip))
-    
-;; (defn move-to
-;;   "move a slip's Piccolo infocard to a given location; returns: sldata"
-;;   [slip   x   y]
-;;   (let [sldata (get-sldata slip)
-;; 	pobj   @(:pobj sldata)
-;; 	dx     (double x)
-;; 	dy     (double y)
-;; 	at1    (AffineTransform. 1. 0. 0. 1. dx dy)]
-;; ;    (swank.core/break)
-;;     (.setTransform pobj at1))
-;;   sldata)
-  
+      
 (defn move-to
   "move a slip's Piccolo infocard to a given location; returns: sldata"
   [slip   x   y]
@@ -810,6 +857,44 @@ field keys :x and :y to get position of slip. API"
     (. pobj setOffset dx dy)
     )
   sldata)
+  
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; UNIFIED ICARD + SLIP MANIPULATION (111002 and later)
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(declare clone-show)
+
+(defn unified-load   ; NEW API   111002
+  "For a given icard (known to exist), create its icdata and sldata
+records in localDB. Returns: the slip (created as part of sldata)."
+  [icard]
+  (println "unified-load, before")
+  (permDB->localDB icard)
+  (println "unified-load, AFTER")
+  (clone icard))
+
+(defn icards->slips   ; NEW API   111002
+  ""
+  [icard-seq]
+  (loop [slips nil,   icards icard-seq]
+    (if (empty? icards)
+      slips
+      (recur (cons (unified-load (first icards)) slips) (rest icards)))))
+
+(declare display-seq)
+
+(defn display-file-icards   ; NEW API   111002
+  ""
+  [shortname coll-name layer-name]
+  (println "reached display-file-icards")
+  (let [icard-seq (get-file-icards shortname coll-name)
+	slip-seq  (doall (map unified-load icard-seq))]
+    (println "display-file-icards: exited let-bindings")
+;    (swank.core/break)
+    (display-seq slip-seq layer-name)))
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -837,9 +922,9 @@ for each next slip to be displayed. API"
   (let [x-coords   (iterate #(+ % dx) x)
 	y-coords   (iterate #(+ % dy) y)
         layer-seq  (repeat layer-name)]
-    (map show slip-seq x-coords y-coords layer-seq))
-;    )
-  )
+;    (swank.core/break)
+    (doall (map show slip-seq x-coords y-coords layer-seq))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -876,30 +961,31 @@ slips. API"
   (let [dy (+ slip/*slip-line-height* 2)]
     (doall (show-seq slip-seq x y   0 dy layer-name))))
 
-(defn display-seq	; API
+(defn display-seq   ; NEW API   111002
   "Displays columns of overlapping slips with all slip titles visible. API"
   [slip-seq layer-name]
-  (let [max-in-col   10
+  (println "entered display-seq")
+  (let [max-in-col   6
 	slip-groups (partition-all max-in-col slip-seq)
 	x           10
 	y           20
-	x-offset    5	      ; space between two adj columns of slips
+	x-offset    15	      ; space between two adj columns of slips
 	x-seq       (iterate #(+ % slip/*slip-width* x-offset) x)
 	y-seq       (repeat y)
 	layer-seq   (repeat layer-name)
 	]
     (if (seq? slip-seq)   ;i.e., if not empty
-      (map slip-show-col slip-groups x-seq y-seq layer-seq))))
+      (doall (map slip-show-col slip-groups x-seq y-seq layer-seq)))))
 
-(defn display-all			; API
-  "Displays a slip for each icard. Displays columns of overlapping slips
-with all slip titles visible. API"
-  [layer-name]
-  (let [all-icards (get-all-icards)
-	all-slips :REPLACETHIS]
+;; (defn display-all			; API
+;;   "Displays a slip for each icard. Displays columns of overlapping slips
+;; with all slip titles visible. API"
+;;   [layer-name]
+;;   (let [all-icards (get-all-icards)
+;; 	all-slips :REPLACETHIS]
     
-    (doall (display-seq all-slips layer-name))
-    ))
+;;     (doall (display-seq all-slips layer-name))
+;;     ))
 
 ;; needs tests
 ;; (defn icards->slips   ; API
@@ -914,7 +1000,7 @@ with all slip titles visible. API"
 ;;       )))
 
 
-(defn icards->new-slips   ; API
+(defn icards->new-slips   ; API--but OLD
   "Creates new slips from icards, returns: list of slips. Does NOT display
 slips. API"
   [icard-seq]
@@ -998,7 +1084,7 @@ creates and displays a slip for each. API"
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn save-desktop   ; API
+(defn save-desktop   ; NEW API   111002
   "Returns a vector of items. Each item names an icard and its x and y
 location. Items are listed in order needed to recreate desktop (first item =
 bottom, last = top). API"
@@ -1012,14 +1098,14 @@ bottom, last = top). API"
 			     (pobj-state (. layer-name getChild i))))
 	(spit file-path result)))))
 
-(defn get-desktop-data
+(defn get-desktop-data   ; NEW API   111002
   "Returns the contents of the saved-desktop file given by base-name."
   [base-name]
   (let [desktop-dir  "./snapshots/"
 	file-path    (str desktop-dir base-name ".txt")]
     (read-string (slurp file-path))))
  
-(defn restore-one-slip
+(defn restore-one-slip   ; NEW API   111002
   "Takes an [icard x y] vector, then creates a slip for the icard and
 displays it at (x y) on the InfWb desktop."
   [vector layer-name]
@@ -1027,7 +1113,7 @@ displays it at (x y) on the InfWb desktop."
 	(iget icard :ttxt)
 	(clone-show icard layer-name x y)))
 
-(defn restore-desktop   ; API
+(defn restore-desktop   ; NEW API   111002
   "For the icards described in the saved-desktop file given by base-name,
 displays slips representing these icards to recreate the saved InfWb
 desktop exactly.
