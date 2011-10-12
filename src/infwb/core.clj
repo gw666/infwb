@@ -74,17 +74,18 @@
 					:items [open-a reload-a])
 				  (menu :text "Actions"
 					:items [savesnap-a restoresnap-a
-						clear-a import-a])])
+					        import-a clear-a])])
     	myframe  (frame :title "Infocard Workbench" 
 			:content canvas
 			:menubar mybar)]
     myframe))
+
 (defn install-selection-event-handler
   ""
-  [canvas-name layer-name]
-  (let [pseh   (new PSelectionEventHandler layer-name layer-name)]
-    (. canvas-name addInputEventListener pseh)
-    (.. canvas-name (getRoot) (getDefaultInputManager)
+  [canvas layer]
+  (let [pseh   (new PSelectionEventHandler layer layer)]
+    (. canvas addInputEventListener pseh)
+    (.. canvas (getRoot) (getDefaultInputManager)
 	(setKeyboardFocus pseh))))
 
 (defn -main
@@ -114,8 +115,7 @@
 ;    (. dragger setMoveToFrontOnPress true)
     (.setPanEventHandler canvas nil)
 ;    (. canvas addInputEventListener dragger)
-;    (println (display-all layer))
     (install-selection-event-handler canvas layer)
-    layer   ; returns the value of the layer in which objects are placed
+    canvas   ; returns the value of the frame's canvas
     ))
 

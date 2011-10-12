@@ -275,7 +275,6 @@ The appropriate collection name, if any, must be part of query-str.
 The connection specifies db to be queried."
   
   [query-str connection]
-  (println query-str)
   (let [conn (.getConnection connection "SYSTEM" "MANAGER")
 	xqe   (.createExpression conn)
 	rs   (.executeQuery xqe query-str)
@@ -325,7 +324,6 @@ the remote DB) referred to as shortname. API"
 by Infocard Workbench."
   [coll-name]
   (let [cmd-str (str "CREATE COLLECTION '" coll-name "'")]
-    (println cmd-str)
     (SYSrun-command cmd-str *icard-connection*)))
 
 (defn SYSdrop
@@ -334,7 +332,6 @@ currently in use by Infocard Workbench."
   [base-name]
   (let [cmd-str (str "DROP DOCUMENT '" base-name "' IN COLLECTION '"
 		     *icard-coll-name* "'")]
-    (println cmd-str)
     (SYSrun-command cmd-str *icard-connection*)))
 
 (defn SYSload
@@ -350,7 +347,6 @@ The document is the directory given by infocard-dir (binding)"
 		       file-path "' '"
 		       base-name
 		       "' '" *icard-coll-name* "'")]
-;    (println query-str)
     (SYSrun-command query-str *icard-connection*)))
 
 (defn SYSreload
@@ -871,9 +867,7 @@ field keys :x and :y to get position of slip. API"
   "For a given icard (known to exist), create its icdata and sldata
 records in localDB. Returns: the slip (created as part of sldata)."
   [icard]
-  (println "unified-load, before")
   (permDB->localDB icard)
-  (println "unified-load, AFTER")
   (clone icard))
 
 (defn icards->slips   ; NEW API   111002
@@ -889,11 +883,8 @@ records in localDB. Returns: the slip (created as part of sldata)."
 (defn display-file-icards   ; NEW API   111002
   ""
   [shortname coll-name layer-name]
-  (println "reached display-file-icards")
   (let [icard-seq (get-file-icards shortname coll-name)
 	slip-seq  (doall (map unified-load icard-seq))]
-    (println "display-file-icards: exited let-bindings")
-;    (swank.core/break)
     (display-seq slip-seq layer-name)))
   
 
@@ -964,7 +955,6 @@ slips. API"
 (defn display-seq   ; NEW API   111002
   "Displays columns of overlapping slips with all slip titles visible. API"
   [slip-seq layer-name]
-  (println "entered display-seq")
   (let [max-in-col   6
 	slip-groups (partition-all max-in-col slip-seq)
 	x           10
