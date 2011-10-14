@@ -9,8 +9,9 @@
    (edu.umd.cs.piccolox.event  PSelectionEventHandler)
    (edu.umd.cs.piccolox        PFrame)
 
+   (java.awt        Color)
    (java.awt.geom   AffineTransform)
-   (javax.swing   JFrame))
+   (javax.swing     JFrame))
 
   (:use seesaw.core)
 ;  (:use [infwb   sedna
@@ -36,59 +37,68 @@
 		   (let [mylayer   (. canvas getLayer)]
 		     (md/shortname-handler mylayer)))
 	open-a   (action :handler open-h  :name "Open"  :key "menu O")
-; ----- File>Reload: reload-dialog and -handler   
+	
+; ----- File>Show New Infocards: reload-dialog and -handler   
 	reload-h   (fn [e]
 		   (let [mylayer   (. canvas getLayer)]
 		     (md/reload-handler mylayer)))
-	reload-a   (action :handler reload-h  :name "Reload"  :key "menu R")
+	reload-a   (action :handler reload-h  :name "Show New Infocards"  :key "menu N")
+	
+; ----- Actions>Save Snapshot	
+	savesnap-h   (fn [e]
+		   (let [mylayer   (. canvas getLayer)]
+		     (md/savesnap-handler mylayer)))
+	savesnap-a   (action :handler savesnap-h
+			     :name "Save Snapshot"  :key "menu S")
+	
+; ----- Actions>Restore Snapshot: reload-dialog and -handler   
+	restoresnap-h   (fn [e]
+		   (let [mylayer   (. canvas getLayer)]
+		     (md/restoresnap-handler mylayer)))
+	restoresnap-a   (action :handler restoresnap-h
+				:name "Restore Snapshot"  :key "menu L")
+
+; ----- Actions>Clear Desktop       
+	clear-h   (fn [e]
+		   (let [mylayer   (. canvas getLayer)]
+		     (db/clear-layer mylayer)))
+	clear-a   (action :handler clear-h
+				:name "Erase All")
+	
+; ----- Actions>Import Infocard File       
+	import-h   (fn [e]
+		     (md/import-handler))
+	import-a   (action :handler import-h  :name "Import Infocard File"  :key "menu I")
+	
 ; ---------------------------------------------	
 	mybar    (menubar :items [(menu :text "File"
-					:items [open-a reload-a])])
+					:items [open-a reload-a])
+				  (menu :text "Actions"
+					:items [savesnap-a restoresnap-a
+					        import-a clear-a])])
     	myframe  (frame :title "Infocard Workbench" 
 			:content canvas
 			:menubar mybar)]
     myframe))
 
+(defn custom-selection-event-handler
+  ""
+  [marqueeParent selectableParent]
+  (proxy [PSelectionEventHandler]  [marqueeParent selectableParent]
+    (decorateSelectedNode [node]
+			  (let [stroke-color (Color/red)]
+			    (.setStrokePaint node stroke-color)))
+    (undecorateSelectedNode [node]
+			  (let [stroke-color (Color/black)]
+			    (.setStrokePaint node stroke-color)))))
+
 (defn install-selection-event-handler
   ""
   [canvas layer]
-  (let [custom-handler   (new PSelectionEventHandler layer layer)]
-    (. canvas addInputEventListener custom-handler)
+  (let [pseh   (custom-selection-event-handler layer layer)]
+    (. canvas addInputEventListener pseh)
     (.. canvas (getRoot) (getDefaultInputManager)
-	(setKeyboardFocus custom-handler))))
-
-(defn update-tooltip
-  ""
-  [event camera tooltip-node]
-  
-  (let [node   (. event getPickedNode)
-	tooltip-string    (str (. node getAttribute "title")
-			       "\n\n"
-			       (. node getAttribute "body"))
-	point   (. event getCanvasPosition)
-	x   (+ 20 (. point getX))
-	y   (+ 10 (. point getY))]
-    
-;    (swank.core/break)
-; NOTE: If something stops working, try uncommenting next line
-;    (.. event (getPath) (canvasToLocal point camera))
-    (. tooltip-node setConstrainWidthToTextWidth false)
-    (. tooltip-node setText tooltip-string)
-    (. tooltip-node setBounds 0 0 *tooltip-width* 100)
-    (. tooltip-node setOffset x y)))
-
-(defn install-tooltip-handler
-  ""
-  [camera tooltip-node]
-  (let [custom-handler   ; its value is on next line
-	(proxy [PBasicInputEventHandler] []
-	  (mouseMoved [event]
-		      (proxy-super mouseMoved event)
-		      (update-tooltip event camera tooltip-node))
-	  (mouseDragged [event]
-			(proxy-super mouseDragged event)
-		      (update-tooltip event camera tooltip-node))) ]
-    (. camera addInputEventListener custom-handler)))
+	(setKeyboardFocus pseh))))
 
 (defn -main
   ""
@@ -109,7 +119,7 @@
     (. canvas removeInputEventListener pan-handler)
     (. canvas removeInputEventListener evt-handler)
 
-    (SYSsetup-InfWb db-name coll-name)
+    (db/SYSsetup-InfWb db-name coll-name)
     (md/SYSsetup-misc-dialogs)
     
     (. frame setSize 500 700)
@@ -117,15 +127,7 @@
 ;    (. dragger setMoveToFrontOnPress true)
     (.setPanEventHandler canvas nil)
 ;    (. canvas addInputEventListener dragger)
-;    (println (display-all layer))
     (install-selection-event-handler canvas layer)
-
-    ; prepare tooltip (now empty) for use
-    (. tooltip-node setPickable false)
-    (. camera addChild tooltip-node)
-
-    (list canvas camera layer)
-    
-;    layer   ; returns layer in which objects are placed
+    canvas   ; returns the value of the frame's canvas
     ))
 
