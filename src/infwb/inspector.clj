@@ -5,21 +5,24 @@
 
 (def inspector-content
   (vertical-panel :id   :vpanel
-		  :items [(text :id             :card1
-				:multi-line?    true
-				:editable?      false
-				:wrap-lines?    true
-				:rows           20)
-			  (text :id             :card2
-				:multi-line?    true
-				:editable?      false
-				:wrap-lines?    true
-				:rows           20)
-			  (text :id             :card3
-				:multi-line?    true
-				:editable?      false
-				:wrap-lines?    true
-				:rows           20)]))
+		  :items [(scrollable
+			   (text :id             :card1
+				 :multi-line?    true
+				 :editable?      false
+				 :wrap-lines?    true
+				 :rows           20))
+			  (scrollable
+			   (text :id             :card2
+				 :multi-line?    true
+				 :editable?      false
+				 :wrap-lines?    true
+				 :rows           20))
+			  (scrollable
+			   (text :id             :card3
+				 :multi-line?    true
+				 :editable?      false
+				 :wrap-lines?    true
+				 :rows           20))]))
 (defn inspector
   ""
   []

@@ -7,10 +7,11 @@
    (edu.umd.cs.piccolo.nodes   PText)
    (edu.umd.cs.piccolo.event   PDragEventHandler)
    (edu.umd.cs.piccolox.event  PSelectionEventHandler)
-   (edu.umd.cs.piccolox   PFrame)
+   (edu.umd.cs.piccolox        PFrame)
 
+   (java.awt        Color)
    (java.awt.geom   AffineTransform)
-   (javax.swing   JFrame))
+   (javax.swing     JFrame))
 
   (:use seesaw.core)
 ;  (:use [infwb   sedna
@@ -80,10 +81,21 @@
 			:menubar mybar)]
     myframe))
 
+(defn custom-selection-event-handler
+  ""
+  [marqueeParent selectableParent]
+  (proxy [PSelectionEventHandler]  [marqueeParent selectableParent]
+    (decorateSelectedNode [node]
+			  (let [stroke-color (Color/red)]
+			    (.setStrokePaint node stroke-color)))
+    (undecorateSelectedNode [node]
+			  (let [stroke-color (Color/black)]
+			    (.setStrokePaint node stroke-color)))))
+
 (defn install-selection-event-handler
   ""
   [canvas layer]
-  (let [pseh   (new PSelectionEventHandler layer layer)]
+  (let [pseh   (custom-selection-event-handler layer layer)]
     (. canvas addInputEventListener pseh)
     (.. canvas (getRoot) (getDefaultInputManager)
 	(setKeyboardFocus pseh))))
