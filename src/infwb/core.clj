@@ -6,7 +6,7 @@
    (edu.umd.cs.piccolo         PCanvas PNode PLayer)
    (edu.umd.cs.piccolo.nodes   PText)
    (edu.umd.cs.piccolo.event   PDragEventHandler)
-   (edu.umd.cs.piccolox.event  PSelectionEventHandler)
+   (edu.umd.cs.piccolox.event  PNotificationCenter PSelectionEventHandler)
    (edu.umd.cs.piccolox        PFrame)
 
    (java.awt        Color)
@@ -18,6 +18,7 @@
 ;	 slip-display infoml-utilities  notecard] :reload-all)
   (:require [infwb.misc-dialogs :as md] :reload-all)
   (:require [infwb.sedna :as db] :reload-all)
+  (:require [infwb.inspector :as in] :reload-all)
   (:use [clojure.set :only (difference)])
 ;  (:require [clojure.string :as str])
   )
@@ -81,24 +82,71 @@
 			:menubar mybar)]
     myframe))
 
-(defn custom-selection-event-handler
+(defn custom-selection-event-handler ; WITH COMMENTS
   ""
   [marqueeParent selectableParent]
   (proxy [PSelectionEventHandler]  [marqueeParent selectableParent]
     (decorateSelectedNode [node]
 			  (let [stroke-color (Color/red)]
-			    (.setStrokePaint node stroke-color)))
+			    (.setStrokePaint node stroke-color)
+;			    (println "Selected: " node)
+			    ))
     (undecorateSelectedNode [node]
 			  (let [stroke-color (Color/black)]
-			    (.setStrokePaint node stroke-color)))))
+			    (.setStrokePaint node stroke-color)
+;			    (println "UNSELECTED: " node)
+			    ))))
+
+#_(defn custom-selection-event-handler ; NO comments; will print 
+  ""
+  [marqueeParent selectableParent]
+  (proxy [PSelectionEventHandler]  [marqueeParent selectableParent]
+    (decorateSelectedNode [node]
+			  (let [stroke-color (Color/red)]
+			    (.setStrokePaint node stroke-color)
+			    (println "Selected: " node)
+			    ))
+    (undecorateSelectedNode [node]
+			  (let [stroke-color (Color/black)]
+			    (.setStrokePaint node stroke-color)
+			    (println "UNSELECTED: " node)
+			    ))))
 
 (defn install-selection-event-handler
   ""
-  [canvas layer]
-  (let [pseh   (custom-selection-event-handler layer layer)]
+  [frame canvas layer]
+  ;; code taken from Piccolo2D SelectionExample.java
+  (let [pseh   (custom-selection-event-handler layer layer)
+	pnc    (PNotificationCenter/defaultCenter)
+	callbackMethodName   "selectionChanged"
+	notificationName
+	PSelectionEventHandler/SELECTION_CHANGED_NOTIFICATION
+	pan-handler  (. canvas getPanEventHandler)
+	]
+    (. canvas removeInputEventListener pan-handler)
+    ;; add custom handler to canvas...
     (. canvas addInputEventListener pseh)
-    (.. canvas (getRoot) (getDefaultInputManager)
-	(setKeyboardFocus pseh))))
+    ;; ...and direct keyboard events to it...
+    (.. canvas (getRoot) (getDefaultInputManager) (setKeyboardFocus pseh))
+    ;; ...and register frame to receive a notification of the new seln handler
+    (. pnc addListener frame callbackMethodName notificationName pseh)
+    ))
+
+(defn selection-handler
+  "Debugging: Returns running pgm's PSelectionEventHandler"
+  [canvas]
+  (let [l (.getLayer canvas)
+	r (.getParent l)
+	pim (.getDefaultInputManager r)
+	pseh (.getKeyboardFocus pim)]
+    pseh))
+
+#_(defn flush-handler ;NOT WKG CORRECTLY?
+  "Debugging: Causes running pgm to use new custom-selection-event-handler."
+  [canvas]
+  (let [layer (.getLayer canvas)]
+    (install-selection-event-handler canvas layer)))
+
 
 (defn -main
   ""
@@ -109,15 +157,16 @@
   (let [canvas       (new PCanvas)
 	layer        (. canvas getLayer) ; objects are placed here
 	pan-handler  (. canvas getPanEventHandler)
-	evt-handler  (. canvas getZoomEventHandler)
+	zoom-handler  (. canvas getZoomEventHandler)
 ;	dragger      (PDragEventHandler.)
 	frame        (make-app canvas)
 	db-name      "brain"
 	coll-name    "daily"
+	inspect      (in/inspector)
 	]
 
     (. canvas removeInputEventListener pan-handler)
-    (. canvas removeInputEventListener evt-handler)
+    (. canvas removeInputEventListener zoom-handler)
 
     (db/SYSsetup-InfWb db-name coll-name)
     (md/SYSsetup-misc-dialogs)
@@ -127,7 +176,7 @@
 ;    (. dragger setMoveToFrontOnPress true)
     (.setPanEventHandler canvas nil)
 ;    (. canvas addInputEventListener dragger)
-    (install-selection-event-handler canvas layer)
-    canvas   ; returns the value of the frame's canvas
+    (install-selection-event-handler frame canvas layer)
+    (list frame inspect)  ; returns the value of the frames
     ))
 
