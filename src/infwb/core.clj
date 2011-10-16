@@ -5,7 +5,7 @@
   (:import
    (edu.umd.cs.piccolo         PCanvas PNode PLayer)
    (edu.umd.cs.piccolo.nodes   PText)
-   (edu.umd.cs.piccolo.event   PDragEventHandler)
+   (edu.umd.cs.piccolo.event   PDragEventHandler PInputEvent)
    (edu.umd.cs.piccolox.event  PNotificationCenter PSelectionEventHandler)
    (edu.umd.cs.piccolox        PFrame)
 
@@ -82,7 +82,7 @@
 			:menubar mybar)]
     myframe))
 
-(defn custom-selection-event-handler ; WITH COMMENTS
+(defn custom-selection-event-handler	; WITH COMMENTS
   ""
   [marqueeParent selectableParent]
   (proxy [PSelectionEventHandler]  [marqueeParent selectableParent]
@@ -92,10 +92,18 @@
 ;			    (println "Selected: " node)
 			    ))
     (undecorateSelectedNode [node]
-			  (let [stroke-color (Color/black)]
-			    (.setStrokePaint node stroke-color)
+			    (let [stroke-color (Color/black)]
+			      (.setStrokePaint node stroke-color)
+
 ;			    (println "UNSELECTED: " node)
-			    ))))
+			      ))
+    (endStandardSelection [pie]		; pie is a PInputEvent
+			  (let [pobj   (.getPickedNode pie)
+				icard (. pobj getAttribute "icard")]
+			    (println "picked node is " pobj
+				     "; icard is " icard)
+			    (proxy-super endStandardSelection pie)))
+    ))
 
 #_(defn custom-selection-event-handler ; NO comments; will print 
   ""

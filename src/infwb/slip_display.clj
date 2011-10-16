@@ -45,7 +45,7 @@
 
 (defn make-pinfocard
   "Create generic infocard object (ready to be added to a Piccolo layer)"
-  [box-x box-y title-text body-text]
+  [box-x box-y title-text body-text icard]
 
   (let [cbox (PPath.)
 	indent-x 5 
@@ -77,4 +77,5 @@
     (.addChild cbox line)    ; = child 1
     (.addChild cbox body)    ; = child 2
     (.setChildrenPickable cbox false)
+    (. cbox addAttribute "icard" icard)
     cbox))

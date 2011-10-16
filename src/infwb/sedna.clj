@@ -515,7 +515,8 @@ already has a slip. Returns: new sl-data record."
 		x
 		y
 		(icdata-field icdata :ttxt)
-		(icdata-field icdata :btxt))]
+		(icdata-field icdata :btxt)
+		icard)]
     ;; the value in rand-key is the "name" of the slip about to be created
     (register-slip-with-icard icard rand-key)
     (new-slip-attrs-entry rand-key)
