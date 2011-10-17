@@ -6,7 +6,7 @@
 	   (net.cfoster.sedna.xqj SednaXQDataSource)
 	   (java.util Properties)
 	   (java.awt.geom AffineTransform))
-  (:require [infwb.slip-display :as slip])
+  (:require [infwb.slip-display :as slip] :reload-all)
 ;  (:require [clojure.contrib.string :as st])
   )
 
@@ -66,7 +66,7 @@
 ;; (def *icard-to-slip-map* (atom {}))
 
 ;; ;; KEY: slip; VALUE: {attribute-name attr-value, ...)
-;; (def *slip-attrs* (atom {}))
+;; (def *slip-attributes* (atom {}))
 
 (def *icard-fields* #{:icard :ttxt :btxt :tags})
 (def *slip-fields*  #{:slip :icard :pobj})
@@ -156,7 +156,7 @@ Examples are:       (atom {k1 v1, k2 v2})
     (def *icard-to-slip-map* (atom {})))
 
 (defn reset-slip-attributes []
-  (def *slip-attrs* (atom {})))
+  (def *slip-attributes* (atom {})))
 
 ;; (defn get-slip-from-icard
 ;;   ""
@@ -496,10 +496,10 @@ permDB, substitutes a default 'invalid' record. API"
   (swap! *icard-to-slip-map*
 	 update-in [icard] (fn [x] (conj x slip))))
 
-(defn new-slip-attrs-entry
-  "Adds new entry to *slip-attrs* with key = slip, value = (atom {})."
+(defn add-to-slip-attributes
+  "Adds new entry to *slip-attributes* with key = slip, value = (atom {})."
   [slip]
-  (swap! *slip-attrs* assoc slip (atom {})))
+  (swap! *slip-attributes* assoc slip (atom {})))
 
 (declare get-icdata sldata->localDB)
 
@@ -510,17 +510,18 @@ executed when a new slip is created. Does *not* check to see if icard
 already has a slip. Returns: new sl-data record."
   ([icard x y]
   (let [icdata (get-icdata icard)
-	rand-key   (rand-kayko 3)
+	slip   (rand-kayko 3)
 	pobj   (slip/make-pinfocard
 		x
 		y
 		(icdata-field icdata :ttxt)
 		(icdata-field icdata :btxt)
 		icard)]
-    ;; the value in rand-key is the "name" of the slip about to be created
-    (register-slip-with-icard icard rand-key)
-    (new-slip-attrs-entry rand-key)
-    (let [new-sldata   (sldata. rand-key icard (atom pobj))]
+    ;; the value in slip is the "name" of the slip about to be created
+    (. pobj addAttribute "slip" slip)
+    (register-slip-with-icard icard slip)
+    (add-to-slip-attributes slip)
+    (let [new-sldata   (sldata. slip icard (atom pobj))]
       (sldata->localDB new-sldata)
       new-sldata) ))   ;return new sldata
   ([icard] (new-sldata icard 0 0)))

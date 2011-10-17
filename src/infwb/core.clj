@@ -89,21 +89,23 @@
     (decorateSelectedNode [node]
 			  (let [stroke-color (Color/red)]
 			    (.setStrokePaint node stroke-color)
-;			    (println "Selected: " node)
+					;			    (println "Selected: " node)
 			    ))
     (undecorateSelectedNode [node]
 			    (let [stroke-color (Color/black)]
 			      (.setStrokePaint node stroke-color)
 
-;			    (println "UNSELECTED: " node)
+					;			    (println "UNSELECTED: " node)
 			      ))
     (endStandardSelection [pie]		; pie is a PInputEvent
 			  (let [pobj   (.getPickedNode pie)
-				icard (. pobj getAttribute "icard")]
-			    (println "picked node is " pobj
-				     "; icard is " icard)
-			    (proxy-super endStandardSelection pie)))
-    ))
+				slip   (. pobj getAttribute "slip")
+				icard  (db/sget slip :icard)]
+			    (print "picked node is " pobj
+				   "\nicard is '" icard
+				   "', slip is '" slip "'\n\n")
+			    (println "---")
+			    (proxy-super endStandardSelection pie)))))
 
 #_(defn custom-selection-event-handler ; NO comments; will print 
   ""

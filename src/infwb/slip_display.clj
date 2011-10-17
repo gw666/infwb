@@ -77,5 +77,4 @@
     (.addChild cbox line)    ; = child 1
     (.addChild cbox body)    ; = child 2
     (.setChildrenPickable cbox false)
-    (. cbox addAttribute "icard" icard)
     cbox))
