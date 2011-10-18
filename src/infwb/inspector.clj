@@ -9,20 +9,20 @@
 (def inspector-content
   (vertical-panel :items [(top-bottom-split
 			   (scrollable
-			    (text :id             :slip1
+			    (text :id             :slip0
 				  :multi-line?    true
 				  :editable?      false
 				  :wrap-lines?    true
 				  :rows           20))
 			   (top-bottom-split
 			    (scrollable
-			     (text :id             :slip2
+			     (text :id             :slip1
 				   :multi-line?    true
 				   :editable?      false
 				   :wrap-lines?    true
 				   :rows           20))
 			    (scrollable
-			     (text :id             :slip3
+			     (text :id             :slip2
 				   :multi-line?    true
 				   :editable?      false
 				   :wrap-lines?    true

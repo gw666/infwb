@@ -142,6 +142,16 @@
   (let [layer (.getLayer canvas)]
     (install-selection-event-handler canvas layer)))
 
+(defn panel-handler [choose panel-vector]
+  (let [panel (nth panel-vector choose)]
+    (fn [e] (if (= 2 (. e getClickCount))
+	      (let [slip   @*last-slip-clicked*
+		    slip-text     (str slip ": "
+				       (db/sget slip :ttxt)
+				       "\n---------------------\n"
+				       (db/sget slip :btxt))]
+		(text! panel slip-text))))))
+
 
 (defn -main
   ""
@@ -170,18 +180,12 @@
     (install-selection-event-handler frame canvas layer)
     
     (let [inspect   (in/inspector)
+	  slip0   (select inspect [:#slip0])
 	  slip1   (select inspect [:#slip1])
+	  slip2   (select inspect [:#slip2])
+	  insp-panels (vector slip0 slip1 slip2)
 	  ]
-      (listen slip1 :mouse
-	      (fn [e] (if (= 2 (. e getClickCount))
-			(let [slip   @*last-slip-clicked*
-			      slip-text     (str slip ": "
-						 (db/sget slip :ttxt)
-						 "\n---------------------\n"
-						 (db/sget slip :btxt))]
-			  (text! slip1 slip-text)
-			  ))))
-      (list frame inspect))	     ; returns the value of the frames
-    
-    ))
-
+      (listen slip0 :mouse (panel-handler 0 insp-panels))
+      (listen slip1 :mouse (panel-handler 1 insp-panels))
+      (listen slip2 :mouse (panel-handler 2 insp-panels))
+    (list frame inspect))))	     ; returns the value of the frames
