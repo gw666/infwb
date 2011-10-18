@@ -10,6 +10,7 @@
    (edu.umd.cs.piccolox        PFrame)
 
    (java.awt        Color)
+   (java.awt.event  MouseEvent)
    (java.awt.geom   AffineTransform)
    (javax.swing     JFrame))
 
@@ -19,15 +20,11 @@
   (:require [infwb.misc-dialogs :as md] :reload-all)
   (:require [infwb.sedna :as db] :reload-all)
   (:require [infwb.inspector :as in] :reload-all)
-  (:use [clojure.set :only (difference)])
-;  (:require [clojure.string :as str])
-  )
+  (:use [clojure.set :only (difference)]))
 
-;; (def ^{:doc "creates New Notecard menu item, links it to new-notecard-handler"}
-;;   new-notecard-action
-;;   (action :name "New Notecard"
-;; 	  :key  "menu N"
-;; 	  :handler notecard-dialog))
+
+(def *last-slip-clicked* (atom nil))
+
 
 (defn make-app
   "Creates, displays top-level Infocard Workbench application"
@@ -82,45 +79,33 @@
 			:menubar mybar)]
     myframe))
 
+(declare *last-slip-clicked*)
+
 (defn custom-selection-event-handler	; WITH COMMENTS
   ""
   [marqueeParent selectableParent]
   (proxy [PSelectionEventHandler]  [marqueeParent selectableParent]
     (decorateSelectedNode [node]
 			  (let [stroke-color (Color/red)]
-			    (.setStrokePaint node stroke-color)
-					;			    (println "Selected: " node)
-			    ))
+			    (.setStrokePaint node stroke-color)))
     (undecorateSelectedNode [node]
 			    (let [stroke-color (Color/black)]
-			      (.setStrokePaint node stroke-color)
-
-					;			    (println "UNSELECTED: " node)
-			      ))
+			      (.setStrokePaint node stroke-color)))
     (endStandardSelection [pie]		; pie is a PInputEvent
 			  (let [pobj   (.getPickedNode pie)
 				slip   (. pobj getAttribute "slip")
-				icard  (db/sget slip :icard)]
-			    (print "picked node is " pobj
-				   "\nicard is '" icard
-				   "', slip is '" slip "'\n\n")
-			    (println "---")
-			    (proxy-super endStandardSelection pie)))))
-
-#_(defn custom-selection-event-handler ; NO comments; will print 
-  ""
-  [marqueeParent selectableParent]
-  (proxy [PSelectionEventHandler]  [marqueeParent selectableParent]
-    (decorateSelectedNode [node]
-			  (let [stroke-color (Color/red)]
-			    (.setStrokePaint node stroke-color)
-			    (println "Selected: " node)
-			    ))
-    (undecorateSelectedNode [node]
-			  (let [stroke-color (Color/black)]
-			    (.setStrokePaint node stroke-color)
-			    (println "UNSELECTED: " node)
+;				icard  (db/sget slip :icard)
+				]
+			    (swap! *last-slip-clicked*
+				   (fn [x] slip))
+			    (println "picked node is " slip)
+			    ;; 	   "\nicard is '" icard
+			    ;; 	   "', slip is '" slip "'\n\n")
+			    ;; (println "---")
+			    ;; (proxy-super endStandardSelection pie)
 			    ))))
+
+
 
 (defn install-selection-event-handler
   ""
@@ -168,11 +153,9 @@
 	layer        (. canvas getLayer) ; objects are placed here
 	pan-handler  (. canvas getPanEventHandler)
 	zoom-handler  (. canvas getZoomEventHandler)
-;	dragger      (PDragEventHandler.)
 	frame        (make-app canvas)
 	db-name      "brain"
 	coll-name    "daily"
-	inspect      (in/inspector)
 	]
 
     (. canvas removeInputEventListener pan-handler)
@@ -183,10 +166,22 @@
     
     (. frame setSize 500 700)
     (. frame setVisible true)
-;    (. dragger setMoveToFrontOnPress true)
     (.setPanEventHandler canvas nil)
-;    (. canvas addInputEventListener dragger)
     (install-selection-event-handler frame canvas layer)
-    (list frame inspect)  ; returns the value of the frames
+    
+    (let [inspect   (in/inspector)
+	  slip1   (select inspect [:#slip1])
+	  ]
+      (listen slip1 :mouse
+	      (fn [e] (if (= 2 (. e getClickCount))
+			(let [slip   @*last-slip-clicked*
+			      slip-text     (str slip ": "
+						 (db/sget slip :ttxt)
+						 "\n---------------------\n"
+						 (db/sget slip :btxt))]
+			  (text! slip1 slip-text)
+			  ))))
+      (list frame inspect))	     ; returns the value of the frames
+    
     ))
 

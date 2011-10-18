@@ -7,15 +7,13 @@
 			 :enabled? true))
 
 (def inspector-content
-  (vertical-panel :id   :vpanel
-		  :items [(top-bottom-split
+  (vertical-panel :items [(top-bottom-split
 			   (scrollable
 			    (text :id             :slip1
 				  :multi-line?    true
 				  :editable?      false
 				  :wrap-lines?    true
-				  :rows           20)
-			    :id :scr1)
+				  :rows           20))
 			   (top-bottom-split
 			    (scrollable
 			     (text :id             :slip2
