@@ -91,18 +91,17 @@
     (undecorateSelectedNode [node]
 			    (let [stroke-color (Color/black)]
 			      (.setStrokePaint node stroke-color)))
+    (startDrag [pie]			; pie is a PInputEvent
+	     (let [pobj   (.getPickedNode pie)]
+	       (proxy-super startDrag pie)
+	       (. pobj moveToFront)))
     (endStandardSelection [pie]		; pie is a PInputEvent
 			  (let [pobj   (.getPickedNode pie)
 				slip   (. pobj getAttribute "slip")
-;				icard  (db/sget slip :icard)
 				]
 			    (swap! *last-slip-clicked*
 				   (fn [x] slip))
-			    (println "picked node is " slip)
-			    ;; 	   "\nicard is '" icard
-			    ;; 	   "', slip is '" slip "'\n\n")
-			    ;; (println "---")
-			    ;; (proxy-super endStandardSelection pie)
+;			    (. pobj moveToFront) ; WORKS, BUT WEIRD!
 			    ))))
 
 

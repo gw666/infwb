@@ -26,12 +26,14 @@
 				   :multi-line?    true
 				   :editable?      false
 				   :wrap-lines?    true
-				   :rows           20))))]))
+				   :rows           20))
+			    :divider-location (/ 1 3))
+			   :divider-location (/ 1 3))]))
 (defn inspector
   ""
   []
   (frame :title          "Inspector"
-	 :minimum-size   [300 :by 600]
+	 :minimum-size   [250 :by 980]
 	 :content        inspector-content
 	 :visible?       true
 	 :on-close       :hide))
