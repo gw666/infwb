@@ -25,6 +25,11 @@
 
 (def *last-slip-clicked* (atom nil))
 
+(defn contains-item? 
+  "true if seq contains elm"
+  [seq elm]  
+  (some #(= elm %) seq))
+
 
 (defn make-app
   "Creates, displays top-level Infocard Workbench application"
@@ -87,22 +92,35 @@
   (proxy [PSelectionEventHandler]  [marqueeParent selectableParent]
     (decorateSelectedNode [node]
 			  (let [stroke-color (Color/red)]
-			    (.setStrokePaint node stroke-color)))
+			    (. node setStrokePaint  stroke-color)))
     (undecorateSelectedNode [node]
 			    (let [stroke-color (Color/black)]
-			      (.setStrokePaint node stroke-color)))
+			      (. node setStrokePaint  stroke-color)))
     (startDrag [pie]			; pie is a PInputEvent
-	     (let [pobj   (.getPickedNode pie)]
-	       (proxy-super startDrag pie)
-	       (. pobj moveToFront)))
+	       ;; Either picked or picked-coll may be the pobj(s) to be moved
+	       ;; to the front (see use-coll?), or this may be an irrelevant
+	       ;; drag to be ignored (see invalid?).
+	       (let [picked   (. pie getPickedNode)
+		     picked-coll (seq (.. pie getInputManager
+					getKeyboardFocus getSelection))
+		     use-coll? (contains-item? picked-coll picked)
+		     invalid?   (= "PCamera"
+				   (. (class picked) getSimpleName))]
+		 (println picked)
+		 (println picked-coll)
+		 (println "Single item?"
+			  (if use-coll? "no" "yes"))
+		 (println "Needs moving?"
+			  (if invalid? "no" "yes"))
+		 (println "----------")
+		 (proxy-super startDrag pie)
+		 ))
     (endStandardSelection [pie]		; pie is a PInputEvent
-			  (let [pobj   (.getPickedNode pie)
-				slip   (. pobj getAttribute "slip")
+			  (let [picked   (. pie getPickedNode)
+				slip   (. picked getAttribute "slip")
 				]
 			    (swap! *last-slip-clicked*
-				   (fn [x] slip))
-;			    (. pobj moveToFront) ; WORKS, BUT WEIRD!
-			    ))))
+				   (fn [x] slip))))))
 
 
 
@@ -187,4 +205,4 @@
       (listen slip0 :mouse (panel-handler 0 insp-panels))
       (listen slip1 :mouse (panel-handler 1 insp-panels))
       (listen slip2 :mouse (panel-handler 2 insp-panels))
-    (list frame inspect))))	     ; returns the value of the frames
+    (list frame canvas layer))))    ; returns the value of the frames
