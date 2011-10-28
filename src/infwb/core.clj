@@ -1,3 +1,4 @@
+
 ;; "new" infwb, using seesaw
 
 (ns infwb.core
@@ -86,7 +87,38 @@
 
 (declare *last-slip-clicked*)
 
-(defn custom-selection-event-handler	; WITH COMMENTS
+(defn enhanced-start-drag
+  ""
+  [pie this]
+  ;; Either picked or picked-coll may be the pobj(s) to be moved
+  ;; to the front (see move-picked-coll), or this may be an 
+  ;; irrelevant drag to be ignored (see valid?).
+  (let [picked   (. pie getPickedNode)
+	picked-coll (seq (.. pie getInputManager
+			     getKeyboardFocus getSelection))
+	pick-path (. pie getPath)
+	node-stack (. pick-path getNodeStackReference)
+	move-picked-coll (contains-item? picked-coll picked)
+	valid?   (not= "PCamera"
+		      (. (class picked) getSimpleName))
+	move-picked-only (and (not move-picked-coll) valid?)]
+    (println picked)
+    (println "picked" picked-coll "\n")
+    (println "PICK-PATH" node-stack "\n"
+	     (. pick-path getPickedNode) (. pick-path nextPickedNode))
+    ;; (println "picked is in collection?"
+    ;; 	     (if move-picked-coll "yes" "no"))
+    ;; (println "Needs moving?"
+    ;; 	     (if valid? "yes" "no"))
+    (println "----------")
+    (if move-picked-only
+      (. picked moveToFront)
+      (if valid? 
+	(doseq [pobj picked-coll] (. pobj moveToFront))))
+    (proxy-super startDrag pie)
+    ))
+
+(defn custom-selection-event-handler
   ""
   [marqueeParent selectableParent]
   (proxy [PSelectionEventHandler]  [marqueeParent selectableParent]
@@ -97,24 +129,7 @@
 			    (let [stroke-color (Color/black)]
 			      (. node setStrokePaint  stroke-color)))
     (startDrag [pie]			; pie is a PInputEvent
-	       ;; Either picked or picked-coll may be the pobj(s) to be moved
-	       ;; to the front (see use-coll?), or this may be an irrelevant
-	       ;; drag to be ignored (see invalid?).
-	       (let [picked   (. pie getPickedNode)
-		     picked-coll (seq (.. pie getInputManager
-					getKeyboardFocus getSelection))
-		     use-coll? (contains-item? picked-coll picked)
-		     invalid?   (= "PCamera"
-				   (. (class picked) getSimpleName))]
-		 (println picked)
-		 (println picked-coll)
-		 (println "Single item?"
-			  (if use-coll? "no" "yes"))
-		 (println "Needs moving?"
-			  (if invalid? "no" "yes"))
-		 (println "----------")
-		 (proxy-super startDrag pie)
-		 ))
+	       (enhanced-start-drag pie this))
     (endStandardSelection [pie]		; pie is a PInputEvent
 			  (let [picked   (. pie getPickedNode)
 				slip   (. picked getAttribute "slip")
