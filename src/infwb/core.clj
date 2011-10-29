@@ -100,21 +100,29 @@
 	node-stack (. pick-path getNodeStackReference)
 	move-picked-coll (contains-item? picked-coll picked)
 	valid?   (not= "PCamera"
-		      (. (class picked) getSimpleName))
+		       (. (class picked) getSimpleName))
 	move-picked-only (and (not move-picked-coll) valid?)]
-    (println picked)
-    (println "picked" picked-coll "\n")
-    (println "PICK-PATH" node-stack "\n"
-	     (. pick-path getPickedNode) (. pick-path nextPickedNode))
+    (println "SINGLE" picked)
+    (println " ")
+    (println "COLLECTION" picked-coll "\n")
+    ;; (println "PICK-PATH" node-stack "\n"
+    ;;	     (. pick-path getPickedNode) (. pick-path nextPickedNode))
     ;; (println "picked is in collection?"
     ;; 	     (if move-picked-coll "yes" "no"))
     ;; (println "Needs moving?"
     ;; 	     (if valid? "yes" "no"))
-    (println "----------")
+    (println "----------------------------------------")
     (if move-picked-only
       (. picked moveToFront)
-      (if valid? 
-	(doseq [pobj picked-coll] (. pobj moveToFront))))
+      (if valid?
+	(let [picked   (. pie getPickedNode)
+	      picked-coll (seq (.. pie getInputManager
+				   getKeyboardFocus getSelection))]
+	  (println "SINGLE" picked)
+	  (println " ")
+	  (println "COLLECTION" picked-coll "\n")
+	  (println "########################################")
+	  (doseq [pobj picked-coll] (. pobj moveToFront)))))
     (proxy-super startDrag pie)
     ))
 

@@ -38,6 +38,8 @@
 ;; 4) When infocards are added to a file and the file is *reloaded*,
 ;;    the resulting slips are immediately made visible.
 ;;
+;; NOTE: If using REPL, run (SYSsetup-InfWb "brain" "daily") first
+;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -291,33 +293,7 @@ the remote DB) referred to as shortname. API"
 		   "', '"
 		   coll-name
 		   "')/infomlFile/infoml[position() != 1] return $base/@cardId/string()") ]
-    (SYSrun-query query *icard-connection*))) ; line 294 at time of error
-;;
-;; ERROR in above function; stack trace below
-;;
-;; shortname-hdlr: filename is  t
-;; net.cfoster.sedna.xqj.bin.bX: SEDNA Message: ERROR SE4611
-;; There is no transaction to roll back.
-;;         at net.cfoster.sedna.xqj.bin.aV.e(Unknown Source)
-;;         at net.cfoster.sedna.xqj.bin.aV.a(Unknown Source)
-;;         at net.cfoster.sedna.xqj.bin.bW.a(Unknown Source)
-;;         at net.cfoster.sedna.xqj.bin.bW.executeQuery(Unknown Source)
-;;         at sun.reflect.GeneratedMethodAccessor15.invoke(Unknown Source)
-;;         at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:25)
-;;         at java.lang.reflect.Method.invoke(Method.java:597)
-;;         at clojure.lang.Reflector.invokeMatchingMethod(Reflector.java:90)
-;;         at clojure.lang.Reflector.invokeInstanceMethod(Reflector.java:28)
-;;         at infwb.sedna$SYSrun_query.invoke(sedna.clj:280)
-;;         at infwb.sedna$get_file_icards.invoke(sedna.clj:294)
-;;         at infwb.misc_dialogs$shortname_handler.invoke(misc_dialogs.clj:70)
-;;         at infwb.core$make_app$open_h__3512.invoke(core.clj:37)
-;;         at seesaw.action$action$fn__386.invoke(action.clj:74)
-;;         at seesaw.action.proxy$javax.swing.AbstractAction$0.actionPerformed(Unknown Source)
-;;         at javax.swing.AbstractButton.fireActionPerformed(AbstractButton.java:2028)
-;;         at javax.swing.AbstractButton$Handler.actionPerformed(AbstractButton.java:2351)
-;;         at javax.swing.DefaultButtonModel.fireActionPerformed(DefaultButtonModel.java:387)
-;;         at javax.swing.DefaultButtonModel.setPressed(DefaultButtonModel.java:242)
-;;         at javax.swing.AbstractButton.doClick(AbstractButton.java:389)
+    (SYSrun-query query *icard-connection*)))
 
 (defn SYSnew-icard-collection
   "Create a new, empty collection in the icard db currently in use
@@ -1003,8 +979,8 @@ slips. API"
 
      
 (defn display-new			; API
-  "For all icards in remote DB that do *not* have slips already on deskotp,
-creates and displays a slip for each. API"
+  "Used after an existing file has been reloaded. Creates and displays
+slips for all icards that do *not* have a slip already on deskotp. API"
   [layer-name]
   (let [new-icards (load-new-icards)]
     (if (seq? new-icards)		; i.e., if not empty
