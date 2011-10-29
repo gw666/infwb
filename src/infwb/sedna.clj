@@ -7,6 +7,7 @@
 	   (java.util Properties)
 	   (java.awt.geom AffineTransform))
   (:require [infwb.slip-display :as slip] :reload-all)
+  (:require [infwb.misc-dialogs :as md])
 ;  (:require [clojure.contrib.string :as st])
   )
 
@@ -563,13 +564,17 @@ fcn that *must* be executed when a new icard is created."
   []
   (keys @*localDB-icdata*))
 
-(defn load-new-icards   ; API
-  "Loads into localDB icards that are in permDB but not localDB; returns
-seq of these newly-loaded icards. API"
+(defn get-new-icards   ; API
+  " API"
   []
   (let [old (get-icards-in-localDB)
-	new (permDB->all-icards)
+	new (get-file-icards (md/get-last-shortname) *icard-coll-name*)
 	diff-seq (seq (clojure.set/difference (set new) (set old)))]
+
+    (println "OLD:" old)
+    (println "NEW:" new)
+    (println "diff:" diff-seq)
+    (println "------------------------------")
     
     (if (not (empty? diff-seq))
       (load-icard-seq-to-localDB diff-seq))
@@ -862,6 +867,7 @@ records in localDB. Returns: the slip (created as part of sldata)."
   ""
   [shortname coll-name layer-name]
   (let [icard-seq (get-file-icards shortname coll-name)
+	;; cd this be causing multiple-card drags to go wrong? 111029
 	slip-seq  (doall (map unified-load icard-seq))]
     (display-seq slip-seq layer-name)))
   
@@ -982,7 +988,7 @@ slips. API"
   "Used after an existing file has been reloaded. Creates and displays
 slips for all icards that do *not* have a slip already on deskotp. API"
   [layer-name]
-  (let [new-icards (load-new-icards)]
+  (let [new-icards (get-new-icards)]
     (if (seq? new-icards)		; i.e., if not empty
       (let [new-slips (icards->new-slips new-icards)]
 	(doall (display-seq new-slips layer-name)))
