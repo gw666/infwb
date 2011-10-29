@@ -189,7 +189,8 @@
 		    slip-text     (str slip ": "
 				       (db/sget slip :ttxt)
 				       "\n---------------------\n"
-				       (db/sget slip :btxt))]
+				       (db/munge-btxt
+					(db/sget slip :btxt)))]
 		(text! panel slip-text))))))
 
 

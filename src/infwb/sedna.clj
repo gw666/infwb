@@ -7,7 +7,6 @@
 	   (java.util Properties)
 	   (java.awt.geom AffineTransform))
   (:require [infwb.slip-display :as slip] :reload-all)
-  (:require [infwb.misc-dialogs :as md])
 ;  (:require [clojure.contrib.string :as st])
   )
 
@@ -412,20 +411,23 @@ check for icard validity."
   ;; query rtns [icard title body tag1* tag2* ... tagN*]; * = if tags exist
   (let [data-vec
 	(run-infocard-query (str "infoml[@cardId = '" icard "']")
-			    "($base/data/title/string(), $base/data/content/string(), $base/selectors/tag/string())")
+			    "($base/data/title/string(), $base/selectors/tag/string())")
+	paragraph-vec
+	(run-infocard-query (str "infoml[@cardId = '" icard "']")
+			    "($base/data/content/p/string())")
 	raw-ttxt   (get data-vec 0)
 	ttxt       (if (empty? raw-ttxt)
 		     ""
 		     raw-ttxt)
-	raw-btxt   (get data-vec 1)
-	btxt       (if (empty? raw-btxt)
-		     ""
-		     raw-btxt)
+	;; btxt       (if (empty? paragraph-vec)
+	;; 	     ""
+	;; 	     paragraph-vec)
+	btxt       paragraph-vec
 	]
     (new-icdata icard
 		ttxt
 		btxt
-		(drop 2 data-vec) )))
+		(rest data-vec) )))
 
 
 (defn make-invalid-icdata [icard]
@@ -478,6 +480,12 @@ permDB, substitutes a default 'invalid' record. API"
   [slip]
   (swap! *slip-attributes* assoc slip (atom {})))
 
+(defn munge-btxt
+  "converts btxt (a vector of strings, one for each para in body text) to
+one text string for all paragraphs, with blank line between paragraphs"
+  [btxt]
+  (apply str (interpose "\n\n" btxt)))
+
 (declare get-icdata sldata->localDB)
 
 (defn new-sldata   ; NEW API   111002
@@ -488,11 +496,13 @@ already has a slip. Returns: new sl-data record."
   ([icard x y]
   (let [icdata (get-icdata icard)
 	slip   (rand-kayko 3)
+	; returns a vector of strings, one for each para in body text
+	btxt-text   (munge-btxt (icdata-field icdata :btxt))
 	pobj   (slip/make-pinfocard
 		x
 		y
 		(icdata-field icdata :ttxt)
-		(icdata-field icdata :btxt)
+		btxt-text
 		icard)]
     ;; the value in slip is the "name" of the slip about to be created
     (. pobj addAttribute "slip" slip)
@@ -566,9 +576,9 @@ fcn that *must* be executed when a new icard is created."
 
 (defn get-new-icards   ; API
   " API"
-  []
+  [shortname]
   (let [old (get-icards-in-localDB)
-	new (get-file-icards (md/get-last-shortname) *icard-coll-name*)
+	new (get-file-icards shortname *icard-coll-name*)
 	diff-seq (seq (clojure.set/difference (set new) (set old)))]
 
     (println "OLD:" old)
@@ -987,8 +997,8 @@ slips. API"
 (defn display-new			; API
   "Used after an existing file has been reloaded. Creates and displays
 slips for all icards that do *not* have a slip already on deskotp. API"
-  [layer-name]
-  (let [new-icards (get-new-icards)]
+  [shortname layer-name]
+  (let [new-icards (get-new-icards shortname)]
     (if (seq? new-icards)		; i.e., if not empty
       (let [new-slips (icards->new-slips new-icards)]
 	(doall (display-seq new-slips layer-name)))
