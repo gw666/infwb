@@ -6,7 +6,7 @@
 	   (net.cfoster.sedna.xqj SednaXQDataSource)
 	   (java.util Properties)
 	   (java.awt.geom AffineTransform))
-  (:require [infwb.slip-display :as slip])
+  (:require [infwb.slip-display :as slip] :reload-all)
 ;  (:require [clojure.contrib.string :as st])
   )
 
@@ -38,6 +38,8 @@
 ;; 4) When infocards are added to a file and the file is *reloaded*,
 ;;    the resulting slips are immediately made visible.
 ;;
+;; NOTE: If using REPL, run (SYSsetup-InfWb "brain" "daily") first
+;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -66,7 +68,7 @@
 ;; (def *icard-to-slip-map* (atom {}))
 
 ;; ;; KEY: slip; VALUE: {attribute-name attr-value, ...)
-;; (def *slip-attrs* (atom {}))
+;; (def *slip-attributes* (atom {}))
 
 (def *icard-fields* #{:icard :ttxt :btxt :tags})
 (def *slip-fields*  #{:slip :icard :pobj})
@@ -156,7 +158,7 @@ Examples are:       (atom {k1 v1, k2 v2})
     (def *icard-to-slip-map* (atom {})))
 
 (defn reset-slip-attributes []
-  (def *slip-attrs* (atom {})))
+  (def *slip-attributes* (atom {})))
 
 ;; (defn get-slip-from-icard
 ;;   ""
@@ -291,33 +293,7 @@ the remote DB) referred to as shortname. API"
 		   "', '"
 		   coll-name
 		   "')/infomlFile/infoml[position() != 1] return $base/@cardId/string()") ]
-    (SYSrun-query query *icard-connection*))) ; line 294 at time of error
-;;
-;; ERROR in above function; stack trace below
-;;
-;; shortname-hdlr: filename is  t
-;; net.cfoster.sedna.xqj.bin.bX: SEDNA Message: ERROR SE4611
-;; There is no transaction to roll back.
-;;         at net.cfoster.sedna.xqj.bin.aV.e(Unknown Source)
-;;         at net.cfoster.sedna.xqj.bin.aV.a(Unknown Source)
-;;         at net.cfoster.sedna.xqj.bin.bW.a(Unknown Source)
-;;         at net.cfoster.sedna.xqj.bin.bW.executeQuery(Unknown Source)
-;;         at sun.reflect.GeneratedMethodAccessor15.invoke(Unknown Source)
-;;         at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:25)
-;;         at java.lang.reflect.Method.invoke(Method.java:597)
-;;         at clojure.lang.Reflector.invokeMatchingMethod(Reflector.java:90)
-;;         at clojure.lang.Reflector.invokeInstanceMethod(Reflector.java:28)
-;;         at infwb.sedna$SYSrun_query.invoke(sedna.clj:280)
-;;         at infwb.sedna$get_file_icards.invoke(sedna.clj:294)
-;;         at infwb.misc_dialogs$shortname_handler.invoke(misc_dialogs.clj:70)
-;;         at infwb.core$make_app$open_h__3512.invoke(core.clj:37)
-;;         at seesaw.action$action$fn__386.invoke(action.clj:74)
-;;         at seesaw.action.proxy$javax.swing.AbstractAction$0.actionPerformed(Unknown Source)
-;;         at javax.swing.AbstractButton.fireActionPerformed(AbstractButton.java:2028)
-;;         at javax.swing.AbstractButton$Handler.actionPerformed(AbstractButton.java:2351)
-;;         at javax.swing.DefaultButtonModel.fireActionPerformed(DefaultButtonModel.java:387)
-;;         at javax.swing.DefaultButtonModel.setPressed(DefaultButtonModel.java:242)
-;;         at javax.swing.AbstractButton.doClick(AbstractButton.java:389)
+    (SYSrun-query query *icard-connection*)))
 
 (defn SYSnew-icard-collection
   "Create a new, empty collection in the icard db currently in use
@@ -435,20 +411,23 @@ check for icard validity."
   ;; query rtns [icard title body tag1* tag2* ... tagN*]; * = if tags exist
   (let [data-vec
 	(run-infocard-query (str "infoml[@cardId = '" icard "']")
-			    "($base/data/title/string(), $base/data/content/string(), $base/selectors/tag/string())")
+			    "($base/data/title/string(), $base/selectors/tag/string())")
+	paragraph-vec
+	(run-infocard-query (str "infoml[@cardId = '" icard "']")
+			    "($base/data/content/p/string())")
 	raw-ttxt   (get data-vec 0)
 	ttxt       (if (empty? raw-ttxt)
 		     ""
 		     raw-ttxt)
-	raw-btxt   (get data-vec 1)
-	btxt       (if (empty? raw-btxt)
-		     ""
-		     raw-btxt)
+	;; btxt       (if (empty? paragraph-vec)
+	;; 	     ""
+	;; 	     paragraph-vec)
+	btxt       paragraph-vec
 	]
     (new-icdata icard
 		ttxt
 		btxt
-		(drop 2 data-vec) )))
+		(rest data-vec) )))
 
 
 (defn make-invalid-icdata [icard]
@@ -496,10 +475,16 @@ permDB, substitutes a default 'invalid' record. API"
   (swap! *icard-to-slip-map*
 	 update-in [icard] (fn [x] (conj x slip))))
 
-(defn new-slip-attrs-entry
-  "Adds new entry to *slip-attrs* with key = slip, value = (atom {})."
+(defn add-to-slip-attributes
+  "Adds new entry to *slip-attributes* with key = slip, value = (atom {})."
   [slip]
-  (swap! *slip-attrs* assoc slip (atom {})))
+  (swap! *slip-attributes* assoc slip (atom {})))
+
+(defn munge-btxt
+  "converts btxt (a vector of strings, one for each para in body text) to
+one text string for all paragraphs, with blank line between paragraphs"
+  [btxt]
+  (apply str (interpose "\n\n" btxt)))
 
 (declare get-icdata sldata->localDB)
 
@@ -510,16 +495,20 @@ executed when a new slip is created. Does *not* check to see if icard
 already has a slip. Returns: new sl-data record."
   ([icard x y]
   (let [icdata (get-icdata icard)
-	rand-key   (rand-kayko 3)
+	slip   (rand-kayko 3)
+	; returns a vector of strings, one for each para in body text
+	btxt-text   (munge-btxt (icdata-field icdata :btxt))
 	pobj   (slip/make-pinfocard
 		x
 		y
 		(icdata-field icdata :ttxt)
-		(icdata-field icdata :btxt))]
-    ;; the value in rand-key is the "name" of the slip about to be created
-    (register-slip-with-icard icard rand-key)
-    (new-slip-attrs-entry rand-key)
-    (let [new-sldata   (sldata. rand-key icard (atom pobj))]
+		btxt-text
+		icard)]
+    ;; the value in slip is the "name" of the slip about to be created
+    (. pobj addAttribute "slip" slip)
+    (register-slip-with-icard icard slip)
+    (add-to-slip-attributes slip)
+    (let [new-sldata   (sldata. slip icard (atom pobj))]
       (sldata->localDB new-sldata)
       new-sldata) ))   ;return new sldata
   ([icard] (new-sldata icard 0 0)))
@@ -585,13 +574,17 @@ fcn that *must* be executed when a new icard is created."
   []
   (keys @*localDB-icdata*))
 
-(defn load-new-icards   ; API
-  "Loads into localDB icards that are in permDB but not localDB; returns
-seq of these newly-loaded icards. API"
-  []
+(defn get-new-icards   ; API
+  " API"
+  [shortname]
   (let [old (get-icards-in-localDB)
-	new (permDB->all-icards)
+	new (get-file-icards shortname *icard-coll-name*)
 	diff-seq (seq (clojure.set/difference (set new) (set old)))]
+
+    (println "OLD:" old)
+    (println "NEW:" new)
+    (println "diff:" diff-seq)
+    (println "------------------------------")
     
     (if (not (empty? diff-seq))
       (load-icard-seq-to-localDB diff-seq))
@@ -640,6 +633,10 @@ copied into localDB; returns icdata w/ :ttxt = \"ERROR\" if not in permDB."
 API"
   [icard field-key]
   (field-key (get-icdata icard)))
+
+(defn title-str [icard]
+  @(iget icard :ttxt))
+
 
 ;; (defn get-all-icards   ; API
 ;;   "Returns a seq of all the currently available icards (i.e., already
@@ -832,6 +829,16 @@ field keys :x and :y to get position of slip. API"
     (let [sldata (get-sldata slip)]
       (SYSsldata-field sldata field-key) )))
 
+(defn get-pobj-title [item]
+  (let [item-class-str (. (class item) getName)]
+    (if (= item-class-str "edu.umd.cs.piccolo.nodes.PPath")
+      ; if true, return the pobj's title string
+      (let [slip (. item getAttribute "slip")]
+	(str "   --" (sget slip :ttxt)))
+      ; else return an error string
+      (str item-class-str " is not a PPath"))
+    ))
+
 (defn clone   ; NEW API   111002
   "Returns a new slip that is the clone of the icard. API"
   [icard]
@@ -868,6 +875,7 @@ field keys :x and :y to get position of slip. API"
 records in localDB. Returns: the slip (created as part of sldata)."
   [icard]
   (permDB->localDB icard)
+  (println (title-str icard))
   (clone icard))
 
 (defn icards->slips   ; NEW API   111002
@@ -884,7 +892,12 @@ records in localDB. Returns: the slip (created as part of sldata)."
   ""
   [shortname coll-name layer-name]
   (let [icard-seq (get-file-icards shortname coll-name)
-	slip-seq  (doall (map unified-load icard-seq))]
+	;; cd this be causing multiple-card drags to go wrong? 111029
+;	slip-seq  (doall (map unified-load icard-seq))
+	_   (println "--- begin display-file-icards ---")
+	slip-seq  (for [icard icard-seq]
+		    (unified-load icard))
+	]
     (display-seq slip-seq layer-name)))
   
 
@@ -1001,10 +1014,10 @@ slips. API"
 
      
 (defn display-new			; API
-  "For all icards in remote DB that do *not* have slips already on deskotp,
-creates and displays a slip for each. API"
-  [layer-name]
-  (let [new-icards (load-new-icards)]
+  "Used after an existing file has been reloaded. Creates and displays
+slips for all icards that do *not* have a slip already on deskotp. API"
+  [shortname layer-name]
+  (let [new-icards (get-new-icards shortname)]
     (if (seq? new-icards)		; i.e., if not empty
       (let [new-slips (icards->new-slips new-icards)]
 	(doall (display-seq new-slips layer-name)))
