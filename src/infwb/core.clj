@@ -31,6 +31,11 @@
   [seq elm]  
   (some #(= elm %) seq))
 
+(defn reordered
+  "Return little collection with its items in the same order as they are
+within big collection."
+  [little big]
+  (filter #(contains-item? little %) big))
 
 (defn make-app
   "Creates, displays top-level Infocard Workbench application"
@@ -96,31 +101,31 @@
   (let [picked   (. pie getPickedNode)
 	picked-coll (seq (.. pie getInputManager
 			     getKeyboardFocus getSelection))
-	pick-path (. pie getPath)
-	node-stack (. pick-path getNodeStackReference)
-	move-picked-coll (contains-item? picked-coll picked)
+	move-picked-coll? (contains-item? picked-coll picked)
 	valid?   (not= "PCamera"
 		       (. (class picked) getSimpleName))
-	move-picked-only (and (not move-picked-coll) valid?)]
-    (println "SINGLE" picked)
+	move-picked-only? (and (not move-picked-coll?) valid?)]
+    (println "SINGLE" (db/get-pobj-title picked))
     (println " ")
-    (println "COLLECTION" picked-coll "\n")
+    (println "COLLECTION" (map db/get-pobj-title picked-coll) "\n")
     ;; (println "PICK-PATH" node-stack "\n"
     ;;	     (. pick-path getPickedNode) (. pick-path nextPickedNode))
     ;; (println "picked is in collection?"
-    ;; 	     (if move-picked-coll "yes" "no"))
+    ;; 	     (if move-picked-coll? "yes" "no"))
     ;; (println "Needs moving?"
     ;; 	     (if valid? "yes" "no"))
     (println "----------------------------------------")
-    (if move-picked-only
+    (if move-picked-only?
       (. picked moveToFront)
       (if valid?
 	(let [picked   (. pie getPickedNode)
-	      picked-coll (seq (.. pie getInputManager
-				   getKeyboardFocus getSelection))]
-	  (println "SINGLE" picked)
+	      raw-coll (seq (.. pie getInputManager
+				   getKeyboardFocus getSelection))
+	      all-pobjs (.. pie getComponent getLayer getChildrenReference)
+	      picked-coll (reordered raw-coll all-pobjs)]
+	  (println "SINGLE" (db/get-pobj-title picked))
 	  (println " ")
-	  (println "COLLECTION" picked-coll "\n")
+	  (println "COLLECTION" (map db/get-pobj-title picked-coll) "\n")
 	  (println "########################################")
 	  (doseq [pobj picked-coll] (. pobj moveToFront)))))
     (proxy-super startDrag pie)

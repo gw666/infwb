@@ -634,6 +634,10 @@ API"
   [icard field-key]
   (field-key (get-icdata icard)))
 
+(defn title-str [icard]
+  @(iget icard :ttxt))
+
+
 ;; (defn get-all-icards   ; API
 ;;   "Returns a seq of all the currently available icards (i.e., already
 ;; loaded in localDB); use permDB->all-icards to get all icards that
@@ -825,6 +829,16 @@ field keys :x and :y to get position of slip. API"
     (let [sldata (get-sldata slip)]
       (SYSsldata-field sldata field-key) )))
 
+(defn get-pobj-title [item]
+  (let [item-class-str (. (class item) getName)]
+    (if (= item-class-str "edu.umd.cs.piccolo.nodes.PPath")
+      ; if true, return the pobj's title string
+      (let [slip (. item getAttribute "slip")]
+	(str "   --" (sget slip :ttxt)))
+      ; else return an error string
+      (str item-class-str " is not a PPath"))
+    ))
+
 (defn clone   ; NEW API   111002
   "Returns a new slip that is the clone of the icard. API"
   [icard]
@@ -861,6 +875,7 @@ field keys :x and :y to get position of slip. API"
 records in localDB. Returns: the slip (created as part of sldata)."
   [icard]
   (permDB->localDB icard)
+  (println (title-str icard))
   (clone icard))
 
 (defn icards->slips   ; NEW API   111002
@@ -878,7 +893,11 @@ records in localDB. Returns: the slip (created as part of sldata)."
   [shortname coll-name layer-name]
   (let [icard-seq (get-file-icards shortname coll-name)
 	;; cd this be causing multiple-card drags to go wrong? 111029
-	slip-seq  (doall (map unified-load icard-seq))]
+;	slip-seq  (doall (map unified-load icard-seq))
+	_   (println "--- begin display-file-icards ---")
+	slip-seq  (for [icard icard-seq]
+		    (unified-load icard))
+	]
     (display-seq slip-seq layer-name)))
   
 
