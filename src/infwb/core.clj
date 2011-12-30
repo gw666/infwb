@@ -21,7 +21,11 @@
   (:require [infwb.misc-dialogs :as md] :reload-all)
   (:require [infwb.sedna :as db] :reload-all)
   (:require [infwb.inspector :as in] :reload-all)
-  (:use [clojure.set :only (difference)]))
+  (:use [clojure.set :only (difference)])
+
+  (:use clojure.test)
+  (:use midje.sweet)
+)
 
 
 (def *last-slip-clicked* (atom nil))
