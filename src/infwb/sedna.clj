@@ -980,29 +980,6 @@ slips. API"
     (if (seq? slip-seq)   ;i.e., if not empty
       (doall (map slip-show-col slip-groups x-seq y-seq layer-seq)))))
 
-;; (defn display-all			; API
-;;   "Displays a slip for each icard. Displays columns of overlapping slips
-;; with all slip titles visible. API"
-;;   [layer-name]
-;;   (let [all-icards (get-all-icards)
-;; 	all-slips :REPLACETHIS]
-    
-;;     (doall (display-seq all-slips layer-name))
-;;     ))
-
-;; needs tests
-;; (defn icards->slips   ; API
-;;   "Returns a list of slips corresponding to the icards in icard-seq. Existing
-;; slips are used, and new ones are created when necessary. API"
-;;   [icard-seq]
-;;   (loop [slips nil,   icards icard-seq]
-;;     (let [icard (first icard)
-;; 	  remaining-icards (rest icards)
-;; 	  ]
-;;       ###
-;;       )))
-
-
 (defn icards->new-slips   ; API--but OLD
   "Creates new slips from icards, returns: list of slips. Does NOT display
 slips. API"
@@ -1130,28 +1107,3 @@ are not preserved, but icard-slip relationships are equivalent.) API"
   (let [restore-vector (get-desktop-data base-name)]
     (doseq [vector restore-vector]
       (restore-one-slip vector layer-name))))
-
-;; InfWb 0.1 Workflow Cheat Sheet  110901
-
-;; 	(SYSclear-all)
-;; 	(SYSload "filename-without-.xml")
-;;      (SYSreload "filename-without-.xml")
-;; 	(display-all *piccolo-layer*)
-;; 	(display-new *piccolo-layer*)
-
-;;      (clear-layer *piccolo-layer*)
-
-;; Other useful commands:
-
-;; 	(SYSpeek-into-db)   ; see what documents and collections exist
-
-;;      (SYSnew-icard-collection "collection-name")
-
-;; 	(SYSdrop "filename-without-.xml")
-
-;;      *icard-to-slip-map*
-
-;;      (SYSsetup-InfWb "brain" "daily")
-
-;;      (SYSset-connection *icard-connection* "brain")
-
