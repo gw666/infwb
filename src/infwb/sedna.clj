@@ -652,7 +652,7 @@ API"
   "NEEDS DEFINITION. API"
   []
   ; If the local cache is empty, load all icards from permDB
-  (if (not= (count get-icards-in-localDB) (count (permDB->all-icards)))
+  (if (not= (count (get-icards-in-localDB)) (count (permDB->all-icards)))
     (load-all-icards))
   (get-icards-in-localDB))
 
