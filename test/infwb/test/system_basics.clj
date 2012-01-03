@@ -4,13 +4,11 @@
   (:use clojure.test)
   (:use midje.sweet))
 
+(db/SYSsetup-InfWb "brain" "test")
+(db/SYSload "four-notecards")
+
 (fact
-  (count (db/permDB->all-icards)) => 4
-  (against-background
-    (before :facts
-            (doall
-              (db/SYSsetup-InfWb "brain" "test")
-              (db/SYSload "four-notecards")))
-    (after :facts
-           (db/SYSdrop "four-notecards"))))
+  (count (db/permDB->all-icards)) => 4)
+
+(db/SYSdrop "four-notecards")
 
