@@ -7,7 +7,6 @@
 	   (java.util Properties)
 	   (java.awt.geom AffineTransform))
   (:require [infwb.slip-display :as slip] :reload-all)
-;  (:require [clojure.contrib.string :as st])
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
