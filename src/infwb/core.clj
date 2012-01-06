@@ -16,8 +16,7 @@
    (javax.swing     JFrame))
 
   (:use seesaw.core)
-;  (:use [infwb   sedna
-;	 slip-display infoml-utilities  notecard] :reload-all)
+
   (:require [infwb.misc-dialogs :as md] :reload-all)
   (:require [infwb.sedna :as db] :reload-all)
   (:require [infwb.inspector :as in] :reload-all)

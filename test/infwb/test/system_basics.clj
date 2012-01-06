@@ -1,12 +1,17 @@
 (ns infwb.test.system-basics
   (:require [infwb.core])
+  (:require [infwb.slip-display])
   (:require [infwb.sedna :as db])
+
+  (:import (edu.umd.cs.piccolox         PFrame)
+           (edu.umd.cs.piccolo.event    PDragEventHandler))
+  
   (:use clojure.test)
   (:use midje.sweet))
 
 ;; Preconditions for these tests to work:
 ;;
-;; * You must compile core.clj
+;; * You must compile core.clj, then compile this file
 ;;
 ;; * Sedna must have a db named "brain" and an _empty_ collection named 'test'
 ;;
@@ -68,14 +73,14 @@
 
 ; slip low-level tests
 
-;.;. Code you'd be proud to give your mom to show off on the fridge. --
-;.;. Mike Cohn
-(against-background
+#_(against-background
     
   [(before :contents
            (doall
             (db/SYSsetup-InfWb "brain" "test")
-            (db/SYSload "four-notecards")))
+            (db/SYSload "four-notecards"))
+           
+           )
    
    (around :facts
            (let [IGNORE       (db/SYSclear-all) ; new test; clear local data
@@ -101,6 +106,49 @@
     (db/SYSsldata-field test-sldata :icard) => test-icard
     (db/SYSsldata-field test-sldata :btxt) => test-btxt
     (db/SYSsldata-field test-sldata :ttxt) => test-ttxt
+    )
+
+    
+  )   ; close "against-background"
+
+
+
+(against-background
+    
+  [(before :contents
+           (doall
+            (db/SYSsetup-InfWb "brain" "test")
+            (db/SYSload "four-notecards"))
+           
+           )
+   
+   (around :facts
+           (let [IGNORE       (db/SYSclear-all) ; new test; clear local data
+                 test-icard   (nth (db/get-all-icards) 0)
+                 test-sldata  (db/new-sldata test-icard)
+                 test-slip    (nth (db/get-all-slips) 0)
+
+                 frame1    (PFrame.)
+                 canvas1   (.getCanvas frame1)
+                 layer1    (.getLayer canvas1)
+                 dragger   (PDragEventHandler.)
+                 IGNORE    (.setMoveToFrontOnPress dragger true)
+                 IGNORE    (.setPanEventHandler canvas1 nil)
+                 IGNORE    (.addInputEventListener canvas1 dragger)
+                 IGNORE    (println
+                            "Check the topmost window; it should show"
+                            " one slip")
+                 ]
+             ?form ))
+
+   (after :contents
+          (db/SYSdrop "four-notecards"))
+   ]
+
+  
+  (fact
+    ; FCNS TESTED: show
+    (db/show test-slip 50 150 layer1) => nil
     )
 
     
