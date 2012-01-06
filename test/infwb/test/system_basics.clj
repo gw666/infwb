@@ -68,15 +68,20 @@
 
 ; slip low-level tests
 
+;.;. [31mFAIL[0m at (NO_SOURCE_FILE:1)
+;.;.     Expected: 1
+;.;.       Actual: 2
 (against-background
     
   [(before :contents
            (doall
+;;            (db/SYSclear-all)
             (db/SYSsetup-InfWb "brain" "test")
             (db/SYSload "four-notecards")))
    
-   (around :contents
-           (let [test-icard   (nth (db/get-all-icards) 0)
+   (around :facts
+           (let [IGNORE       (db/SYSclear-all)
+                 test-icard   (nth (db/get-all-icards) 0)
                  test-icdata  (db/localDB->icdata test-icard)
                  test-ttxt    (db/icdata-field test-icdata :ttxt)
                  test-sldata  (db/new-sldata test-icard)
