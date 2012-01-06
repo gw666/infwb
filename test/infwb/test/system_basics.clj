@@ -68,23 +68,23 @@
 
 ; slip low-level tests
 
-;.;. [31mFAIL[0m at (NO_SOURCE_FILE:1)
-;.;.     Expected: 1
-;.;.       Actual: 2
+;.;. Code you'd be proud to give your mom to show off on the fridge. --
+;.;. Mike Cohn
 (against-background
     
   [(before :contents
            (doall
-;;            (db/SYSclear-all)
             (db/SYSsetup-InfWb "brain" "test")
             (db/SYSload "four-notecards")))
    
    (around :facts
-           (let [IGNORE       (db/SYSclear-all)
+           (let [IGNORE       (db/SYSclear-all) ; new test; clear local data
                  test-icard   (nth (db/get-all-icards) 0)
                  test-icdata  (db/localDB->icdata test-icard)
+                 test-btxt    (db/icdata-field test-icdata :btxt)
                  test-ttxt    (db/icdata-field test-icdata :ttxt)
                  test-sldata  (db/new-sldata test-icard)
+                 test-slip    (nth (db/get-all-slips) 0)
                  ]
              ?form ))
 
@@ -95,9 +95,13 @@
   
   (fact
     ; FCNS TESTED: get-all-icards, localDB->icdata, icdata-field,
-    ;    get-all-slips
-    (count (db/get-all-slips)) => 1)
-
+    ;    get-all-slips, SYSsldata-field
+    (count (db/get-all-slips)) => 1
+    (db/SYSsldata-field test-sldata :slip) => test-slip
+    (db/SYSsldata-field test-sldata :icard) => test-icard
+    (db/SYSsldata-field test-sldata :btxt) => test-btxt
+    (db/SYSsldata-field test-sldata :ttxt) => test-ttxt
+    )
 
     
   )   ; close "against-background"
