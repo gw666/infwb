@@ -10,10 +10,13 @@
 ;;
 ;; * Sedna must have a db named "brain" and an _empty_ collection named 'test'
 ;;
+;; * (def trio (-main)) has been run
 
 
-;.;. Simplicity, carried to the extreme, becomes elegance. -- Jon Franklin
-(against-background
+;; icard low-level tests
+
+#_(against-background
+  
   [(before :contents
            (doall
             (db/SYSsetup-InfWb "brain" "test")
@@ -21,12 +24,10 @@
    (after :contents
           (db/SYSdrop "four-notecards"))]
 
-  
   (fact
     ; FCNS TESTED: permDB->all-icards
     (count (db/permDB->all-icards)) => 4)
 
-  
   (fact
     ; TESTS correctly reading the :ttxt field of an icdata record
     ; FCNS TESTED: get-icdata-from-permDB, icdata->localDB, localDB->icdata
@@ -39,7 +40,6 @@
               (let [icd  (db/get-icdata-from-permDB "gw667_090815161114586")
                     _    (db/icdata->localDB icd)]))))
 
-
   (fact
     ; FCNS TESTED: permDB->localDB, localDB->icdata
     (db/icdata-field (db/localDB->icdata "gw667_090815162059614") :ttxt)
@@ -48,12 +48,10 @@
     (against-background
       (before :facts (db/permDB->localDB "gw667_090815162059614"))))
 
-
   (fact
     ; FCNS TESTED: permDB->all-icards, get-icdata-from-permDB
     (count (map db/get-icdata-from-permDB (db/permDB->all-icards))) => 4)
 
-  
   (fact
     ; FCNS TESTED: permDB->all-icards, permDB->localDB, get-all-icards
     (count (db/get-all-icards)) => 4
@@ -63,8 +61,39 @@
               (let [all-icards (db/permDB->all-icards)]
                 (doseq [card all-icards]
                   (db/permDB->localDB card))))))
+
+    )   ; close "against-background"
+
+; ===============================================
+
+; slip low-level tests
+
+(against-background
     
+  [(before :contents
+           (doall
+            (db/SYSsetup-InfWb "brain" "test")
+            (db/SYSload "four-notecards")))
+   
+   (around :contents
+           (let [test-icard   (nth (db/get-all-icards) 0)
+                 test-icdata  (db/localDB->icdata test-icard)
+                 test-ttxt    (db/icdata-field test-icdata :ttxt)
+                 test-sldata  (db/new-sldata test-icard)
+                 ]
+             ?form ))
+
+   (after :contents
+          (db/SYSdrop "four-notecards"))
+   ]
 
   
+  (fact
+    ; FCNS TESTED: get-all-icards, localDB->icdata, icdata-field,
+    ;    get-all-slips
+    (count (db/get-all-slips)) => 1)
+
+
+    
   )   ; close "against-background"
 
