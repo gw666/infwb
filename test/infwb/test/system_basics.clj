@@ -118,9 +118,7 @@
   [(before :contents
            (doall
             (db/SYSsetup-InfWb "brain" "test")
-            (db/SYSload "four-notecards"))
-           
-           )
+            (db/SYSload "four-notecards")))
    
    (around :facts
            (let [IGNORE       (db/SYSclear-all) ; new test; clear local data
@@ -137,7 +135,7 @@
                  IGNORE    (.addInputEventListener canvas1 dragger)
                  IGNORE    (println
                             "Check the topmost window; it should show"
-                            " one slip")
+                            "one slip")
                  ]
              ?form ))
 
@@ -148,9 +146,7 @@
   
   (fact
     ; FCNS TESTED: show
-    (db/show test-slip 50 150 layer1) => nil
-    )
+    (db/show test-slip 50 150 layer1) => nil)
 
-    
   )   ; close "against-background"
 
