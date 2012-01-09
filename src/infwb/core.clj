@@ -1,6 +1,3 @@
-
-;; "new" infwb, using seesaw
-
 (ns infwb.core
   (:gen-class)
   (:import
@@ -41,8 +38,18 @@ within big collection."
   (filter #(contains-item? little %) big))
 
 (defn make-app
-  "Creates, displays top-level Infocard Workbench application"
+  "Creates, displays top-level Infocard Workbench app window.
+
+Sets up menus & behavior, returns a Seesaw 'frame' (i.e., app window).
+'xxx-a' denotes a menu action; 'xxx-h' is that action's handler function,
+which executes when the user selects the corresponding menu item."
+  
   [canvas]
+
+  ; Implementation details: the handler functions are all in ns
+  ; infwb.misc-dialogs; each function is handed the app window's
+  ; layer as an argument
+
   (let [
 ; ----- File>Open: shortname-dialog and -handler -----
 	open-h   (fn [e]
@@ -97,7 +104,8 @@ within big collection."
 
 (defn enhanced-start-drag
   ""
-  [pie this]
+  [pie this]; pie is a PInputEvent
+  
   ;; Either picked or picked-coll may be the pobj(s) to be moved
   ;; to the front (see move-picked-coll), or this may be an 
   ;; irrelevant drag to be ignored (see valid?).
@@ -108,16 +116,24 @@ within big collection."
 	valid?   (not= "PCamera"
 		       (. (class picked) getSimpleName))
 	move-picked-only? (and (not move-picked-coll?) valid?)]
-    (println "SINGLE" (db/get-pobj-title picked))
-    (println " ")
-    (println "COLLECTION" (map db/get-pobj-title picked-coll) "\n")
+    
+    ;; ; This is the single card that the cursor is over--getting 
+    ;; ; 'edu.umd.cs.piccolo.PCamera is not a PPath' means the cursor
+    ;; ; is over the bare desktop--it is not an error
+    ;; (println "SINGLE" (db/get-pobj-title picked))
+    ;; (println " ")
+
+    
+    ;; ; This prints out the collection of slips that are being moved
+    ;; (println "COLLECTION" (map db/get-pobj-title picked-coll) "\n")
+    
     ;; (println "PICK-PATH" node-stack "\n"
     ;;	     (. pick-path getPickedNode) (. pick-path nextPickedNode))
     ;; (println "picked is in collection?"
     ;; 	     (if move-picked-coll? "yes" "no"))
     ;; (println "Needs moving?"
     ;; 	     (if valid? "yes" "no"))
-    (println "----------------------------------------")
+    ;; (println "----------------------------------------")
     (if move-picked-only?
       (. picked moveToFront)
       (if valid?
@@ -126,10 +142,14 @@ within big collection."
 				   getKeyboardFocus getSelection))
 	      all-pobjs (.. pie getComponent getLayer getChildrenReference)
 	      picked-coll (reordered raw-coll all-pobjs)]
-	  (println "SINGLE" (db/get-pobj-title picked))
-	  (println " ")
-	  (println "COLLECTION" (map db/get-pobj-title picked-coll) "\n")
-	  (println "########################################")
+	  ;; (println "SINGLE" (db/get-pobj-title picked))
+	  ;; (println " ")
+	  ;; (println "COLLECTION" (map db/get-pobj-title picked-coll) "\n")
+
+          ; 120108 *not* doing this causes "drag multiple slips" to break!!!
+	  (doall (map db/get-pobj-title picked-coll))
+          
+	  ;; (println "########################################")
 	  (doseq [pobj picked-coll] (. pobj moveToFront)))))
     (proxy-super startDrag pie)
     ))

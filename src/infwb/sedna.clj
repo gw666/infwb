@@ -119,14 +119,21 @@ then the seq contains only the original path given."
 
 
 (defn new-assoc
-  "In the atom-NAS, change the value associated with key. If key not found, 
-adds new key-value pair. Work for multiple levels of nesting.
+"In the atom-NAS, change the value associated with the key-value pair
+found by following the vector of indices. If key not found, 
+adds new key-value pair. Works for multiple levels of nesting.
 
 An atom-NAS is an atom that points to a NAS (nested associative structure).
-Examples are:       (atom {k1 v1, k2 v2})
-               and  (atom [{k1 v1, k2 v2} {k1 v3, k2 v4}])"
-  [atom-map vec-of-keys value]
-  (swap! atom-map assoc-in vec-of-keys value))
+Examples:  (atom {k1 v1, k2 v2}), (atom [{k1 v1, k2 v2} {k1 v3, k2 v4}])
+
+Given (def a (atom [{:k1 1, :k2 2} {:k1 3, :k2 4}])),
+then (new-assoc a [1 :k2] 99) sets a = [{:k1 1, :k2 2} {:k1 3, :k2 99}]
+
+Note that the first index chooses the particular map to target. Also, if the
+atom contains only one map, then the surrounding brackets are not needed
+around the map and vec-of-indices will have only a single value in it."
+[atom-map vec-of-indices value]
+  (swap! atom-map assoc-in vec-of-indices value))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -828,7 +835,12 @@ field keys :x and :y to get position of slip. API"
     (let [sldata (get-sldata slip)]
       (SYSsldata-field sldata field-key) )))
 
-(defn get-pobj-title [item]
+(defn get-pobj-title
+  "Returns the text of a slip/pobj's 'slip' attribute, or error text.
+
+Every pobj corresponding to a slip has that slip's title stored in a
+'slip' attribute attached to the pobj."
+  [item]
   (let [item-class-str (. (class item) getName)]
     (if (= item-class-str "edu.umd.cs.piccolo.nodes.PPath")
       ; if true, return the pobj's title string
@@ -874,7 +886,8 @@ field keys :x and :y to get position of slip. API"
 records in localDB. Returns: the slip (created as part of sldata)."
   [icard]
   (permDB->localDB icard)
-  (println (title-str icard))
+  ; commented out 120108
+;;  (println (title-str icard))
   (clone icard))
 
 (defn icards->slips   ; NEW API   111002
@@ -892,8 +905,8 @@ records in localDB. Returns: the slip (created as part of sldata)."
   [shortname coll-name layer-name]
   (let [icard-seq (get-file-icards shortname coll-name)
 	;; cd this be causing multiple-card drags to go wrong? 111029
-;	slip-seq  (doall (map unified-load icard-seq))
-	_   (println "--- begin display-file-icards ---")
+        ;	slip-seq  (doall (map unified-load icard-seq))
+	;; _   (println "--- begin display-file-icards ---")
 	slip-seq  (for [icard icard-seq]
 		    (unified-load icard))
 	]
