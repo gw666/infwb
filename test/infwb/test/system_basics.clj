@@ -6,6 +6,7 @@
   (:import (edu.umd.cs.piccolox         PFrame)
            (edu.umd.cs.piccolo.event    PDragEventHandler))
   
+  (:use seesaw.core)
   (:use clojure.test)
   (:use midje.sweet))
 
@@ -108,10 +109,118 @@
     (db/SYSsldata-field test-sldata :ttxt) => test-ttxt
     )
 
+  )   ; close "against-background"
+
+; ------------------------------------------------------
+
+#_(against-background
+    
+  [(before :contents
+           (doall
+            (db/SYSsetup-InfWb "brain" "test")
+            (db/SYSload "four-notecards")))
+   
+   (around :contents
+           (let [IGNORE       (db/SYSclear-all) ; new test; clear local data
+                 test-icard   (nth (db/get-all-icards) 0)
+                 test-icdata  (db/localDB->icdata test-icard)
+                 test-sldata  (db/new-sldata test-icard)
+                 test-slip    (nth (db/get-all-slips) 0)
+                 new-x   62
+                 new-y  118
+                 IGNORE       (db/move-to test-slip new-x new-y)
+                 new-sldata   (db/get-sldata test-slip)
+;                 IGNORE       (println new-sldata)
+                 ]
+             ?form ))
+
+   (after :contents
+          (db/SYSdrop "four-notecards"))
+   ]
+
+  
+  (fact
+    ; FCNS TESTED: 
+    (db/round-to-int (db/SYSsldata-field new-sldata :x)) => new-x
+    (db/round-to-int (db/SYSsldata-field new-sldata :y)) => new-y 
+;    (db/round-to-int 118.2) => new-y 
+    )
+  
+  )   ; close "against-background"
+
+; ------------------------------------------------------
+
+#_(against-background
+    
+  [(before :contents
+           (doall
+            (db/SYSsetup-InfWb "brain" "test")
+            (db/SYSload "four-notecards")))
+   
+   (around :facts
+           (let [IGNORE       (db/SYSclear-all) ; new test; clear local data
+                 test-icard   (nth (db/get-all-icards) 0)
+                 test-sldata  (db/new-sldata test-icard)
+                 test-slip    (nth (db/get-all-slips) 0)
+
+                 frame1    (PFrame.)
+                 canvas1   (.getCanvas frame1)
+                 layer1    (.getLayer canvas1)
+                 dragger   (PDragEventHandler.)
+                 IGNORE    (.setMoveToFrontOnPress dragger true)
+                 IGNORE    (.setPanEventHandler canvas1 nil)
+                 IGNORE    (.addInputEventListener canvas1 dragger)
+                 IGNORE    (println
+                            "Check the topmost window; it should show"
+                            "one slip")
+                 ]
+             ?form ))
+
+   (after :contents
+          (doall
+           (Thread/sleep 8000)
+           (db/SYSdrop "four-notecards")))
+          ]
+
+(fact
+    ; FCNS TESTED: show
+    (db/show test-slip 50 150 layer1) => nil)
+
+  )   ; close "against-background"
+
+; ------------------------------------------------------
+
+#_(against-background   ; template; creates one record in icdata, sldata DBs
+    
+  [(before :contents
+           (doall
+            (db/SYSsetup-InfWb "brain" "test")
+            (db/SYSload "four-notecards"))
+           
+           )
+   
+   (around :facts
+           (let [IGNORE       (db/SYSclear-all) ; new test; clear local data
+                 test-icard   (nth (db/get-all-icards) 0)
+                 test-icdata  (db/localDB->icdata test-icard)
+                 test-sldata  (db/new-sldata test-icard)
+                 test-slip    (nth (db/get-all-slips) 0)
+                 ]
+             ?form ))
+
+   (after :contents
+          (db/SYSdrop "four-notecards"))
+   ]
+
+  
+  (fact
+    ; FCNS TESTED: 
+
+    )
     
   )   ; close "against-background"
 
-
+; ------------------------------------------------------
 
 (against-background
     
@@ -140,11 +249,12 @@
              ?form ))
 
    (after :contents
-          (db/SYSdrop "four-notecards"))
-   ]
+          (doall
+           (Thread/sleep 8000)
+           (db/SYSdrop "four-notecards")))
+          ]
 
-  
-  (fact
+(fact
     ; FCNS TESTED: show
     (db/show test-slip 50 150 layer1) => nil)
 
