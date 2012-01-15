@@ -77,14 +77,11 @@
 #_(against-background
     
   [(before :contents
-           (doall
-            (db/SYSsetup-InfWb "brain" "test")
             (db/SYSload "four-notecards"))
-           
-           )
    
    (around :facts
            (let [IGNORE       (db/SYSclear-all) ; new test; clear local data
+                 IGNORE       (db/SYSsetup-InfWb "brain" "test") ;more setup
                  test-icard   (nth (db/get-all-icards) 0)
                  test-icdata  (db/localDB->icdata test-icard)
                  test-btxt    (db/icdata-field test-icdata :btxt)
@@ -150,78 +147,6 @@
 
 ; ------------------------------------------------------
 
-#_(against-background
-    
-  [(before :contents
-           (doall
-            (db/SYSsetup-InfWb "brain" "test")
-            (db/SYSload "four-notecards")))
-   
-   (around :facts
-           (let [IGNORE       (db/SYSclear-all) ; new test; clear local data
-                 test-icard   (nth (db/get-all-icards) 0)
-                 test-sldata  (db/new-sldata test-icard)
-                 test-slip    (nth (db/get-all-slips) 0)
-
-                 frame1    (PFrame.)
-                 canvas1   (.getCanvas frame1)
-                 layer1    (.getLayer canvas1)
-                 dragger   (PDragEventHandler.)
-                 IGNORE    (.setMoveToFrontOnPress dragger true)
-                 IGNORE    (.setPanEventHandler canvas1 nil)
-                 IGNORE    (.addInputEventListener canvas1 dragger)
-                 IGNORE    (println
-                            "Check the topmost window; it should show"
-                            "one slip")
-                 ]
-             ?form ))
-
-   (after :contents
-          (doall
-           (Thread/sleep 8000)
-           (db/SYSdrop "four-notecards")))
-          ]
-
-(fact
-    ; FCNS TESTED: show
-    (db/show test-slip 50 150 layer1) => nil)
-
-  )   ; close "against-background"
-
-; ------------------------------------------------------
-
-#_(against-background   ; template; creates one record in icdata, sldata DBs
-    
-  [(before :contents
-           (doall
-            (db/SYSsetup-InfWb "brain" "test")
-            (db/SYSload "four-notecards"))
-           
-           )
-   
-   (around :facts
-           (let [IGNORE       (db/SYSclear-all) ; new test; clear local data
-                 test-icard   (nth (db/get-all-icards) 0)
-                 test-icdata  (db/localDB->icdata test-icard)
-                 test-sldata  (db/new-sldata test-icard)
-                 test-slip    (nth (db/get-all-slips) 0)
-                 ]
-             ?form ))
-
-   (after :contents
-          (db/SYSdrop "four-notecards"))
-   ]
-
-  
-  (fact
-    ; FCNS TESTED: 
-
-    )
-    
-  )   ; close "against-background"
-
-; ------------------------------------------------------
-
 (against-background
     
   [(before :contents
@@ -229,7 +154,7 @@
             (db/SYSsetup-InfWb "brain" "test")
             (db/SYSload "four-notecards")))
    
-   (around :facts
+   (around :checks   ;was :facts
            (let [IGNORE       (db/SYSclear-all) ; new test; clear local data
                  test-icard   (nth (db/get-all-icards) 0)
                  test-sldata  (db/new-sldata test-icard)
@@ -257,6 +182,50 @@
 (fact
     ; FCNS TESTED: show
     (db/show test-slip 50 150 layer1) => nil)
+
+  )   ; close "against-background"
+
+; ------------------------------------------------------
+
+; 120113 not working--see comment where 'fact' is, below;
+; giving up for now
+#_(against-background
+    
+  [(before :contents
+            (db/SYSload "four-notecards"))
+   
+   (around :contents
+           (let [frame1    (PFrame.)
+                 canvas1   (.getCanvas frame1)
+                 layer1    (.getLayer canvas1)
+                 dragger   (PDragEventHandler.)
+                 IGNORE    (.setMoveToFrontOnPress dragger true)
+                 IGNORE    (.setPanEventHandler canvas1 nil)
+                 IGNORE    (.addInputEventListener canvas1 dragger)
+
+                 IGNORE       (db/SYSclear-all) ; new test; clear local data
+                 IGNORE       (db/SYSsetup-InfWb "brain" "test") ;more setup
+                 test-icard   (nth (db/get-all-icards) 0)
+                 test-sldata  (db/new-sldata test-icard)
+                 test-slip    (nth (db/get-all-slips) 0)
+                 nicard2      "gw667_090815163031398"
+                 slip2        (db/icard->sldata->localDB nicard2)
+                 sldata2      (db/get-sldata slip2)
+;                 IGNORE   (println sldata2)
+                 ]
+             ?form ))
+
+   (after :contents
+           (db/SYSdrop "four-notecards"))
+   ]
+  
+; For some reason, the fact below does not "see" test-card or sldata2, even
+; though it should be available because of the bindings in 'around' stmt above
+  (fact
+    ; FCNS TESTED: 
+  (println test-icard) => nil
+  (db/SYSsldata-field sldata2 :icard) => "gw667_090815163031398"
+  )
 
   )   ; close "against-background"
 
