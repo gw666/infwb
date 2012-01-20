@@ -29,7 +29,7 @@
 
 ;; icard low-level tests
 
-(against-background
+#_(against-background
   
   [(before :contents
            (doall
@@ -82,7 +82,7 @@
 
 ; slip low-level tests
 
-(against-background
+#_(against-background
     
   [(before :contents
             (db/SYSload "four-notecards"))
@@ -122,7 +122,7 @@
 ;.;. Out of clutter find simplicity; from discord find harmony; in the
 ;.;.                               ; middle of difficulty lies
 ;.;.                               ; opportunity. -- Einstein
-(against-background                     ;bombs
+#_(against-background                     ;bombs
     
   [(before :contents
            (doall
@@ -153,7 +153,7 @@
 
 ; ------------------------------------------------------
 
-(against-background
+#_(against-background
     
   [(before :contents
            (doall
@@ -195,7 +195,7 @@
 
 ; ------------------------------------------------------
 
-(against-background
+#_(against-background
     
   [(before :contents
             (db/SYSload "four-notecards"))
