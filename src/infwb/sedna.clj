@@ -69,8 +69,8 @@
 ;; ;; KEY: slip; VALUE: {attribute-name attr-value, ...)
 ;; (def *slip-attributes* (atom {}))
 
-(def *icard-fields* #{:icard :ttxt :btxt :tags})
-(def *slip-fields*  #{:slip :icard :pobj})
+(def ^:dynamic *icard-fields* #{:icard :ttxt :btxt :tags})
+(def ^:dynamic *slip-fields*  #{:slip :icard :pobj})
 
 ;; *slip-width*, *slip-height*, *slip-line-height* are defined in
 ;; slip_display.clj
@@ -155,16 +155,16 @@ around the map and vec-of-indices will have only a single value in it."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn reset-icards []
-    (def *localDB-icdata* (atom {})))
+    (def ^:dynamic *localDB-icdata* (atom {})))
 
 (defn reset-slips []
-    (def *localDB-sldata* (atom {})))
+    (def ^:dynamic *localDB-sldata* (atom {})))
 
 (defn reset-slip-registry []
-    (def *icard-to-slip-map* (atom {})))
+    (def ^:dynamic *icard-to-slip-map* (atom {})))
 
 (defn reset-slip-attributes []
-  (def *slip-attributes* (atom {})))
+  (def ^:dynamic *slip-attributes* (atom {})))
 
 ;; (defn get-slip-from-icard
 ;;   ""
@@ -183,7 +183,7 @@ around the map and vec-of-indices will have only a single value in it."
 (defn SYSreset-icard-conn
   "Clears the connection to the InfWb remote db for icards."
   []
-  (def *icard-connection* (SednaXQDataSource.)))
+  (def ^:dynamic *icard-connection* (SednaXQDataSource.)))
 
 ; not used by any other fcns--110901
 (defn SYSnew-connection
@@ -205,13 +205,13 @@ to be used."
   "Used only before InfWb-specific XQuery queries to specify the
 permDB database to be used"
   [name]
-  (def *icard-db-name*   name))
+  (def ^:dynamic *icard-db-name*   name))
 
 (defn set-icard-coll-name
   "Used only before InfWb-specific XQuery queries to specify the
 collection to be used"
   [name]
-  (def *icard-coll-name*   name))
+  (def ^:dynamic *icard-coll-name*   name))
 
 (defn get-icard-db-name []
   *icard-db-name*)
@@ -374,7 +374,7 @@ current infoml element is held in variable $base.  Hardwired to use
 		   tags] ;;atom pointing to vector of tag strings
   )
 
-(def *icdata-fields* (list :icard :ttxt :btxt :tags))
+(def ^:dynamic *icdata-fields* (list :icard :ttxt :btxt :tags))
 
 (declare icdata-field)
 
@@ -689,7 +689,7 @@ API"
 
 ;; Applies fn f to the argument list formed by prepending args to argseq.
 
-;; Ex: (def *strings* ["str1" "str2" "str3"])
+;; Ex: (def ^:dynamic *strings* ["str1" "str2" "str3"])
 ;;     (apply str *strings*)
 ;;     ;returns:	"str1str2str3"
 

@@ -2,7 +2,7 @@
   :description "an evolving, experimental workspace for manipulating infocards"
   :main infwb.core
 
-  :dependencies [[org.clojure/clojure "[1.2.0,1.2.1]"]
+  :dependencies [[org.clojure/clojure "1.3"]
                  [org.clojure/clojure-contrib "[1.2.0,1.2.1]"]
                  [seesaw "1.2.0"]
                  [org.clojars.gw666/sxqj "beta2"]

@@ -24,7 +24,7 @@
 )
 
 
-(def *last-slip-clicked* (atom nil))
+(def ^:dynamic *last-slip-clicked* (atom nil))
 
 (defn contains-item? 
   "true if seq contains elm"

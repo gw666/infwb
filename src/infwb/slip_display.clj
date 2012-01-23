@@ -23,14 +23,16 @@
 (def ^{:doc "height of one line of slip text"
        :dynamic true} *slip-line-height*   21)  ;;height of a slip--was 175
 
-(def *tooltip-width*   (* 1.8 *slip-width*))
+(def ^:dynamic *tooltip-width*   (* 1.8 *slip-width*))
 
-(def *title-width-in-chars*   28)
-(def *ellipsis-width*   3)
-(def *title-char-length*   (- *title-width-in-chars* *ellipsis-width*))
-(def *body-height-in-rows*   5)
-(def *body-char-length*   (* (+ *title-width-in-chars* *ellipsis-width*)
-			    *body-height-in-rows*))
+(def ^:dynamic *title-width-in-chars*   28)
+(def ^:dynamic *ellipsis-width*   3)
+; (def ^:dynamic *title-char-length*   (- *title-width-in-chars* *ellipsis-width*))
+(def ^:dynamic *title-char-length*   25)
+(def ^:dynamic *body-height-in-rows*   5)
+(def ^:dynamic *body-char-length*   140)
+;; (def ^:dynamic *body-char-length*   (* (+ *title-width-in-chars* *ellipsis-width*)
+;; 			    *body-height-in-rows*))
 
 (defn wrap
   "Return wrapped PText; inputs: text, width to wrap to"
@@ -54,7 +56,8 @@
 	indent-y 4
 	adjust-in-pixels 10
 	adjust-in-chars  12
-	body-length   (- *body-char-length* adjust-in-chars)
+	body-length   128
+;	body-length   (- *body-char-length* adjust-in-chars)
 	t-t   (str (st/take *title-char-length* title-text) "...")
 	b-t   (str (st/take  body-length body-text) "...")
 	title (PText. t-t)

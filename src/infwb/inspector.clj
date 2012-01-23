@@ -1,7 +1,7 @@
 (ns infwb.inspector
   (:use [seesaw   core]))
 
-(def *icard-text* (atom "wakka!"))
+(def ^:dynamic *icard-text* (atom "wakka!"))
 
 (def test-action (action :handler #(println "Clicked panel" %)
 			 :enabled? true))
