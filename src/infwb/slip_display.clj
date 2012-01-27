@@ -11,7 +11,6 @@
    (edu.umd.cs.piccolox   PFrame)
    (edu.umd.cs.piccolox.nodes   PClip)
    (java.awt   BasicStroke Color Font GraphicsEnvironment Point Rectangle))
-  (:require [clojure.contrib.string :as st])
   )
 
 (def ^{:doc "width of a slip"
@@ -50,7 +49,8 @@
 (defn make-pinfocard
   "Create generic infocard object (ready to be added to a Piccolo layer)"
   [box-x box-y title-text body-text icard]
-
+  (println "make-pinfocard: title is '" title-text "'")
+  (println "make-pinfocard:  body is '" body-text "'")
   (let [pobj (PPath.)
 	indent-x 5 
 	indent-y 4
@@ -58,8 +58,8 @@
 	adjust-in-chars  12
 	body-length   128
 ;	body-length   (- *body-char-length* adjust-in-chars)
-	t-t   (str (st/take *title-char-length* title-text) "...")
-	b-t   (str (st/take  body-length body-text) "...")
+	t-t   (apply str (take *title-char-length* title-text) "...")
+	b-t   (apply str (take  body-length body-text) "...")
 	title (PText. t-t)
 	body (wrap b-t (- *slip-width*
 			  (quot (inc indent-x) 2)

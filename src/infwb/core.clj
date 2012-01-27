@@ -100,7 +100,7 @@ which executes when the user selects the corresponding menu item."
 			:menubar mybar)]
     myframe))
 
-(declare *last-slip-clicked*)
+; (declare *last-slip-clicked*)
 
 (defn enhanced-start-drag
   ""
