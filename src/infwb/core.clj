@@ -257,4 +257,4 @@ which executes when the user selects the corresponding menu item."
       (listen slip0 :mouse (panel-handler 0 insp-panels))
       (listen slip1 :mouse (panel-handler 1 insp-panels))
       (listen slip2 :mouse (panel-handler 2 insp-panels))
-    (list frame canvas layer))))    ; returns the value of the frames
+    layer)))    ; returns the value of the frames

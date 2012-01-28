@@ -10,5 +10,7 @@
                  [org.clojars.gw666/piccolo2dextras "1.3"]
                  [com.miglayout/miglayout "3.7.4"]
                  ]
-  :dev-dependencies [[midje "1.3.1-SNAPSHOT"]
-                     [lein-midje "[1.0.0,)"]])
+  :dev-dependencies [[midje "1.3.1"]
+                     [clojure-source "1.3.0"]
+                     [swank-clojure "1.3.4"]]
+  :jvm-opts ["-agentlib:jdwp=transport=dt_socket,server=y,suspend=n"])

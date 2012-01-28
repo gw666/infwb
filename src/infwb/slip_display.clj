@@ -50,7 +50,7 @@
   "Create generic infocard object (ready to be added to a Piccolo layer)"
   [box-x box-y title-text body-text icard]
   (println "make-pinfocard: title is '" title-text "'")
-  (println "make-pinfocard:  body is '" body-text "'")
+;  (println "make-pinfocard:  body is '" body-text "'")
   (let [pobj (PPath.)
 	indent-x 5 
 	indent-y 4
@@ -58,8 +58,10 @@
 	adjust-in-chars  12
 	body-length   128
 ;	body-length   (- *body-char-length* adjust-in-chars)
-	t-t   (apply str (take *title-char-length* title-text) "...")
-	b-t   (apply str (take  body-length body-text) "...")
+	t-t   (apply str (concat (take *title-char-length* title-text) "..."))
+	b-t   (apply str (concat (take  body-length body-text) "..."))
+	;; t-t   title-text
+	;; b-t   body-text
 	title (PText. t-t)
 	body (wrap b-t (- *slip-width*
 			  (quot (inc indent-x) 2)
@@ -71,6 +73,7 @@
 	backgd-color (Color. 245 245 245)
 	divider-color (Color. 255 100 100)]
 
+    (println "make-pinfocard: t-t is '" t-t "'")
     (.translate title (+ box-x indent-x) (+ box-y indent-y))
     (.translate body (+ box-x indent-x) (+ box-y indent-y *slip-line-height*))
     (.setPathToRectangle pobj
